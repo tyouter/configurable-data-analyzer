@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rednote Data Analyzer</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!--
+    CUSTOMIZE PER COURSE — change only three accent variables below.
+    Options:
+      vermillion  #D94F30 / #C4432A / #FDEEE9 / #E8836C  (default)
+      coral       #E06B56 / #C85A47 / #FDECEA / #E89585
+      teal        #2A7B9B / #1F6280 / #E4F2F7 / #5A9DB8
+      amber       #D4A843 / #BF9530 / #FDF5E0 / #E0C070
+      forest      #2D8B55 / #226B41 / #E8F5EE / #5AAD7A
+  -->
+  <style>
+    :root {
+      --color-accent:       #2A7B9B;
+      --color-accent-hover: #1F6280;
+      --color-accent-light:   #E4F2F7;
+      --color-accent-muted:   #5A9DB8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Rednote Data Analyzer</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="Introduction" role="tab" aria-label="Module 1: Introduction"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="Data Flow" role="tab" aria-label="Module 2: Data Flow"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="KPI Metrics" role="tab" aria-label="Module 3: KPI Metrics"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="Extending the Tool" role="tab" aria-label="Module 4: Extending the Tool"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="module" id="module-1">
+  <div class="module-content">
+    <header class="module-header">
+      <span class="module-number">01</span>
+      <h1 class="module-title">What is Rednote Data Analyzer?</h1>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">Imagine this scenario...</h2>
+
+      <p>You have a huge Excel spreadsheet filled with thousands of rows of user activity data — page views, clicks, video plays, shares — and you need to make sense of it all. You want to know:</p>
+
+      <div class="step-cards animate-in">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>How many users are actually active?</strong>
+            <p>Not just signed up, but really using the app</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>What's the retention rate?</strong>
+            <p>Do people come back after 7 days? 30 days?</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Which features are most popular?</strong>
+            <p>The AI travel guide? The Porsche+ section? Video content?</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="animate-in">Opening this spreadsheet in Excel and trying to calculate these by hand would take hours — if not days. And next month, you get another spreadsheet, and you have to do it all over again.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Rednote Data Analyzer to the rescue</h2>
+
+      <p class="animate-in">Rednote Data Analyzer is a tool that automates this entire process. Instead of manually counting rows and writing formulas, you:</p>
+
+      <div class="chat-window animate-in" id="chat-intro">
+        <div class="chat-messages">
+          <div class="chat-message" data-msg="0" data-sender="you" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-1)">👤</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-1)">YOU</span>
+              <p>Here's my data file. Can you tell me how many users are active this week?</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="1" data-sender="claude" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">🤖</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">CLAUDE</span>
+              <p>Loading the data file...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="2" data-sender="claude" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">🤖</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">CLAUDE</span>
+              <p>Found 12,847 unique users in the dataset.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="3" data-sender="claude" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">🤖</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">CLAUDE</span>
+              <p>Calculating 7-day retention rate: 24.3%</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="4" data-sender="claude" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">🤖</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">CLAUDE</span>
+              <p>Top feature: AI travel guide with 3,241 clicks this week</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-typing" id="chat-intro-typing" style="display:none">
+          <div class="chat-avatar" id="chat-intro-typing-avatar">?</div>
+          <div class="chat-typing-dots">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+        <div class="chat-controls">
+          <button class="btn chat-next-btn">Next Message</button>
+          <button class="btn chat-all-btn">Play All</button>
+          <button class="btn chat-reset-btn">Replay</button>
+          <span class="chat-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">The hybrid approach: AI + Local Processing</h2>
+
+      <p class="animate-in">What makes Rednote Data Analyzer different is how it combines two types of intelligence:</p>
+
+      <div class="pattern-cards animate-in stagger-children">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon" style="background: var(--color-actor-1)">🧠</div>
+          <h4 class="pattern-title">AI (Cloud)</h4>
+          <p class="pattern-desc">Understands your question in plain English, figures out which metric you want, and decides how to calculate it — like a smart assistant that knows about KPIs and data analysis.</p>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon" style="background: var(--color-actor-2)">⚡</div>
+          <h4 class="pattern-title">Python (Local)</h4>
+          <p class="pattern-desc">Does the actual number-crunching — loads Excel files, filters rows, counts unique users, calculates averages — all running on your machine, keeping your data private and secure.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Key Insight</strong>
+          <p>This hybrid pattern is why the tool works so well. You ask questions the way you naturally would, and the AI figures out the technical details while the local code handles the heavy data processing. It's like having a data analyst who also speaks your language.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Quick quiz</h2>
+
+      <div class="quiz-container animate-in" id="quiz-module1">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Exactly! The AI handles understanding your intent and choosing the right metric, while Python does the actual calculations on your local machine."
+             data-explanation-wrong="Not quite. The AI handles the 'understanding' part (figuring out what you want), while Python handles the 'calculating' part (doing the math on your data).">
+          <h3 class="quiz-question">What does the AI component do?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Run calculations on the data</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Understand your question and choose the right metric</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Store the data in the cloud</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="btn quiz-check-btn btn-primary" onclick="checkQuiz('quiz-module1')">Check Answer</button>
+        <button class="btn quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="module" id="module-2">
+  <div class="module-content">
+    <header class="module-header">
+      <span class="module-number">02</span>
+      <h1 class="module-title">How Data Flows Through the System</h1>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">The complete journey of an analysis request</h2>
+
+      <p class="animate-in">When you ask the analyzer a question, several components work together like a team. Here's what happens, step by step:</p>
+
+      <div class="flow-animation animate-in" id="flow-dataflow" data-steps='[
+{"highlight":"flow-you","label":"You ask a question in plain English"},
+{"highlight":"flow-you","label":"SKILL is triggered by keywords like \u201canalyze data\u201d","packet":true,"from":"you","to":"skill"},
+{"highlight":"flow-skill","label":"SKILL loads your data file with pandas"},
+{"highlight":"flow-skill","label":"ProjectMatcher detects which project this data belongs to"},
+{"highlight":"flow-config","label":"ConfigManager loads the project configuration"},
+{"highlight":"flow-analyzer","label":"RednoteAnalyzer calculates the requested KPI","packet":true,"from":"config","to":"analyzer"},
+{"highlight":"flow-analyzer","label":"Results are returned to you"}
+]'>
+        <div class="flow-actors">
+          <div class="flow-actor" id="flow-you">
+            <div class="flow-actor-icon">👤</div>
+            <span>You</span>
+          </div>
+          <div class="flow-actor" id="flow-skill">
+            <div class="flow-actor-icon">📋</div>
+            <span>SKILL</span>
+          </div>
+          <div class="flow-actor" id="flow-config">
+            <div class="flow-actor-icon">⚙️</div>
+            <span>ConfigManager</span>
+          </div>
+          <div class="flow-actor" id="flow-analyzer">
+            <div class="flow-actor-icon">⚡</div>
+            <span>RednoteAnalyzer</span>
+          </div>
+        </div>
+
+        <div class="flow-packet" id="flow-packet"></div>
+
+        <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+        <div class="flow-controls">
+          <button class="btn flow-next-btn btn-primary">Next Step</button>
+          <button class="btn flow-reset-btn">Restart</button>
+          <span class="flow-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Meet the main components</h2>
+
+      <p class="animate-in">Think of these as the main characters in our story. Each has a specific job:</p>
+
+      <div class="icon-rows animate-in stagger-children">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-1)">👤</div>
+          <div>
+            <strong>You (The User)</strong>
+            <p>Ask questions in plain language like "How many users are active this week?"</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-2)">📋</div>
+          <div>
+            <strong>SKILL (The Orchestrator)</strong>
+            <p>Tells the system what to do based on your request — like a project manager coordinating everyone</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-3)">⚙️</div>
+          <div>
+            <strong>ConfigManager (The Librarian)</strong>
+            <p>Manages all configuration files — knows which metrics exist for which project, and how to calculate them</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-4)">⚡</div>
+          <div>
+            <strong>RednoteAnalyzer (The Calculator)</strong>
+            <p>Does the actual math — loads data, filters it, counts, aggregates, and returns results</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">How components talk to each other</h2>
+
+      <p class="animate-in">Here's a real conversation showing how these components coordinate when you ask for a KPI:</p>
+
+      <div class="chat-window animate-in" id="chat-components">
+        <div class="chat-messages">
+          <div class="chat-message" data-msg="0" data-sender="skill" style="display:none">
+            <div class="chat-avatar" style="background: (var(--color-actor-2))">📋</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">SKILL</span>
+              <p>Hey ConfigManager, what metrics are available for the rednote_project?</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="1" data-sender="config" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-3)">⚙️</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-3)">CONFIG</span>
+              <p>Here's the metrics.yaml file with 5 KPI categories: app_metrics, porsche_plus_metrics, discovery_page_metrics, ai_guide_metrics, and share_metrics.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="2" data-sender="skill" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">📋</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">SKILL</span>
+              <p>Thanks! Now RednoteAnalyzer, please calculate the app_active_rate KPI for this dataset.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="3" data-sender="analyzer" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-4)">⚡</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-4)">ANALYZER</span>
+              <p>Loading Excel file with pandas...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="4" data-sender="analyzer" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-4)">⚡</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-4)">ANALYZER</span>
+              <p>Filtering for discovery_page_pageshow events...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="5" data-sender="analyzer" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-4)">⚡</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-4)">ANALYZER</span>
+              <p>Counting active users (session duration > 5 seconds)...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="6" data-sender="analyzer" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-4)">⚡</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-4)">ANALYZER</span>
+              <p>Calculating: 3,241 active users / 12,847 total users = 25.23% active rate.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-typing" id="chat-components-typing" style="display:none">
+          <div class="chat-avatar" id="chat-components-typing-avatar">?</div>
+          <div class="chat-typing-dots">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+        <div class="chat-controls">
+          <button class="btn chat-next-btn">Next Message</button>
+          <button class="btn chat-all-btn">Play All</button>
+          <button class="btn chat-reset-btn">Replay</button>
+          <span class="chat-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Understanding pandas — the Excel reader</h2>
+
+      <p class="animate-in">When the analyzer needs to read your data file, it uses a Python library called <span class="term" data-definition="Pandas is a powerful Python library for data analysis. Think of it as Excel on steroids — it can load spreadsheets, filter rows, do math, and much more, all in code instead of clicking through menus.">pandas</span>.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> load_data(self) -> pd.DataFrame:</span>
+<span class="code-line">    <span class="code-string">"""Load data from Excel file"""</span></span>
+<span class="code-line">    <span class="code-keyword">if not</span> os.path.exists(self.data_path):</span>
+<span class="code-line">        <span class="code-keyword">raise</span> FileNotFoundError(f<span class="code-string">"Data file not found"</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">    self.data = pd.<span class="code-function">read_excel</span>(data_path)</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-comment"># Parse timestamps</span></span>
+<span class="code-line">    <span class="code-keyword">if</span> <span class="code-string">'strt_time_nano'</span> <span class="code-keyword">in</span> self.data.columns:</span>
+<span class="code-line">        self.data[<span class="code-string">'strt_time_dt'</span>] = pd.to_datetime(</span>
+<span class="code-line">            self.data[<span class="code-string">'strt_time_nano'</span>], errors=<span class="code-string">'coerce'</span>)</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">This function loads data from an Excel file...</a></p>
+            <p class="tl">First, check if the file actually exists — don't crash if it's missing</a></p>
+            <p class="tl">Use pandas read_excel() to load the whole spreadsheet into memory...</a></p>
+            <p class="tl">Then convert the timestamp column to actual datetime objects so we can work with dates properly</a></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Key Insight</strong>
+          <p>Libraries like pandas are what make Python powerful for data. Instead of writing code to read files line by line, you just call one function and get a complete data structure (DataFrame) that you can filter, sort, and calculate on. Engineers call this "don't reinvent the wheel."</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Quick quiz</h2>
+
+      <div class="quiz-container animate-in" id="quiz-module2">
+        <div class="quiz-question-block"
+             data-correct="option-c"
+             data-explanation-right="Exactly! Pandas read_excel() loads the entire file into memory as a DataFrame, which is like a super-powered spreadsheet you can query with code."
+             data-explanation-wrong="Not quite. Pandas can read many formats including CSV, JSON, SQL databases, and more. read_excel() is specifically for Excel files."
+             data-explanation-wrong-alt="Not quite. The config is read by ConfigManager using YAML files, while pandas only loads the data.">
+          <h3 class="quiz-question">What does pandas.read_excel() do?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Reads the configuration file</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Can only read CSV files</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Loads the Excel file into a DataFrame in memory</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="btn quiz-check-btn btn-primary" onclick="checkQuiz('quiz-module2')">Check Answer</button>
+        <button class="btn quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="module" id="module-3">
+  <div class="module-content">
+    <header class="module-header">
+      <span class="module-number">03</span>
+      <h1 class="module-title">KPI Metrics — How the Numbers Are Calculated</h1>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">What is a KPI?</h2>
+
+      <p class="animate-in"><span class="term" data-definition="KPI stands for Key Performance Indicator. It's a measurable value that shows how well you're doing against a goal — like a grade on a report card that tells you if you're on track.">KPI</span> (Key Performance Indicator) is like a report card grade for your product. It tells you, at a glance, how things are going.</p>
+
+      <div class="pattern-cards animate-in stagger-children">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon" style="background: var(--color-actor-1)">👥</div>
+          <h4 class="pattern-title">app_active_rate</h4>
+          <p class="pattern-desc">25.23% — What percentage of users actually use the app (stayed longer than 5 seconds)</p>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon" style="background: var(--color-actor-2)">⏱</div>
+          <h4 class="pattern-title">app_retention_rate</h4>
+          <p class="pattern-desc">24.3% — How many users came back 7 days later (shows if product keeps people engaged)</p>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+          <div class="pattern-icon" style="background: var(--color-actor-3)">🎯</div>
+          <h4 class="pattern-title">ai_guide_usage_rate</h4>
+          <p class="pattern-desc">12.7% — How often people click the AI travel guide button (measures feature adoption)</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Key Insight</strong>
+          <p>KPIs are "leading indicators" in business. They condense complex data into single numbers you can track over time. Good KPIs are actionable — if retention drops, you know to investigate why users aren't coming back.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">How different KPI types are calculated</h2>
+
+      <p class="animate-in">The analyzer supports several types of calculations. Each type describes a different "recipe" for crunching the numbers:</p>
+
+      <div class="icon-rows animate-in stagger-children">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-1)">🔢</div>
+          <div>
+            <strong>count_unique_users</strong>
+            <p>Simply count how many different values appear in a column (like counting names in a list without duplicates)</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-2)">📊</div>
+          <div>
+            <strong>count_events</strong>
+            <p>Count every row that matches a pattern — total clicks, total opens, total views</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-3)">⏱</div>
+          <div>
+            <strong>ratio</strong>
+            <p>Divide one KPI by another — like "app_avg_opens_per_user" is "total_opens" divided by "active_users"</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-4)">⏰</span></div>
+          <div>
+            <strong>exposure_time</strong>
+            <p>Add up time differences between when people opened something and when they closed it — measures how long they spent</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-5)">📉</div>
+          <div>
+            <strong>retention_rate</strong>
+            <p>Check if users who appeared on day X also appeared on day X + 7 — do they stick around?</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">See a KPI calculation in code</h2>
+
+      <p class="animate-in">Here's how the analyzer calculates "app_active_rate" — the percentage of active users. Watch the code on the left and plain English on the right:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">elif</span> kpi_type == <span class="code-string">'active_rate'</span>:</span>
+<span class="code-line">    event = kpi_config.<span class="code-function">get</span>(<span class="code-string">'event'</span>)</span>
+<span class="code-line">    min_duration = kpi_config.<span class="code-function">get</span>(<span class="code-string">'min_duration_seconds'</span>, <span class="code-number">0</span>)</span>
+<span class="code-line">    active_users = self.<span class="code-function">calculate_active_users</span>(event, min_duration_seconds=min_duration, **kwargs)</span>
+<span class="code-line">    total_users = self.data[<span class="code-string">'reduser_id'</span>].dropna().nunique()</span>
+<span class="code-line">    <span class="code-keyword">return round</span>((active_users / total_users * <span class="code-number">100</span>) <span class="code-keyword">if</span> total_users > <span class="code-number">0</span> <span class="code-keyword">else</span> <span class="code-number">0</span>, <span class="code-number">2</span>)</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">If the KPI type is "active_rate" (we're measuring active users)...</p>
+            <p class="tl">Get which event to track (like "discovery_page_pageshow")...</p>
+            <p class="tl">Get minimum time to count as "active" (at least 5 seconds)...</p>
+            <p class="tl">Calculate how many users spent more than 5 seconds...</p>
+            <p class="tl">Divide by total unique users in the dataset...</p>
+            <p class="tl">Multiply by 100 to get a percentage, round to 2 decimal places</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info animate-in">
+        <div class="callout-icon">📘</div>
+        <div class="callout-content">
+          <strong class="callout-title">Good to know</strong>
+          <p>The nunique() method removes duplicate users (if someone opened the app twice, they're counted once). dropna() ignores missing values to avoid errors.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">YAML — the recipe book for KPIs</h2>
+
+      <p class="animate-in">All KPI definitions are stored in <span class="term" data-definition="YAML is a human-readable file format for storing configuration data. It uses indentation (spaces) instead of braces and brackets, making it easy for people to read and edit.">YAML</span> files. This is how the analyzer knows HOW to calculate each KPI:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code-english">
+          <span class="translation-label">YAML CONFIG</span>
+          <div class="translation-lines">
+            <p class="tl">Define a KPI named "app_active_rate"</p>
+            <p class="tl">Give it a friendly name like "APP 活跃率"</p>
+            <p class="tl">Set type to "active_rate" — this tells the analyzer which calculation recipe to use</p>
+            <p class="tl">Specify the event to track: "discovery_page_pageshow"</p>
+            <p class="tl">Set minimum duration to 5 seconds (only count users who stayed at least this long)</p>
+            <p class="tl">Add a description in Chinese explaining what this measures</p>
+          </div>
+        </div>
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code><span class="code-line">app_active_rate:</span>
+<span class="code-line">  name: <span class="code-string">"APP 活跃率"</span></span>
+<span class="code-line">  type: <span class="code-string">"active_rate"</span></span>
+<span class="code-line">  event: <span class="code-string">"discovery_page_pageshow"</span></span>
+<span class="code-line">  min_duration_seconds: <span class="code-number">5</span></span>
+<span class="code-line">  description: <span class="code-string">"至少一次有效 APP 操作的活跃用户数量..."</span></span>
+</code></pre>
+        </div>
+      </div>
+
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Key Insight</strong>
+          <p>Separating configuration (WHAT to calculate) from code (HOW to calculate it) is a crucial pattern. It means you can add new KPIs just by editing the YAML file — no code changes needed. Engineers call this "configuration over hardcoding."</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Quick quiz</h2>
+
+      <div class="quiz-container animate-in" id="quiz-module3">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Exactly! Retention_rate calculates if users who appeared on day X also appeared on day X + N. It requires tracking users over time, not just counting events."
+             data-explanation-wrong="Not quite. Count_unique_users counts how many different users are in the dataset, but doesn't track them over time."
+             >
+          <h3 class="quiz-question">Which KPI type calculates whether users come back after N days?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>count_unique_users</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>retention_rate</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>ratio</span>
+            </button>
+            <button class="quiz-option" data-value="option-d" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>count_events</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="btn quiz-check-btn btn-primary" onclick="checkQuiz('quiz-module3')">Check Answer</button>
+        <button class="btn quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="module" id="module-4">
+  <div class="module-content">
+    <header class="module-header">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Extending the Analyzer — Adding Your Own Features</h1>
+    </header>
+
+    <div class="screen">
+      <h2 class="screen-heading">The tool is built to be extended</h2>
+
+      <p class="animate-in">One of the most important design decisions is that you can add new KPIs and analysis methods without touching the core code. This is done through a few extension points:</p>
+
+      <div class="step-cards animate-in stagger-children">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Edit metrics.yaml</strong>
+            <p>Add a new KPI definition in your project's config file and it just works — new metrics calculated automatically</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Add new analysis methods</strong>
+            <p>Write a new method in the RednoteAnalyzer class (like analyze_video_behavior()) and call it from your code</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Create new projects</strong>
+            <p>Use ConfigManager to create a new project with its own schema and metrics for a completely different dataset</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Adding a new KPI — a practical example</h2>
+
+      <p class="animate-in">Let's say you want to track a new metric: "how many users shared content this week?" Here's how you'd add it:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">YAML ADDITION</span>
+          <pre><code><span class="code-line">share_metrics:</span>
+<span class="code-line">  # Add this to existing section</span>
+<span class="code-line">  share_usage_count:</span>
+<span class="code-line">    name: <span class="code-string">"内容分享使用次数"</span></span>
+<span class="code-line">    type: <span class="code-string">"count_events"</span></span>
+<span class="code-line">    events: [<span class="code-string">"post_detail_page_share_button_click"</span>]</span>
+<span class="code-line">    description: <span class="code-string">"统计周期内分享按钮点击次数"</span></span>
+</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">WHAT YOU DID</span>
+          <div class="translation-lines">
+            <p class="tl">Added to the "share_metrics" category (or created a new one)</p>
+            <p class="tl">Named the metric "share_usage_count" in English (for code)</p>
+            <p class="tl">Set type to "count_events" — reuse existing calculation method!</p>
+            <p class="tl">Listed which event(s) to count — the share button click</p>
+            <p class="tl">Added a Chinese description for human readability</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="animate-in">That's it! Next time the analyzer runs, this KPI is automatically calculated. No code changes needed.</p>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Adding a custom analysis method</h2>
+
+      <p class="animate-in">Sometimes you need something more complex than counting events. You can add new methods to the analyzer class:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">NEW METHOD</span>
+          <pre><code><span class="code-line"><span class="code-keyword">def</span> analyze_top_content(self) -> Dict[str, Any]:</span>
+<span class="code-line">    <span class="code-string">"""Analyze most popular content"""</span></span>
+<span class="code-line">    <span class="code-keyword">if</span> self.data <span class="code-keyword">is</span> <span class="code-keyword">None</span>:</span>
+<span class="code-line">        self.<span class="code-function">load_data</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">    content_events = self.data[</span>
+<span class="code-line">        self.data[<span class="code-string">'rednote_post_is_like'</span>].notna()</span>
+<span class="code-line">    ]</span>
+<span class="code-line"></span>
+<span class="code-line">    top_posts = content_events[</span>
+<span class="code-line">        self.data[<span class="code-string">'rednote_post_id'</span>]</span>
+<span class="code-line">    ].value_counts().head(<span class="code-number">10</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">return</span> {</span>
+<span class="code-line">        <span class="code-string">'top_posts'</span>: top_posts.to_dict(),</span>
+<span class="code-line">        <span class="code-string">'total_likes'</span>: <span class="code-function">len</span>(content_events)</span>
+<span class="code-line">    }</span>
+</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">WHAT IT DOES</span>
+          <div class="translation-lines">
+            <p class="tl">Define a new function that returns a dictionary of results</p>
+            <p class="tl">Filter for rows where users liked content (is_like column is not empty)</p>
+            <p class="code-line">Grab the post IDs from those rows</p>
+            <p class="code-line">Count how many times each post appears (value_counts) and get top 10</p>
+            <p class="code-line">Return both the ranking and total like count</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info animate-in">
+        <div class="callout-icon">📘</div>
+        <div class="callout-content">
+          <strong class="callout-title">Good to know</strong>
+          <p>Pandas DataFrame methods like value_counts() make aggregation easy. They automatically count frequencies and sort, saving you from writing loops to do the same thing.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Understanding ProjectMatcher — how it knows your data</h2>
+
+      <p class="animate-in">How does the analyzer automatically figure out which configuration to use? It uses smart matching:</p>
+
+      <div class="icon-rows animate-in stagger-children">
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-1)">📂</div>
+          <div>
+            <strong>Filename pattern matching</strong>
+            <p>If your file is named "rednote_data_202403.xlsx", it looks for a pattern like "rednote_.*" in the config</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-2)">📋</div>
+          <div>
+            <strong>Column signature matching</strong>
+            <p>Checks if your data has specific required columns like "user_id" or "event_type" — like checking if a document has the right headers</p>
+          </div>
+        </div>
+        <div class="icon-row">
+          <div class="icon-circle" style="background: var(--color-actor-3)">🎯</div>
+          <div>
+            <strong>Similarity scoring</strong>
+            <p>If the first two methods fail, it calculates Jaccard similarity (how many column names overlap) and picks the closest match</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-accent animate-in">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Key Insight</strong>
+          <p>This multi-strategy approach makes the tool flexible. You can rename files, add columns, or reorganize folders — and the matcher will still find the right configuration most of the time.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2 class="screen-heading">Final quiz</h2>
+
+      <div class="quiz-container animate-in" id="quiz-module4">
+        <div class="quiz-question-block"
+             data-correct="option-a"
+             data-explanation-right="Exactly! Adding KPIs in YAML and reusing existing calculation types (like count_events) means you can add new metrics without writing any Python code at all."
+             data-explanation-wrong="Not quite. That requires writing a new Python function, which is more complex than just adding a YAML entry."
+             >
+          <h3 class="quiz-question">What's the easiest way to add a new KPI?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Add a new method in analyzer.py</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Add an entry in metrics.yaml with an existing type</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Change the KPI calculation logic in the code</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+
+        <button class="btn quiz-check-btn btn-primary" onclick="checkQuiz('quiz-module4')">Check Answer</button>
+        <button class="btn quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+  </main>
+
+</body>
+</html>

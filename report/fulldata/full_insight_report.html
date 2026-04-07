@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rednote 全量数据深度洞察报告</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f8f9fa;color:#1a1a2e;line-height:1.6;}
+.container{max-width:1200px;margin:0 auto;padding:24px;}
+h1{text-align:center;font-size:28px;color:#D94F30;padding:32px 0 16px;border-bottom:3px solid #D94F30;}
+.meta{text-align:center;color:#666;font-size:14px;margin-bottom:40px;}
+.section{background:white;border-radius:12px;padding:28px;margin-bottom:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);}
+h2{font-size:20px;color:#D94F30;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #f0e8e4;}
+h3{font-size:16px;color:#333;margin:16px 0 8px;}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;}
+th{background:#D94F30;color:white;padding:10px 12px;text-align:left;font-weight:600;}
+td{padding:8px 12px;border-bottom:1px solid #eee;}
+tr:hover{background:#fef5f0;}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin:16px 0;}
+.metric-card{background:linear-gradient(135deg,#fff5f0,#fff);border-radius:10px;padding:18px;border-left:4px solid #D94F30;}
+.metric-value{font-size:28px;font-weight:800;color:#D94F30;}
+.metric-label{font-size:13px;color:#666;margin-top:4px;}
+.tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;margin:2px;}
+.tag-high{background:#e8f5ee;color:#2D8B55;} .tag-mid{background:#e4f2f7;color:#2A7B9B;} .tag-low{background:#fde8e8;color:#C93B3B;}
+.insight-box{background:#fffbf5;border-left:4px solid #D4A843;padding:14px 18px;margin:12px 0;border-radius:0 8px 8px 0;}
+.funnel-step{display:flex;align-items:center;gap:12px;margin:8px 0;padding:10px;background:#fafafa;border-radius:8px;}
+.funnel-bar{height:28px;border-radius:14px;background:linear-gradient(90deg,#D94F30,#e8836c);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:13px;min-width:60px;}
+.funnel-label{font-size:13px;min-width:180px;} .funnel-rate{font-size:12px;color:#888;min-width:80px;}
+</style></head><body><div class="container">
+<h1>Rednote 全量数据深度洞察报告</h1>
+<p class="meta">生成时间: 2026-04-07 18:37 | 数据范围: 2026-03-19 ~ 2026-03-30 | 6大分析维度</p>
+
+<div class="section"><h2>核心指标总览</h2><div class="metric-grid">
+<div class="metric-card"><div class="metric-value">189.79</div><div class="metric-label">人均事件数</div></div>
+<div class="metric-card"><div class="metric-value">206</div><div class="metric-label">分析用户总数</div></div>
+<div class="metric-card"><div class="metric-value">1.5</div><div class="metric-label">平均活跃天数</div></div>
+<div class="metric-card"><div class="metric-value">50.0%</div><div class="metric-label">周末事件占比</div></div>
+<div class="metric-card"><div class="metric-value">0.19%</div><div class="metric-label">整体互动率</div></div>
+<div class="metric-card"><div class="metric-value">43.6</div><div class="metric-label">平均APP熟悉度</div></div>
+</div></div>
+
+<div class="section"><h2>一、用户画像分析</h2>
+<h3>活跃度分层</h3><table><tr><th>层级</th><th>用户数</th><th>占比</th><th>说明</th></tr><tr><td><span class="tag tag-low">沉睡用户</span></td><td>52</td><td>25.2%</td><td>几乎不活跃，需唤醒</td></tr><tr><td><span class="tag tag-high">高活用户</span></td><td>52</td><td>25.2%</td><td>高频深度使用者，核心价值群体</td></tr><tr><td><span class="tag tag-mid">中活用户</span></td><td>52</td><td>25.2%</td><td>稳定使用的常规用户</td></tr><tr><td><span class="tag tag-low">低活用户</span></td><td>50</td><td>24.3%</td><td>偶发使用的轻度用户</td></tr></table><h3>用户角色画像</h3><table><tr><th>画像类型</th><th>用户数</th><th>占比</th><th>特征</th></tr><tr><td><span class="tag tag-mid">常规用户</span></td><td>102</td><td>49.5%</td><td>使用2-3个功能模块，有明确偏好</td></tr><tr><td><span class="tag tag-low">单功能用户</span></td><td>89</td><td>43.2%</td><td>仅使用单一功能，有增长空间</td></tr><tr><td><span class="tag tag-high">全能玩家</span></td><td>15</td><td>7.3%</td><td>同时使用4+功能模块，高粘性核心用户</td></tr></table>
+<h3>新老用户构成</h3><table><tr><th>类型</th><th>数量</th><th>占比</th></tr>
+<tr><td>新用户(≤1天)</td><td>144</td><td>69.9%</td></tr>
+<tr><td>回访用户(>1天)</td><td>62</td><td>30.1%</td></tr>
+</table>
+<h3>页面偏好TOP</h3><table><tr><th>首选页面</th><th>用户数</th></tr><tr><td>discovery</td><td>133</td></tr><tr><td>porsche</td><td>51</td></tr><tr><td>search</td><td>10</td></tr><tr><td>post</td><td>8</td></tr><tr><td>profile</td><td>3</td></tr><tr><td>trival</td><td>1</td></tr></table><h3>功能渗透率</h3><div class="metric-grid"><div class="metric-card"><div class="metric-value">86</div><div class="metric-label">📍 POI地图 (41.7%)</div></div><div class="metric-card"><div class="metric-value">206</div><div class="metric-label">📝 内容消费 (100.0%)</div></div><div class="metric-card"><div class="metric-value">35</div><div class="metric-label">🎬 视频观看 (17.0%)</div></div><div class="metric-card"><div class="metric-value">18</div><div class="metric-label">🤖 AI指南 (8.7%)</div></div><div class="metric-card"><div class="metric-value">10</div><div class="metric-label">❤️ 点赞互动 (4.9%)</div></div><div class="metric-card"><div class="metric-value">5</div><div class="metric-label">⭐ 收藏互动 (2.4%)</div></div><div class="metric-card"><div class="metric-value">42</div><div class="metric-label">👤 关注互动 (20.4%)</div></div></div>
+<div class="insight-box"><strong>💡 核心洞察：</strong>
+全能玩家占7.3%，
+回访用户占30.1%，
+POI地图功能渗透率达41.7%。
+</div></div>
+<div class="section"><h2>二、用户生活习惯分析</h2>
+<h3>24小时活跃分布</h3><table><tr><th>时段</th><th>事件数</th><th>活跃用户</th></tr><tr><td>00:00-00:59</td><td>1,010</td><td>3</td></tr><tr><td>01:00-01:59</td><td>452</td><td>1</td></tr><tr><td>02:00-02:59</td><td>1,120</td><td>2</td></tr><tr><td>05:00-05:59</td><td>0</td><td>0</td></tr><tr><td>07:00-07:59</td><td>3</td><td>1</td></tr><tr><td>08:00-08:59</td><td>1,125</td><td>18</td></tr><tr><td>09:00-09:59</td><td>1,296</td><td>15</td></tr><tr><td>10:00-10:59</td><td>3,549</td><td>23</td></tr><tr><td>11:00-11:59</td><td>3,987</td><td>20</td></tr><tr><td>12:00-12:59</td><td>3,357</td><td>29</td></tr><tr><td>13:00-13:59</td><td>4,334</td><td>24</td> 🔥</tr><tr><td>14:00-14:59</td><td>2,017</td><td>24</td></tr><tr><td>15:00-15:59</td><td>2,897</td><td>27</td></tr><tr><td>16:00-16:59</td><td>3,262</td><td>36</td></tr><tr><td>17:00-17:59</td><td>3,370</td><td>48</td></tr><tr><td>18:00-18:59</td><td>1,694</td><td>31</td></tr><tr><td>19:00-19:59</td><td>1,456</td><td>23</td></tr><tr><td>20:00-20:59</td><td>1,766</td><td>19</td></tr><tr><td>21:00-21:59</td><td>937</td><td>21</td></tr><tr><td>22:00-22:59</td><td>932</td><td>14</td></tr><tr><td>23:00-23:59</td><td>532</td><td>6</td></tr></table>
+<h3>周末 vs 工作日</h3><table><tr><th>类型</th><th>事件数</th><th>占比</th></tr>
+<tr><td>周末 (周六日)</td><td>7,634</td><td>50.0%</td></tr>
+<tr><td>工作日 (周一至五)</td><td>31,462</td><td>50.0%</td></tr>
+</table>
+
+<div class="insight-box"><strong>💡 核心洞察：</strong>
+高峰时段为13:00，
+夜猫子用户达13人，
+早鸟用户6人。
+</div></div>
+<div class="section"><h2>三、用户消费习惯分析</h2>
+<h3>POI兴趣分类</h3><table><tr><th>类别</th><th>交互次数</th></tr><tr><td>其他</td><td>6,532</td></tr><tr><td>餐饮美食</td><td>1,297</td></tr><tr><td>休闲娱乐</td><td>514</td></tr><tr><td>旅游出行</td><td>322</td></tr><tr><td>运动健身</td><td>281</td></tr><tr><td>购物消费</td><td>244</td></tr><tr><td>亲子教育</td><td>142</td></tr><tr><td>生活服务</td><td>31</td></tr></table>
+<h3>热门POI TOP10</h3><table><tr><th>排名</th><th>POI名称</th><th>出现次数</th></tr><tr><td>1</td><td>上海朱家角安麓酒店</td><td>411</td></tr><tr><td>2</td><td>保时捷品牌快闪空间</td><td>146</td></tr><tr><td>3</td><td>江上桥文化园</td><td>127</td></tr><tr><td>4</td><td>akimbo(西丽店)</td><td>116</td></tr><tr><td>5</td><td>Porsche保时捷上海体验中心</td><td>105</td></tr><tr><td>6</td><td>上海秦古美术馆</td><td>91</td></tr><tr><td>7</td><td>上海长兴宋品酒店</td><td>73</td></tr><tr><td>8</td><td>Porsche保时捷</td><td>70</td></tr><tr><td>9</td><td>南悦海鲜舫</td><td>62</td></tr><tr><td>10</td><td>光Livehouse</td><td>57</td></tr></table>
+<h3>内容消费行为</h3><div class="metric-grid">
+<div class="metric-card"><div class="metric-value">14,630</div><div class="metric-label">笔记浏览总量</div></div>
+<div class="metric-card"><div class="metric-value">19</div><div class="metric-label">点赞次数</div></div>
+<div class="metric-card"><div class="metric-value">11</div><div class="metric-label">收藏次数</div></div>
+<div class="metric-card"><div class="metric-value">47</div><div class="metric-label">关注次数</div></div>
+<div class="metric-card"><div class="metric-value">0.19%</div><div class="metric-label">整体互动率</div></div>
+<div class="metric-card"><div class="metric-value">167</div><div class="metric-label">视频交互量</div></div>
+</div>
+
+<h3>用户消费倾向</h3><table><tr><th>类型</th><th>用户数</th><th>占比</th></tr>
+<tr><td>📖 内容导向型</td><td>198</td><td>96.1%</td></tr>
+<tr><td>📍 POI导向型</td><td>8</td><td>3.9%</td></tr>
+</table>
+
+<div class="insight-box"><strong>💡 核心洞察：</strong>
+共发现2288个独立POI点，
+内容互动率0.19%，
+平均用户参与度0.27%。
+</div></div>
+<div class="section"><h2>四、用户使用场景分析</h2>
+<h3>内容消费转化漏斗</h3><div class="funnel-step"><div class="funnel-label">Discovery Page Exposure</div><div class="funnel-bar" style="width:400px">3,042</div><div class="funnel-rate"></div></div><div class="funnel-step"><div class="funnel-label">Post Card Shown</div><div class="funnel-bar" style="width:1457px">11,085</div><div class="funnel-rate"> → 364.4%</div></div><div class="funnel-step"><div class="funnel-label">Post Card Clicked</div><div class="funnel-bar" style="width:99px">760</div><div class="funnel-rate"> → 6.86%</div></div><div class="funnel-step"><div class="funnel-label">Post Detail Exposure</div><div class="funnel-bar" style="width:247px">1,880</div><div class="funnel-rate"> → 247.37%</div></div><div class="funnel-step"><div class="funnel-label">Post Interaction</div><div class="funnel-bar" style="width:20px">94</div><div class="funnel-rate"> → 5.0%</div></div><h3>POI导航转化漏斗</h3><div class="funnel-step"><div class="funnel-label">Map Page Exposure</div><div class="funnel-bar" style="width:400px">2,207</div><div class="funnel-rate"></div></div><div class="funnel-step"><div class="funnel-label">Poi Card Shown</div><div class="funnel-bar" style="width:1397px">7,711</div><div class="funnel-rate"> → 349.39%</div></div><div class="funnel-step"><div class="funnel-label">Poi Card Clicked</div><div class="funnel-bar" style="width:21px">121</div><div class="funnel-rate"> → 1.57%</div></div><div class="funnel-step"><div class="funnel-label">Navigation Requested</div><div class="funnel-bar" style="width:32px">178</div><div class="funnel-rate"> → 147.11%</div></div><div class="funnel-step"><div class="funnel-label">Navigation Confirmed</div><div class="funnel-bar" style="width:28px">160</div><div class="funnel-rate"> → 89.89%</div></div><h3>AI旅行指南转化漏斗</h3><div class="funnel-step"><div class="funnel-label">Ai Guide Button Shown</div><div class="funnel-bar" style="width:400px">117</div><div class="funnel-rate"></div></div><div class="funnel-step"><div class="funnel-label">Ai Guide Button Clicked</div><div class="funnel-bar" style="width:129px">38</div><div class="funnel-rate"> → 32.48%</div></div><div class="funnel-step"><div class="funnel-label">Guide Generated</div><div class="funnel-bar" style="width:105px">31</div><div class="funnel-rate"> → 81.58%</div></div><div class="funnel-step"><div class="funnel-label">Guide Confirmed</div><div class="funnel-bar" style="width:181px">53</div><div class="funnel-rate"> → 170.97%</div></div><div class="funnel-step"><div class="funnel-label">Guide Detail Viewed</div><div class="funnel-bar" style="width:796px">233</div><div class="funnel-rate"> → 439.62%</div></div><div class="funnel-step"><div class="funnel-label">Guide Shared</div><div class="funnel-bar" style="width:47px">14</div><div class="funnel-rate"> → 6.01%</div></div><h3>TOP用户行为路径</h3>
+<table><tr><th>#</th><th>路径</th><th>用户数</th></tr><tr><td>1</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; di...</td><td>187</td></tr><tr><td>2</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; na...</td><td>6</td></tr><tr><td>3</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; di...</td><td>5</td></tr><tr><td>4</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; po...</td><td>2</td></tr><tr><td>5</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; navigation -&gt; porsche -&gt; porsche -&gt; navigation -&gt; porsche -&gt; discov...</td><td>1</td></tr><tr><td>6</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; di...</td><td>1</td></tr><tr><td>7</td><td style="font-family:monospace;font-size:12px;">post -&gt; post -&gt; post -&gt; post -&gt; post -&gt; post -&gt; post -&gt; post</td><td>1</td></tr><tr><td>8</td><td style="font-family:monospace;font-size:12px;">navigation -&gt; porsche -&gt; porsche -&gt; porsche -&gt; porsche -&gt; porsche -&gt; porsche -&gt; ...</td><td>1</td></tr><tr><td>9</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; discovery -&gt; di...</td><td>1</td></tr><tr><td>10</td><td style="font-family:monospace;font-size:12px;">discovery -&gt; porsche -&gt; discovery -&gt; discovery -&gt; discovery -&gt; porsche -&gt; search...</td><td>1</td></tr></table></div>
+<div class="section"><h2>五、用户关联需求分析</h2>
+<h3>功能两两关联强度</h3><table><tr><th>功能对</th><th>共同使用</th><th>A→B概率</th><th>B→A概率</th></tr><tr><td>content_x_ai</td><td>168</td><td>100.0%</td><td>81.55%</td></tr><tr><td>poi_x_content</td><td>86</td><td>41.75%</td><td>100.0%</td></tr><tr><td>poi_x_ai</td><td>83</td><td>49.4%</td><td>96.51%</td></tr><tr><td>content_x_search</td><td>59</td><td>100.0%</td><td>28.64%</td></tr><tr><td>search_x_ai</td><td>55</td><td>32.74%</td><td>93.22%</td></tr><tr><td>poi_x_search</td><td>39</td><td>66.1%</td><td>45.35%</td></tr><tr><td>content_x_video</td><td>35</td><td>100.0%</td><td>16.99%</td></tr><tr><td>ai_x_video</td><td>35</td><td>100.0%</td><td>20.83%</td></tr><tr><td>poi_x_video</td><td>22</td><td>62.86%</td><td>25.58%</td></tr><tr><td>search_x_video</td><td>15</td><td>42.86%</td><td>25.42%</td></tr></table>
+<h3>跨场景需求流转</h3><table><tr><th>需求链路</th><th>涉及用户数</th></tr>
+<tr><td>搜索 → POI探索</td><td>59</td></tr>
+<tr><td>POI探索 → 内容消费</td><td>206</td></tr>
+<tr><td>内容消费 → AI指南</td><td>168</td></tr>
+</table>
+
+<h3>探索行为</h3><table><tr><th>指标</th><th>数值</th></tr>
+<tr><td>平均每会话页面切换次数</td><td>45.4</td></tr>
+<tr><td>高探索度用户(切换率>70%)</td><td>0</td></tr>
+</table>
+
+<div class="insight-box"><strong>💡 核心洞察：</strong>
+搜索与POI强关联(59人)，
+0用户为高探索型。
+</div></div>
+<div class="section"><h2>六、APP熟悉程度分析</h2>
+<h3>熟悉度分级分布</h3><table><tr><th>等级</th><th>用户数</th><th>占比</th><th>特征描述</th></tr>
+<tr><td><span class="tag tag-high">专家 Expert</span></td><td>11</td><td>5.3%</td><td>精通大部分功能，主动探索高级特性</td></tr>
+<tr><td><span class="tag tag-mid">中级 Intermediate</span></td><td>154</td><td>74.8%</td><td>掌握核心流程，偶尔尝试新功能</td></tr>
+<tr><td><span class="tag tag-low">新手 Beginner</span></td><td>41</td><td>19.9%</td><td>了解基础操作，需要引导</td></tr>
+<tr><td><span class="tag tag-low">萌新 Newbie</span></td><td>0</td><td>0.0%</td><td>刚接触产品，仅完成基本浏览</td></tr>
+</table>
+
+<div class="metric-grid">
+<div class="metric-card"><div class="metric-value">43.6<small>/100</small></div><div class="metric-label">平均熟悉度得分</div></div>
+<div class="metric-card"><div class="metric-value">15.3%</div><div class="metric-label">平均事件覆盖率</div></div>
+<div class="metric-card"><div class="metric-value">0.971</div><div class="metric-label">平均导航效率</div></div>
+<div class="metric-card"><div class="metric-value">0</div><div class="metric-label">高级功能使用者</div></div>
+</div>
+
+<div class="insight-box"><strong>💡 核心洞察：</strong>
+专家级用户11人(5.3%)，
+0人使用过高级功能，
+整体平均熟悉度43.6分。
+</div></div>
+
+</div></body></html>

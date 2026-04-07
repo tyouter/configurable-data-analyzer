@@ -1,0 +1,176 @@
+{
+  "test_run": {
+    "start_time": "2026-04-07T01:34:42.876795",
+    "end_time": "2026-04-07T01:34:46.571304",
+    "duration_seconds": 3.694509,
+    "total_tests": 40,
+    "passed": 2,
+    "failed": 38,
+    "errors": [],
+    "details": [
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_initialization PASSED  [  4%]",
+        "status": "PASSED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_load_data FAILED       [  9%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_load_config PASSED     [ 14%]",
+        "status": "PASSED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_data_overview FAILED   [ 19%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_count_unique_users FAILED [ 23%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_count_events FAILED    [ 28%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_exposure_time FAILED [ 33%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_active_users FAILED [ 38%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_retention_rate FAILED [ 42%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_kpi FAILED   [ 47%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_all_kpis FAILED [ 52%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_poi_data FAILED [ 57%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_search_behavior FAILED [ 61%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_content_interaction FAILED [ 66%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_video_behavior FAILED [ 71%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_generate_summary_report FAILED [ 76%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_user_behavior_chain FAILED [ 80%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestRednoteAnalyzer::test_date_filtering FAILED  [ 85%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestDataQuality::test_required_columns_exist FAILED [ 90%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestDataQuality::test_data_consistency FAILED    [ 95%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "tests/test_analyzer.py::TestDataQuality::test_user_device_mapping FAILED [100%]",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_load_data - FileNotF...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_data_overview - File...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_count_unique_users",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_count_events - FileN...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_exposure_time",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_active_users",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_retention_rate",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_kpi - File...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_calculate_all_kpis",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_poi_data - F...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_search_behavior",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_content_interaction",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_analyze_video_behavior",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_generate_summary_report",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_user_behavior_chain",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestRednoteAnalyzer::test_date_filtering - Fil...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestDataQuality::test_required_columns_exist",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestDataQuality::test_data_consistency - FileN...",
+        "status": "FAILED"
+      },
+      {
+        "test": "FAILED tests/test_analyzer.py::TestDataQuality::test_user_device_mapping - Fi...",
+        "status": "FAILED"
+      }
+    ],
+    "summary": "======================== 19 failed, 2 passed in 1.66s =========================",
+    "returncode": 1,
+    "success": false
+  }
+}

@@ -1,0 +1,393 @@
+{
+  "report_metadata": {
+    "title": "Rednote KPI Analysis Report",
+    "generated_at": "2026-04-07T01:44:42.031994",
+    "data_period": {
+      "start": "2026-03-19 17:13:59",
+      "end": "2026-03-20 21:08:15",
+      "days": 2
+    },
+    "total_records": 6528,
+    "unique_users": 8,
+    "unique_devices": 10
+  },
+  "data_overview": {
+    "total_records": 6528,
+    "total_columns": 40,
+    "date_range": {
+      "start": "2026-03-19 17:13:59",
+      "end": "2026-03-20 21:08:15",
+      "days": 2
+    },
+    "unique_devices": 10,
+    "unique_users": 8,
+    "unique_events": 93,
+    "event_types": {
+      "porsche_page_Map_poi_card_cardshow": 2466,
+      "search_homepage_search_history_query_item_show": 616,
+      "search_results_page_post_card_carshow": 448,
+      "porsche_page_pageshow": 298,
+      "porsche_page_recommend_post_card_cardshow": 272,
+      "discovery_page_pageshow": 246,
+      "post_detail_page_pageshow": 216,
+      "discovery_page_post_card_cardshow": 212,
+      "search_results_page_pageshow": 147,
+      "poi_detail_page_post_card_cardshow": 108,
+      "porsche_page_recommend_account_cardshow": 102,
+      "post_detail_page_back_button_click": 101,
+      "search_homepage_pageshow": 84,
+      "poi_detail_page_pageshow": 81,
+      "trival_guide_page_pageshow": 69,
+      "profile_page_travel_guide_tab_trip_card_cardshow": 68,
+      "search_results_page_all_tab_switch_click": 64,
+      "post_detail_page_POI_button_show": 58,
+      "search_results_page_post_card_click": 54,
+      "profile_page_pageshow": 52
+    }
+  },
+  "kpi_metrics": {
+    "app_metrics": {
+      "ai_guide_first_time_users": {
+        "name": "首次使用 AI 生成路书客户数量",
+        "value": 1,
+        "description": "统计周期内，完成首次 AI 路书生成的用户数量之和"
+      },
+      "app_open_total": {
+        "name": "APP 打开次总数",
+        "value": 11,
+        "description": "统计周期内所有用户的 APP 打开次数总和（每个用户每天最多记为1次）"
+      },
+      "app_open_users": {
+        "name": "APP 打开次人数",
+        "value": 8,
+        "description": "统计周期内所有用户的 APP 打开用户总和"
+      },
+      "app_avg_opens_per_user": {
+        "name": "APP 人均打开次数",
+        "value": 1.38,
+        "description": "KPI1.2/KPI1.3"
+      },
+      "app_exposure_duration": {
+        "name": "APP 曝光时长计算",
+        "value": 0.0,
+        "description": "基于 discover page show 事件计算曝光时长"
+      },
+      "app_active_rate": {
+        "name": "APP 活跃率",
+        "value": 0.0,
+        "description": "至少一次有效 APP 操作的活跃用户数量，除以总用户数量，再乘以 100%"
+      },
+      "app_retention_rate": {
+        "name": "APP 第 n 日留存率",
+        "value": 0,
+        "description": "7天后、14天后、30天后留存率"
+      }
+    },
+    "porsche_plus_metrics": {
+      "porsche_page_exposure_duration": {
+        "name": "Porsche+页面曝光时长",
+        "value": 0.0,
+        "description": "基于 porsche_page_pageshow 事件计算曝光时长"
+      },
+      "porsche_active_rate": {
+        "name": "Porsche+版块活跃率",
+        "value": 0.0,
+        "description": "访问过 Porsche+ 页面的活跃用户数量/总用户数量"
+      },
+      "porsche_avg_duration": {
+        "name": "Porsche+页面平均时长",
+        "value": 0.0,
+        "description": "SUM（KPI2.1）/ COUNT（Porsche+ 页面埋点数据条数）"
+      },
+      "porsche_avg_opens_per_user": {
+        "name": "Porsche+页面人均打开次数",
+        "value": 0,
+        "description": "统计周期内，Porsche+页面打开次数总和 / APP 的总活跃用户数量"
+      }
+    },
+    "discovery_page_metrics": {
+      "discovery_page_exposure_duration": {
+        "name": "发现页面曝光时长",
+        "value": 0.0,
+        "description": "基于 discovery_page_pageshow 事件计算曝光时长"
+      },
+      "discovery_active_rate": {
+        "name": "发现页面活跃率",
+        "value": 0.0,
+        "description": "访问过发现页面的活跃用户数量/总用户数量"
+      },
+      "discovery_avg_duration": {
+        "name": "发现页面平均时长",
+        "value": 0.0,
+        "description": "SUM（发现页面曝光时长）/ COUNT（发现页面埋点数据条数）"
+      },
+      "discovery_avg_opens_per_user": {
+        "name": "发现页面人均打开次数",
+        "value": 0,
+        "description": "统计周期内，发现页面打开次数总和 / APP 的总活跃用户数量"
+      }
+    },
+    "ai_guide_metrics": {
+      "ai_guide_active_rate": {
+        "name": "AI 路书生成活跃率",
+        "value": 12.5,
+        "description": "埋点事件 AI 路书生成按钮点击的用户数 / APP活跃用户数"
+      },
+      "ai_guide_avg_usage": {
+        "name": "AI 路书生成人均使用次数",
+        "value": 15.0,
+        "description": "AI 路书生成按钮点击的数据条数/ 用户数"
+      },
+      "ai_guide_usage_rate": {
+        "name": "AI 路书生成使用率",
+        "value": 5.86,
+        "description": "AI 路书生成按钮点击数 / APP 打开次数"
+      }
+    },
+    "share_metrics": {
+      "share_code_generation_rate": {
+        "name": "分享码生成占比",
+        "value": 12.5,
+        "description": "分享码图标的用户数 / APP总活跃用户数量"
+      },
+      "share_code_usage_rate": {
+        "name": "分享码使用占比",
+        "value": 0.0,
+        "description": "分享码添加行程确认按钮的用户数 / APP总活跃用户数量"
+      }
+    }
+  },
+  "poi_analysis": {
+    "total_poi_interactions": 2815,
+    "unique_poi_count": 614,
+    "top_poi": {
+      "akimbo(西丽店)": 114,
+      "上海朱家角安麓酒店": 88,
+      "深圳华侨城洲际大酒店": 48,
+      "保时捷品牌快闪空间": 45,
+      "痴渔户外营地CAMP": 35,
+      "指向轻艇会": 35,
+      "季景浍游泳健身俱乐部": 29,
+      "上海繁盛蔬果采摘园": 25,
+      "蔚空间-宝宝屋乐园": 25,
+      "江上桥文化园": 25
+    },
+    "poi_type_distribution": {
+      "超市便利": 113,
+      "台球": 80,
+      "休闲娱乐": 71,
+      "棋牌室": 70,
+      "采摘园": 64,
+      "商场": 57,
+      "健身中心": 43,
+      "儿童乐园": 42,
+      "羽毛球": 41,
+      "露营地": 39,
+      "游泳": 36,
+      "酒吧": 28,
+      "足浴/护理": 28,
+      "咖啡": 27,
+      "洗浴桑拿": 27,
+      "建材": 26,
+      "美术馆": 25,
+      "农贸市场": 24,
+      "Livehouse": 24,
+      "SPA": 24,
+      "水濂山森林公园": 23,
+      "购物": 22,
+      "家居": 22,
+      "家具": 20,
+      "公园": 20,
+      "烧烤": 19,
+      "小吃快餐": 19,
+      "按摩推拿": 19,
+      "中餐": 18,
+      "网球": 18,
+      "人文景观": 18,
+      "KTV": 17,
+      "私教工作室": 17,
+      "零食": 16,
+      "运动场馆": 16,
+      "乒乓球": 16,
+      "住宅区": 16,
+      "水族店": 15,
+      "鲜花绿植": 14,
+      "清吧": 14,
+      "水果店": 14,
+      "粤菜": 13,
+      "花鸟鱼虫市场": 13,
+      "推拿养生": 13,
+      "文具店": 13,
+      "桑拿汗蒸": 13,
+      "舞蹈/瑜伽": 13,
+      "宠物店": 12,
+      "攀岩": 12,
+      "蔬菜店": 12,
+      "商住两用": 12,
+      "面包蛋糕": 11,
+      "服饰鞋包": 11,
+      "温泉洗浴": 11,
+      "运动培训": 11,
+      "城市公园": 11,
+      "足球": 11,
+      "上海国际赛车场": 10,
+      "服装": 10,
+      "两轮车行": 10,
+      "门牌地址": 10,
+      "茶馆/茶艺": 9,
+      "茶叶茶具": 9,
+      "亲子玩乐": 9,
+      "日式料理": 9,
+      "商圈/地标": 8,
+      "自然风光": 8,
+      "文创店": 7,
+      "游戏厅": 7,
+      "美容美体": 7,
+      "跆拳道": 7,
+      "母婴服务": 7,
+      "DIY手工": 7,
+      "博物馆": 7,
+      "健身器材": 7,
+      "显岗水库": 7,
+      "冰淇淋": 6,
+      "创意菜": 6,
+      "滑冰/溜冰": 6,
+      "商业街": 6,
+      "建材五金": 6,
+      "古镇古村": 6,
+      "羽毛球培训": 6,
+      "地铁/轻轨站": 6,
+      "高尔夫": 6,
+      "湘菜": 6,
+      "烤肉": 6,
+      "奢侈品回收": 6,
+      "美食": 5,
+      "布艺家纺": 5,
+      "蹦床": 5,
+      "农副产品": 5,
+      "乡镇": 5,
+      "数码产品": 5,
+      "装修设计": 5,
+      "厨具餐具": 5,
+      "剧本杀": 5,
+      "小龙虾": 4,
+      "密室逃脱": 4,
+      "茶饮果汁": 4,
+      "农家菜": 4,
+      "赛车": 4,
+      "园林": 4,
+      "射箭": 4,
+      "景点": 4,
+      "文物古迹": 4,
+      "全屋定制": 4,
+      "松山湖风景区": 4,
+      "体育场/体育馆": 3,
+      "西式简餐": 3,
+      "网吧/网咖": 3,
+      "老北京火锅": 3,
+      "东北菜": 3,
+      "宠物服务": 3,
+      "寺庙/道观": 3,
+      "烟酒专卖店": 3,
+      "音乐餐厅": 3,
+      "改装服务": 3,
+      "湖畔佳苑": 2,
+      "香港特别行政区": 2,
+      "广州白云保时捷中心": 2,
+      "素食": 2,
+      "鱼火锅": 2,
+      "五金": 2,
+      "串串香": 2,
+      "生态园": 2,
+      "快照/写真": 2,
+      "院线影院": 2,
+      "数码维修": 2,
+      "滨江公园": 2,
+      "湖泊河流": 2,
+      "会展中心": 2,
+      "母婴用品": 2,
+      "湿地公园": 2,
+      "动物园": 2,
+      "展览展馆": 2,
+      "农家乐": 2,
+      "游泳培训": 2,
+      "粥品": 2,
+      "桌游": 2,
+      "壁球": 2,
+      "钢琴": 2,
+      "山川丘陵": 2,
+      "写字楼": 2,
+      "千山暮雪·日照金山全景酒店(白沙古镇店)": 2,
+      "佛山浮日蓝矿咖啡LOOKING": 2,
+      "深圳市": 2,
+      "大梅沙海滨公园": 2,
+      "打边炉": 1,
+      "水果市场": 1,
+      "观光街区": 1,
+      "徽菜": 1,
+      "火锅鸡": 1,
+      "潜水": 1,
+      "垂钓园": 1,
+      "本帮江浙菜": 1,
+      "大排档": 1,
+      "市场集市": 1,
+      "道路": 1,
+      "黄金珠宝": 1,
+      "乐器行": 1,
+      "广场": 1,
+      "旧货店": 1,
+      "熟食/卤味": 1,
+      "面馆": 1,
+      "VR体验": 1,
+      "团建拓展": 1,
+      "剧场/剧院": 1,
+      "户外用品": 1,
+      "海鲜": 1,
+      "自助火锅": 1,
+      "教堂": 1,
+      "主题乐园": 1,
+      "风景名胜": 1,
+      "家装家居": 1,
+      "公司": 1,
+      "轰趴": 1
+    },
+    "users_interacting_with_poi": 6
+  },
+  "search_behavior": {
+    "total_search_events": 1477,
+    "unique_search_users": 4,
+    "search_event_types": {
+      "search_homepage_search_history_query_item_show": 616,
+      "search_results_page_post_card_carshow": 448,
+      "search_results_page_pageshow": 147,
+      "search_homepage_pageshow": 84,
+      "search_results_page_all_tab_switch_click": 64,
+      "search_results_page_post_card_click": 54,
+      "porsche_page_search_click": 21,
+      "search_homepage_search_history_query_item_click": 11,
+      "search_homepage_search_history_query_item_delete_click": 7,
+      "porsche_page_search_mic_click": 7,
+      "discovery_page_search_click": 6,
+      "search_homepage_search_history_query_delete_entry_click": 5,
+      "discovery_page_search_mic_click": 2,
+      "search_results_page_video_tab_switch_click": 2,
+      "search_results_page_image_tab_switch_click": 2,
+      "search_homepage_search_history_query_delete_all_click": 1
+    }
+  },
+  "content_interaction": {
+    "total_likes": 3,
+    "total_saves": 2,
+    "total_follows": 2,
+    "unique_posts_viewed": 0,
+    "content_type_distribution": {
+      "normal": 1407,
+      "video": 276
+    }
+  },
+  "video_behavior": {
+    "video_plays": 0,
+    "autoplay_enabled_count": 0,
+    "play_speed_distribution": {}
+  }
+}

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rednote KPI 指标全面分析报告（全量数据更新版）</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg-primary: #0a0f1e;
+            --bg-secondary: #111827;
+            --text-primary: #e8eaf6;
+            --text-secondary: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f97316;
+            --accent-pink: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+            border-radius: 16px;
+        }
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header-meta {
+            display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-top: 1rem;
+        }
+        .meta-item {
+            background: rgba(255,255,255,0.1);
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        .meta-label { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+        .meta-value { font-size: 1.125rem; font-weight: 600; color: #fff; }
+        .section-header {
+            display: flex; align-items: center; gap: 1rem;
+            margin-bottom: 2rem; padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .section-title { font-size: 1.75rem; font-weight: 600; }
+        .section-badge {
+            background: #fff; color: var(--bg-primary);
+            padding: 0.25rem 0.75rem; border-radius: 20px;
+            font-size: 0.875rem; font-weight: 500;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+        .metric-card {
+            background: var(--bg-secondary);
+            border-radius: 16px; padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .metric-card.app { border-top: 3px solid var(--accent-blue); }
+        .metric-card.porsche { border-top: 3px solid var(--accent-purple); }
+        .metric-card.discovery { border-top: 3px solid var(--accent-cyan); }
+        .metric-card.ai { border-top: 3px solid var(--accent-orange); }
+        .metric-card.share { border-top: 3px solid var(--accent-pink); }
+        .category-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem; color: #fff;
+            margin-bottom: 0.75rem;
+        }
+        .category-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .metric-count { font-size: 0.75rem; color: var(--text-secondary); }
+        .metric-name { font-size: 0.85rem; color: var(--text-secondary); }
+        .metric-value {
+            font-size: 1.75rem; font-weight: 700; color: #fff; margin: 0.5rem 0;
+        }
+        .metric-value.highlight { color: var(--success); }
+        .metric-value.warning { color: var(--warning); }
+        .metric-description { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem; }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+            background: var(--bg-secondary); border-radius: 12px; overflow: hidden;
+        }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { background: rgba(59,130,246,0.1); font-weight: 600; color: var(--accent-blue); }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        .insight-box {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-cyan);
+            padding: 1.25rem; margin: 1rem 0; border-radius: 0 12px 12px 0;
+        }
+        .insight-title { font-weight: 600; color: var(--accent-cyan); margin-bottom: 0.5rem; }
+        .insight-text { font-size: 0.9rem; color: var(--text-secondary); }
+        .chart-container {
+            background: var(--bg-secondary);
+            border-radius: 16px; padding: 1.5rem; margin: 1.5rem 0;
+        }
+        .core-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+        .core-card {
+            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+            border-radius: 16px; padding: 1.5rem; text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .core-value { font-size: 2.5rem; font-weight: 700; color: #fff; }
+        .core-label { font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem; }
+        @media (max-width: 768px) {
+            .metrics-grid { grid-template-columns: 1fr; }
+            .core-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+<header>
+    <h1>Rednote KPI 指标全面分析报告</h1>
+    <div style="color: rgba(255,255,255,0.8); margin-bottom: 1rem;">全量数据更新版 · 基于 40,681 条记录</div>
+    <div class="header-meta">
+        <div class="meta-item"><div class="meta-label">数据周期</div><div class="meta-value">2026-03-19 至 2026-04-02</div></div>
+        <div class="meta-item"><div class="meta-label">总记录数</div><div class="meta-value">40,681</div></div>
+        <div class="meta-item"><div class="meta-label">独立用户数</div><div class="meta-value">206</div></div>
+        <div class="meta-item"><div class="meta-label">覆盖天数</div><div class="meta-value">15 天</div></div>
+    </div>
+</header>
+
+<!-- 核心指标概览 -->
+<div class="section-header">
+    <h2 class="section-title">核心指标概览</h2>
+    <div class="section-badge">4 项核心指标</div>
+</div>
+<div class="core-grid">
+    <div class="core-card">
+        <div class="core-value">313</div>
+        <div class="core-label">APP 打开总数</div>
+    </div>
+    <div class="core-card">
+        <div class="core-value">206</div>
+        <div class="core-label">活跃用户数</div>
+    </div>
+    <div class="core-card">
+        <div class="core-value">9,363</div>
+        <div class="core-label">POI 交互次数</div>
+    </div>
+    <div class="core-card">
+        <div class="core-value">2,288</div>
+        <div class="core-label">独立 POI 数量</div>
+    </div>
+</div>
+
+<!-- APP 指标 -->
+<div class="section-header">
+    <h2 class="section-title">APP 指标</h2>
+    <div class="section-badge">7 个 KPI</div>
+</div>
+<div class="metrics-grid">
+    <div class="metric-card app">
+        <div class="category-icon">1.1</div>
+        <div class="category-title">首次使用 AI 生成路书客户数量</div>
+        <div class="metric-count">个</div>
+        <div class="metric-name">数量</div>
+        <div class="metric-value highlight">6</div>
+        <div class="metric-description">统计周期内首次点击 AI 路书生成按钮的用户数量</div>
+    </div>
+    <div class="metric-card app">
+        <div class="category-icon">1.2</div>
+        <div class="category-title">APP 打开次总数</div>
+        <div class="metric-count">次</div>
+        <div class="metric-name">总打开次数</div>
+        <div class="metric-value">313</div>
+        <div class="metric-description">统计周期内所有用户的 APP 打开次数总和</div>
+    </div>
+    <div class="metric-card app">
+        <div class="category-icon">1.3</div>
+        <div class="category-title">APP 打开次人数</div>
+        <div class="metric-count">人</div>
+        <div class="metric-name">打开用户数</div>
+        <div class="metric-value">206</div>
+        <div class="metric-description">统计周期内所有用户的 APP 打开用户总和</div>
+    </div>
+    <div class="metric-card app">
+        <div class="category-icon">1.4</div>
+        <div class="category-title">APP 人均打开次数</div>
+        <div class="metric-count">次</div>
+        <div class="metric-name">平均次数</div>
+        <div class="metric-value">1.52</div>
+        <div class="metric-description">APP 打开次总数 / APP 打开次人数</div>
+    </div>
+    <div class="metric-card app">
+        <div class="category-icon">1.5</div>
+        <div class="category-title">APP 曝光时长</div>
+        <div class="metric-count">秒</div>
+        <div class="metric-name">总时长</div>
+        <div class="metric-value warning">0</div>
+        <div class="metric-description">基于 discovery page show 事件计算曝光时长</div>
+    </div>
+    <div class="metric-card app">
+        <div class="category-icon">1.6</div>
+        <div class="category-title">APP 活跃率</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">活跃率</div>
+        <div class="metric-value highlight">100.0%</div>
+        <div class="metric-description">至少一次有效 APP 操作的活跃用户数量 / 总用户数量 × 100%</div>
+    </div>
+    <div class="metric-card app">
+        <div class="category-icon">1.7</div>
+        <div class="category-title">APP 第 n 日留存率</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">7天/14天/30天</div>
+        <div class="metric-value warning">2.94% / 0.0% / N/A</div>
+        <div class="metric-description">7天后、14天后、30天后留存率</div>
+    </div>
+</div>
+
+<!-- Porsche+ 指标 -->
+<div class="section-header">
+    <h2 class="section-title">Porsche+ 指标</h2>
+    <div class="section-badge">4 个 KPI</div>
+</div>
+<div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="metric-card porsche">
+        <div class="category-icon">2.1</div>
+        <div class="category-title">Porsche+ 页面曝光时长</div>
+        <div class="metric-count">秒</div>
+        <div class="metric-name">总时长</div>
+        <div class="metric-value warning">0</div>
+        <div class="metric-description">基于 porsche_page_pageshow 事件计算曝光时长</div>
+    </div>
+    <div class="metric-card porsche">
+        <div class="category-icon">2.2</div>
+        <div class="category-title">Porsche+ 版块活跃率</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">活跃率</div>
+        <div class="metric-value highlight">100.0%</div>
+        <div class="metric-description">访问过 Porsche+ 页面的活跃用户数量 / 总用户数量</div>
+    </div>
+    <div class="metric-card porsche">
+        <div class="category-icon">2.3</div>
+        <div class="category-title">Porsche+ 人均使用时长</div>
+        <div class="metric-count">秒</div>
+        <div class="metric-name">平均时长</div>
+        <div class="metric-value">0.0</div>
+        <div class="metric-description">SUM(KPI2.1) / COUNT(Porsche+页面埋点数据条数)</div>
+    </div>
+    <div class="metric-card porsche">
+        <div class="category-icon">2.4</div>
+        <div class="category-title">Porsche+ 人均使用次数</div>
+        <div class="metric-count">次</div>
+        <div class="metric-name">平均次数</div>
+        <div class="metric-value">10.7</div>
+        <div class="metric-description">统计周期内 Porsche+ 页面打开次数总和 / APP 总活跃用户数量</div>
+    </div>
+</div>
+
+<!-- Discovery 页面指标 -->
+<div class="section-header">
+    <h2 class="section-title">Discovery 页面指标</h2>
+    <div class="section-badge">4 个 KPI</div>
+</div>
+<div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="metric-card discovery">
+        <div class="category-icon">3.1</div>
+        <div class="category-title">Discovery 页面曝光时长</div>
+        <div class="metric-count">秒</div>
+        <div class="metric-name">总时长</div>
+        <div class="metric-value warning">0</div>
+        <div class="metric-description">基于 discovery_page_pageshow 事件计算曝光时长</div>
+    </div>
+    <div class="metric-card discovery">
+        <div class="category-icon">3.2</div>
+        <div class="category-title">Discovery 版块活跃率</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">活跃率</div>
+        <div class="metric-value highlight">100.0%</div>
+        <div class="metric-description">访问过发现页面的活跃用户数量 / 总用户数量</div>
+    </div>
+    <div class="metric-card discovery">
+        <div class="category-icon">3.3</div>
+        <div class="category-title">Discovery 人均使用时长</div>
+        <div class="metric-count">秒</div>
+        <div class="metric-name">平均时长</div>
+        <div class="metric-value">0.0</div>
+        <div class="metric-description">SUM(KPI3.1) / COUNT(发现页面埋点数据条数)</div>
+    </div>
+    <div class="metric-card discovery">
+        <div class="category-icon">3.4</div>
+        <div class="category-title">Discovery 人均使用次数</div>
+        <div class="metric-count">次</div>
+        <div class="metric-name">平均次数</div>
+        <div class="metric-value">14.8</div>
+        <div class="metric-description">统计周期内发现页面打开次数总和 / APP 总活跃用户数量</div>
+    </div>
+</div>
+
+<!-- AI 路书指标 -->
+<div class="section-header">
+    <h2 class="section-title">AI 路书指标</h2>
+    <div class="section-badge">3 个 KPI</div>
+</div>
+<div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="metric-card ai">
+        <div class="category-icon">4.1</div>
+        <div class="category-title">AI 路书生成活跃率</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">活跃率</div>
+        <div class="metric-value highlight">70.87%</div>
+        <div class="metric-description">AI 路书生成按钮点击的用户数 / APP 活跃用户数</div>
+    </div>
+    <div class="metric-card ai">
+        <div class="category-icon">4.2</div>
+        <div class="category-title">AI 路书生成人均使用次数</div>
+        <div class="metric-count">次</div>
+        <div class="metric-name">平均次数</div>
+        <div class="metric-value">9.05</div>
+        <div class="metric-description">AI 路书生成按钮点击的数据条数 / 用户数</div>
+    </div>
+    <div class="metric-card ai">
+        <div class="category-icon">4.3</div>
+        <div class="category-title">AI 路书生成使用率</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">使用率</div>
+        <div class="metric-value highlight">422.36%</div>
+        <div class="metric-description">AI 路书生成按钮点击数 / APP 打开次数</div>
+    </div>
+</div>
+
+<!-- 分享功能指标 -->
+<div class="section-header">
+    <h2 class="section-title">分享功能指标</h2>
+    <div class="section-badge">2 个 KPI</div>
+</div>
+<div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="metric-card share">
+        <div class="category-icon">5.1</div>
+        <div class="category-title">分享码生成占比</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">生成占比</div>
+        <div class="metric-value highlight">13.59%</div>
+        <div class="metric-description">分享码图标的用户数 / APP 总活跃用户数量</div>
+    </div>
+    <div class="metric-card share">
+        <div class="category-icon">5.2</div>
+        <div class="category-title">分享码使用占比</div>
+        <div class="metric-count">%</div>
+        <div class="metric-name">使用占比</div>
+        <div class="metric-value highlight">0.97%</div>
+        <div class="metric-description">分享码添加行程确认按钮的用户数 / APP 总活跃用户数量</div>
+    </div>
+</div>
+<!-- 详细洞察与结论 -->
+<div class="section-header">
+    <h2 class="section-title">关键洞察与结论</h2>
+    <div class="section-badge">基于全量数据分析</div>
+</div>
+<div class="insight-box">
+    <div class="insight-title">Porsche+ 功能是核心</div>
+    <div class="insight-text">
+        Porsche+ 模块共产生 <strong>14,862</strong> 次事件（占总事件的 <strong>36.53%</strong>），
+        其中 POI 卡片展示 <strong>8,006</strong> 次，POI 卡片点击 <strong>365</strong> 次。
+        Porsche+ 是用户最活跃的功能模块。
+    </div>
+</div>
+<div class="insight-box">
+    <div class="insight-title">搜索行为活跃</div>
+    <div class="insight-text">
+        搜索相关事件共 <strong>5,528</strong> 次，有 <strong>59</strong> 个用户进行了搜索行为，
+        平均每用户搜索 <strong>93.69</strong> 次。搜索功能被广泛使用。
+    </div>
+</div>
+<div class="insight-box">
+    <div class="insight-title">内容消费与互动</div>
+    <div class="insight-text">
+        共有 <strong>14,630</strong> 次内容浏览，其中视频内容 <strong>167</strong> 次。
+        用户互动情况：点赞 <strong>19</strong> 次、收藏 <strong>11</strong> 次、关注 <strong>47</strong> 次，
+        整体互动率为 <strong>0.5263%</strong>。
+    </div>
+</div>
+<div class="insight-box">
+    <div class="insight-title">地图使用情况</div>
+    <div class="insight-text">
+        地图相关事件共 <strong>8,675</strong> 次，其中全屏地图使用达到 <strong>151</strong> 次
+        （占 <strong>1.74%</strong>）。这表明用户有深度地图探索需求。
+    </div>
+</div>
+<div class="insight-box">
+    <div class="insight-title">用户行为差异显著</div>
+    <div class="insight-text">
+        最高频用户产生 <strong>5,453</strong> 次交互，最低频用户仅 <strong>9</strong> 次。
+        中位数交互为 <strong>72.0</strong> 次，平均值 <strong>189.79</strong> 次。
+        用户活跃度呈长尾分布，共 <strong>206</strong> 个用户。
+    </div>
+</div>
+<div class="insight-box">
+    <div class="insight-title">高峰时段分析</div>
+    <div class="insight-text">
+        用户活跃高峰出现在 <strong>13:00</strong>（该时段 <strong>4,408</strong> 次事件）。
+        建议在高峰时段推送优质内容，提升用户参与度。
+    </div>
+</div>
+<div class="chart-container">
+    <h3 style="margin-bottom: 1rem;">关键指标对比可视化</h3>
+    <canvas id="kpiChart"></canvas>
+</div>
+
+<footer style="text-align: center; margin-top: 3rem; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem;">
+    <p>Rednote KPI 分析报告 · 全量数据版本 · 生成时间: 2026-04-07 20:06:56</p>
+    <p>基于 40,681 条原始埋点数据 | 206 个独立用户 | 15 天数据周期</p>
+</footer>
+</div>
+
+<script>
+const ctx = document.getElementById('kpiChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['APP打开', '活跃用户', 'POI交互', '独立POI', 'Porsche+事件', 'AI点击用户', '分享用户'],
+        datasets: [{
+            label: '数值',
+            data: [
+                313,
+                206,
+                9363,
+                2288,
+                14862,
+                146,
+                28
+            ],
+            backgroundColor: [
+                'rgba(59, 130, 246, 0.7)',
+                'rgba(139, 92, 246, 0.7)',
+                'rgba(6, 182, 212, 0.7)',
+                'rgba(249, 115, 22, 0.7)',
+                'rgba(236, 72, 153, 0.7)',
+                'rgba(16, 185, 129, 0.7)',
+                'rgba(245, 158, 11, 0.7)'
+            ],
+            borderColor: [
+                'rgb(59, 130, 246)',
+                'rgb(139, 92, 246)',
+                'rgb(6, 182, 212)',
+                'rgb(249, 115, 22)',
+                'rgb(236, 72, 153)',
+                'rgb(16, 185, 129)',
+                'rgb(245, 158, 11)'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            title: {
+                display: true,
+                text: '核心 KPI 指标概览',
+                color: '#e8eaf6',
+                font: { size: 16 }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { color: '#64748b' },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            x: {
+                ticks: { color: '#64748b' },
+                grid: { display: false }
+            }
+        }
+    }
+});
+</script>
+</body>
+</html>
