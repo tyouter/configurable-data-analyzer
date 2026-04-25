@@ -96,3 +96,7 @@ Excel 文件应包含以下类型字段：
 - pandas >= 2.0.0
 - openpyxl >= 3.1.0
 - pyyaml >= 6.0
+
+## 数据清洗规则
+
+- **过滤测试事件**：加载数据时，过滤掉 `rednote_poi_title` 为 `akimbo(西丽店)` 的行（疑似测试事件）

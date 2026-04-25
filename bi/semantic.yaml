@@ -1,0 +1,332 @@
+# Semantic Layer for Rednote BI
+# Columns, metrics, and example queries for NL→SQL accuracy
+
+table: events
+
+columns:
+  reduser_id:
+    business_name: "用户ID"
+    type: string
+    role: dimension
+    description: "唯一用户标识"
+  device_id:
+    business_name: "设备ID"
+    type: string
+    role: dimension
+    description: "唯一设备标识"
+  event_name:
+    business_name: "事件名称"
+    type: string
+    role: dimension
+    description: "埋点事件全名，格式如 discovery_page_post_card_click"
+  start_time:
+    business_name: "事件开始时间"
+    type: timestamp
+    role: dimension
+  end_time:
+    business_name: "事件结束时间"
+    type: timestamp
+    role: dimension
+  event_date:
+    business_name: "日期"
+    type: date
+    role: dimension
+    derived: true
+    derived_from: "start_time"
+    derivation_logic: "CAST(start_time AS DATE)"
+    description: "事件发生日期（从 start_time 派生）"
+  event_hour:
+    business_name: "小时"
+    type: integer
+    role: dimension
+    derived: true
+    derived_from: "start_time"
+    derivation_logic: "EXTRACT(HOUR FROM start_time)"
+    description: "事件发生小时(0-23)（从 start_time 派生）"
+  event_weekday:
+    business_name: "星期几"
+    type: integer
+    role: dimension
+    derived: true
+    derived_from: "start_time"
+    derivation_logic: "EXTRACT(DOW FROM start_time) - 1"
+    description: "0=周一, 6=周日（从 start_time 派生）"
+  is_weekend:
+    business_name: "是否周末"
+    type: integer
+    role: dimension
+    derived: true
+    derived_from: "event_weekday"
+    derivation_logic: "CASE WHEN event_weekday IN (5,6) THEN 1 ELSE 0 END"
+    description: "1=周末, 0=工作日（从 event_weekday 派生）"
+  page_root:
+    business_name: "页面模块"
+    type: string
+    role: dimension
+    derived: true
+    derived_from: "event_name"
+    derivation_logic: "SPLIT_PART(event_name, '_', 1)"
+    description: "事件名称第一段（从 event_name 派生）"
+    enum:
+      - discovery
+      - porsche
+      - poi_detail
+      - post_detail
+      - profile
+      - search_homepage
+      - search_results
+      - trival_guide
+      - login
+      - navigation_bar
+      - other_profile
+      - Profile
+  page:
+    business_name: "页面"
+    type: string
+    role: dimension
+    derived: true
+    derived_from: "event_name"
+    derivation_logic: "SPLIT_PART(event_name, '_', 1) || '_' || SPLIT_PART(event_name, '_', 2)"
+    description: "事件名称前两段（从 event_name 派生）"
+  action:
+    business_name: "动作"
+    type: string
+    role: dimension
+    derived: true
+    derived_from: "event_name"
+    derivation_logic: "最后一个下划线后的部分"
+    description: "事件名称最后一段（从 event_name 派生）"
+  is_click:
+    business_name: "是否点击"
+    type: integer
+    role: dimension
+    derived: true
+    derived_from: "action"
+    derivation_logic: "CASE WHEN action LIKE '%click%' THEN 1 ELSE 0 END"
+    description: "1=点击事件（从 action 派生）"
+  duration_sec:
+    business_name: "停留时长(秒)"
+    type: float
+    role: measure
+    derived: true
+    derived_from: "start_time, end_time"
+    derivation_logic: "EXTRACT(EPOCH FROM end_time - start_time)"
+    description: "事件持续时间（从 end_time - start_time 派生）"
+  rednote_poi_title:
+    business_name: "POI名称"
+    type: string
+    role: dimension
+    description: "相关POI地点名称"
+  rednote_poi_type:
+    business_name: "POI类型"
+    type: string
+    role: dimension
+    description: "POI类型代码"
+  rednote_poi_type_name:
+    business_name: "POI分类名称"
+    type: string
+    role: dimension
+    description: "POI分类的中文名称"
+  rednote_poi_map_fullscreen:
+    business_name: "地图是否全屏"
+    type: string
+    role: dimension
+    description: "小红书同城地图是否全屏（0=未全屏, 1=全屏）"
+  rednote_post_title:
+    business_name: "笔记标题"
+    type: string
+    role: dimension
+    description: "相关笔记标题"
+  rednote_post_type:
+    business_name: "笔记类型"
+    type: string
+    role: dimension
+    description: "笔记类型"
+  rednote_post_is_like:
+    business_name: "笔记是否点赞"
+    type: string
+    role: dimension
+    description: "小红书笔记是否喜欢"
+  rednote_post_is_save:
+    business_name: "笔记是否收藏"
+    type: string
+    role: dimension
+    description: "saved=已收藏变未收藏, not_saved=未收藏变已收藏"
+  rednote_post_follow:
+    business_name: "是否关注"
+    type: string
+    role: dimension
+    description: "true=从未关注变为已关注, false=从已关注变为未关注"
+  rednote_user_logging_status:
+    business_name: "用户登录状态"
+    type: string
+    role: dimension
+    description: "小红书用户登录状态"
+  rednote_profile_type:
+    business_name: "个人页类型"
+    type: string
+    role: dimension
+    description: "小红书个人页类型"
+  rednote_search_result_tab_title:
+    business_name: "搜索结果Tab名称"
+    type: string
+    role: dimension
+    description: "小红书搜索结果Tab名称"
+  rednote_video_post_is_play:
+    business_name: "视频是否播放"
+    type: string
+    role: dimension
+    description: "0=未开始变为已播放, 1=播放中变为暂停"
+  rednote_video_post_autoplay_is_open:
+    business_name: "视频连续播放是否开启"
+    type: string
+    role: dimension
+    description: "0=未开启, 1=开启"
+  rednote_travel_guide_id:
+    business_name: "路书ID"
+    type: string
+    role: dimension
+    description: "小红书行程路书ID"
+  rednote_travel_guide_title:
+    business_name: "路书名称"
+    type: string
+    role: dimension
+    description: "小红书行程路书名称"
+  rednote_travel_post_is_success:
+    business_name: "路书生成状态"
+    type: string
+    role: dimension
+    description: "0=未开始, 1=进行中, 2=完成"
+  event_type:
+    business_name: "事件类型"
+    type: string
+    role: dimension
+    description: "事件类型（如 CLICK, SHOW 等）"
+  referer_page:
+    business_name: "笔记来源页面"
+    type: string
+    role: dimension
+    description: "跳转前来源页面"
+
+metrics:
+  dau:
+    business_name: "日活用户"
+    sql: "COUNT(DISTINCT reduser_id)"
+    keywords: ["日活", "DAU", "日活跃", "每天活跃"]
+    description: "按天去重统计用户数"
+  total_users:
+    business_name: "总用户数"
+    sql: "COUNT(DISTINCT reduser_id) OVER()"
+    keywords: ["总用户", "全部用户"]
+    description: "数据集中的全部去重用户数（固定值），用作活跃率的分母"
+  activity_rate:
+    business_name: "用户活跃率"
+    sql: "CAST(COUNT(DISTINCT reduser_id) AS DOUBLE) / NULLIF(COUNT(DISTINCT reduser_id) OVER(), 0)"
+    keywords: ["活跃率", "活跃比例", "DAU比例", "用户活跃率"]
+    description: "活跃率 = 当天DAU / 总用户数（百分比）。分子是当天去重用户数，分母是全量数据的去重用户总数。SQL示例: SELECT event_date, COUNT(DISTINCT reduser_id) as dau, COUNT(DISTINCT reduser_id) OVER() as total_users, ROUND(CAST(COUNT(DISTINCT reduser_id) AS DOUBLE) / NULLIF((SELECT COUNT(DISTINCT reduser_id) FROM events), 0) * 100, 2) as activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date"
+  total_events:
+    business_name: "总事件数"
+    sql: "COUNT(*)"
+    keywords: ["事件数", "总事件", "操作数"]
+  avg_events_per_user:
+    business_name: "人均事件数"
+    sql: "CAST(COUNT(*) AS DOUBLE) / COUNT(DISTINCT reduser_id)"
+    keywords: ["人均事件", "平均事件"]
+  avg_duration:
+    business_name: "平均停留时长"
+    sql: "AVG(duration_sec)"
+    keywords: ["平均时长", "停留时间", "停留时长"]
+  navigation_initiations:
+    business_name: "导航发起次数"
+    sql: "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+    keywords: ["导航", "发起导航", "navigation"]
+  navigation_confirms:
+    business_name: "导航确认次数"
+    sql: "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_popup_confirm_click')"
+    keywords: ["导航确认"]
+  search_queries:
+    business_name: "搜索次数"
+    sql: "COUNT(*) FILTER (WHERE page_root = 'search_homepage' OR page_root = 'search_results')"
+    keywords: ["搜索", "查询"]
+  post_views:
+    business_name: "笔记浏览次数"
+    sql: "COUNT(*) FILTER (WHERE page_root = 'post_detail')"
+    keywords: ["笔记浏览", "看笔记", "笔记详情"]
+  post_likes:
+    business_name: "笔记点赞次数"
+    sql: "COUNT(*) FILTER (WHERE event_name LIKE '%post_like_click')"
+    keywords: ["点赞", "喜欢"]
+  post_saves:
+    business_name: "笔记收藏次数"
+    sql: "COUNT(*) FILTER (WHERE event_name LIKE '%save_button_click')"
+    keywords: ["收藏", "保存"]
+  poi_views:
+    business_name: "POI浏览次数"
+    sql: "COUNT(*) FILTER (WHERE page_root = 'poi_detail')"
+    keywords: ["POI", "地点", "商户"]
+  app_opens:
+    business_name: "APP打开次数"
+    sql: "COUNT(*) FILTER (WHERE event_name IN ('login_page_pageshow', 'discovery_page_pageshow'))"
+    keywords: ["打开APP", "启动", "APP打开"]
+  travel_guide_usage:
+    business_name: "旅行指南使用次数"
+    sql: "COUNT(*) FILTER (WHERE page_root = 'trival_guide')"
+    keywords: ["旅行指南", "旅游攻略", "traval guide"]
+  discovery_views:
+    business_name: "发现页浏览次数"
+    sql: "COUNT(*) FILTER (WHERE page_root = 'discovery')"
+    keywords: ["发现页", "推荐"]
+  porsche_views:
+    business_name: "保时捷页浏览次数"
+    sql: "COUNT(*) FILTER (WHERE page_root = 'porsche')"
+    keywords: ["保时捷页"]
+
+example_queries:
+  # --- DAU variations: must use DIFFERENT WHERE filters ---
+  - question: "每天的日活用户趋势"
+    sql: "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  - question: "Porsche页面的DAU趋势"
+    sql: "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'porsche' GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  - question: "Porsche地图全屏时的DAU趋势"
+    sql: "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'porsche' AND rednote_poi_map_fullscreen = '1' GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  - question: "发现页的DAU趋势"
+    sql: "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'discovery' GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  # --- 活跃率: 必须是百分比，分子DAU / 分母总用户数 ---
+  - question: "用户活跃率趋势"
+    sql: "SELECT event_date, COUNT(DISTINCT reduser_id) as dau, (SELECT COUNT(DISTINCT reduser_id) FROM events) as total_users, ROUND(CAST(COUNT(DISTINCT reduser_id) AS DOUBLE) / (SELECT COUNT(DISTINCT CAST(reduser_id AS VARCHAR)) FROM events) * 100, 2) as activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  # --- Other queries ---
+  - question: "用户事件数分布"
+    sql: "SELECT reduser_id, COUNT(*) as event_count FROM events GROUP BY reduser_id ORDER BY event_count DESC LIMIT 20"
+    chart_type: "bar"
+  - question: "各页面模块的事件占比"
+    sql: "SELECT page_root, COUNT(*) as cnt FROM events GROUP BY page_root ORDER BY cnt DESC"
+    chart_type: "pie"
+  - question: "每小时用户活跃分布"
+    sql: "SELECT event_hour, COUNT(DISTINCT reduser_id) as users FROM events GROUP BY event_hour ORDER BY event_hour"
+    chart_type: "bar"
+  - question: "导航漏斗：浏览POI → 点击导航 → 确认导航"
+    sql: "SELECT 'POI浏览' as step, COUNT(*) as cnt FROM events WHERE page_root='poi_detail' UNION ALL SELECT '点击导航', COUNT(*) FROM events WHERE event_name LIKE '%navigation_button_click' UNION ALL SELECT '确认导航', COUNT(*) FROM events WHERE event_name LIKE '%navigation_popup_confirm_click'"
+    chart_type: "funnel"
+  - question: "工作日和周末的用户行为对比"
+    sql: "SELECT CASE WHEN is_weekend=1 THEN '周末' ELSE '工作日' END as day_type, COUNT(DISTINCT reduser_id) as users, COUNT(*) as events FROM events GROUP BY is_weekend"
+    chart_type: "bar"
+  - question: "Top 10 热门事件"
+    sql: "SELECT event_name, COUNT(*) as cnt FROM events GROUP BY event_name ORDER BY cnt DESC LIMIT 10"
+    chart_type: "bar"
+  - question: "每天的事件数量趋势"
+    sql: "SELECT event_date, COUNT(*) as event_count FROM events GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  - question: "搜索相关的用户行为"
+    sql: "SELECT page, COUNT(*) as cnt FROM events WHERE page_root IN ('search_homepage', 'search_results') GROUP BY page ORDER BY cnt DESC"
+    chart_type: "bar"
+  - question: "视频播放次数趋势"
+    sql: "SELECT event_date, COUNT(*) as play_count FROM events WHERE rednote_video_post_is_play IS NOT NULL GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+  - question: "笔记点赞和收藏的每日趋势"
+    sql: "SELECT event_date, COUNT(*) FILTER(WHERE event_name LIKE '%post_like_click') as likes, COUNT(*) FILTER(WHERE event_name LIKE '%save_button_click') as saves FROM events GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
