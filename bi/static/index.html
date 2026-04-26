@@ -880,8 +880,12 @@ function clearHistory() {
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', async () => {
-  loadDashboards();
+  await loadDashboards();
   updatePalettePreview(); // Initialize palette preview
+  // Render current tab content after dashboards loaded
+  if (currentTab === 'temp') {
+    switchTab('temp');
+  }
   document.getElementById('queryInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendQuery();
   });
