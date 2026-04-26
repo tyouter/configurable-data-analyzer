@@ -636,6 +636,7 @@
   <div class="palette-selector">
     <label>配色:</label>
     <select id="paletteSelect" onchange="changePalette()">
+      <option value="ferrari" selected>Ferrari</option>
       <option value="ggplot2">GGPlot2</option>
       <option value="viridis">Viridis</option>
       <option value="tableau">Tableau</option>
@@ -706,6 +707,42 @@
 <script>
 // --- Color Palettes & Complete Theme Configurations ---
 const COLOR_PALETTES = {
+  ferrari: {
+    name: 'Ferrari',
+    colors: [
+      '#DA291C', // Ferrari Red - 主色
+      '#A61B14', // Dark Red - 深红变体
+      '#FFD700', // Gold - 经典金色点缀
+      '#8F8F8F', // Grey - 次要色
+      '#303030', // Dark Grey - 深灰
+      '#BAB0AC', // Light Grey - 浅灰
+      '#E15759', // Soft Red - 柔红
+      '#76B7B2', // Teal - 对比蓝绿
+      '#F28E2B', // Orange - 活力橙
+      '#59A14F'  // Green - 绿色补充
+    ],
+    description: 'Ferrari品牌风格',
+    theme: {
+      // 坐标轴 - Ferrari风格：深灰色线条
+      axisLine: { lineStyle: { color: '#555555' } },
+      axisLabel: { color: '#BAB0AC', fontSize: 11 },
+      axisTick: { lineStyle: { color: '#555555' } },
+      // 网格线 - Ferrari风格：深灰实线
+      splitLine: { lineStyle: { color: '#303030', type: 'solid', width: 1 } },
+      // 标题 - 浅灰高亮
+      title: { textStyle: { color: '#FFFFFF', fontSize: 14, fontWeight: 500 }, subtextStyle: { color: '#8F8F8F' } },
+      // 图例
+      legend: { textStyle: { color: '#BAB0AC', fontSize: 11 } },
+      // Tooltip - Ferrari红边框
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        borderColor: '#DA291C',
+        borderWidth: 2,
+        textStyle: { color: '#FFFFFF' }
+      },
+      backgroundColor: 'transparent'
+    }
+  },
   ggplot2: {
     name: 'GGPlot2',
     colors: ['#66C2A5', '#FC8D62', '#8DA0CB', '#E78AC3', '#A6D854', '#FFD92F', '#E5C494', '#B3B3B3', '#8DD3C7', '#FFFFB3', '#BEBADA'],
@@ -782,7 +819,7 @@ const COLOR_PALETTES = {
   }
 };
 
-let currentPalette = 'ggplot2';
+let currentPalette = 'ferrari';
 
 function changePalette() {
   currentPalette = document.getElementById('paletteSelect').value;
