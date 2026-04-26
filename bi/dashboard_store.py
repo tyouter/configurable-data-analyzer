@@ -93,3 +93,35 @@ def delete_chart(dashboard_id: str, chart_id: str) -> bool:
     with open(fp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     return True
+
+
+def create_dashboard(name: str) -> dict:
+    """Create an empty dashboard with just a name (no charts)."""
+    _ensure_dir()
+    # Check for existing dashboard with same name
+    for f in Path(DASHBOARDS_DIR).glob("*.json"):
+        data = json.loads(f.read_text(encoding="utf-8"))
+        if data.get("name") == name:
+            return {"id": data["id"], "name": name, "exists": True}
+
+    dashboard_id = str(uuid.uuid4())[:8]
+    dashboard = {
+        "id": dashboard_id,
+        "name": name,
+        "charts": [],
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+    }
+    fp = _filepath(dashboard_id)
+    with open(fp, "w", encoding="utf-8") as f:
+        json.dump(dashboard, f, ensure_ascii=False, indent=2)
+    return {"id": dashboard_id, "name": name, "exists": False}
+
+
+def delete_dashboard(dashboard_id: str) -> bool:
+    """Delete an entire dashboard."""
+    fp = _filepath(dashboard_id)
+    if not os.path.exists(fp):
+        return False
+    os.remove(fp)
+    return True

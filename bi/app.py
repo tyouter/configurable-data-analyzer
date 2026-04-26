@@ -49,6 +49,32 @@ class QueryRequest(BaseModel):
     clear_history: bool = False
 
 
+class CreateDashboardRequest(BaseModel):
+    name: str
+
+
+@app.post("/api/dashboards/create")
+async def api_create_dashboard(req: CreateDashboardRequest):
+    """Create a new empty dashboard."""
+    result = dashboard_store.create_dashboard(req.name)
+    if result.get("exists"):
+        raise HTTPException(400, f"Dashboard '{req.name}' already exists")
+    return JSONResponse(result)
+
+
+@app.delete("/api/dashboards/{dashboard_id}")
+async def api_delete_dashboard(dashboard_id: str):
+    """Delete an entire dashboard with confirmation."""
+    # Check if dashboard has charts (safety check)
+    dash = dashboard_store.get_dashboard(dashboard_id)
+    if not dash:
+        raise HTTPException(404, "Dashboard not found")
+    ok = dashboard_store.delete_dashboard(dashboard_id)
+    if not ok:
+        raise HTTPException(500, "Failed to delete dashboard")
+    return JSONResponse({"ok": True, "deleted_id": dashboard_id, "deleted_name": dash.get("name")})
+
+
 @app.post("/api/query")
 async def api_query(req: QueryRequest):
     if not _agent:

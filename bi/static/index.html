@@ -374,6 +374,22 @@
   }
   .dashboard-tabs .tab-new:hover { border-color: var(--text); color: var(--text); }
 
+  /* Tab delete button */
+  .dashboard-tabs .tab { display: flex; align-items: center; gap: 6px; }
+  .dashboard-tabs .tab .tab-label { cursor: pointer; }
+  .dashboard-tabs .tab .tab-delete {
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.5;
+    margin-left: 4px;
+    line-height: 1;
+    transition: opacity 0.15s;
+  }
+  .dashboard-tabs .tab .tab-delete:hover { opacity: 1; color: var(--accent); }
+  .dashboard-tabs .tab.active .tab-delete { opacity: 0.7; }
+  .dashboard-tabs .tab.active .tab-delete:hover { opacity: 1; color: #fff; }
+
   /* ── Chart grid ── */
   .chart-grid {
     flex: 1;
@@ -1272,8 +1288,22 @@ async function loadDashboards() {
       const tab = document.createElement('div');
       tab.className = 'tab' + (currentTab === d.id ? ' active' : '');
       tab.dataset.dash = d.id;
-      tab.textContent = `${d.name.toUpperCase()} (${d.charts?.length || 0})`;
-      tab.onclick = () => switchTab(d.id);
+
+      // Tab content: name + count + delete button
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'tab-label';
+      labelSpan.textContent = `${d.name.toUpperCase()} (${d.charts?.length || 0})`;
+      labelSpan.onclick = (e) => { e.stopPropagation(); switchTab(d.id); };
+      tab.appendChild(labelSpan);
+
+      // Delete button (×)
+      const delBtn = document.createElement('span');
+      delBtn.className = 'tab-delete';
+      delBtn.textContent = '×';
+      delBtn.title = '删除 Dashboard';
+      delBtn.onclick = (e) => { e.stopPropagation(); deleteDashboard(d.id); };
+      tab.appendChild(delBtn);
+
       tabsEl.appendChild(tab);
     });
   } catch(e) {}
@@ -1324,15 +1354,59 @@ function switchTab(tabId) {
 
 function createDashboard() {
   const name = prompt('新 Dashboard 名称:');
-  if (!name) return;
-  fetch('/api/dashboards', {
+  if (!name || name.trim() === '') return;
+  const trimmedName = name.trim();
+  fetch('/api/dashboards/create', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({dashboard_name: name, chart: {summary: 'empty'}})
-  }).then(r => r.json()).then(data => {
-    loadDashboards();
-    setTimeout(() => switchTab(data.dashboard_id), 500);
+    body: JSON.stringify({name: trimmedName})
+  }).then(r => {
+    if (r.status === 400) {
+      return r.json().then(err => {
+        showToast(`Dashboard "${trimmedName}" 已存在`, 'error');
+        throw new Error('duplicate');
+      });
+    }
+    return r.json();
+  }).then(data => {
+    if (data.id) {
+      showToast(`Dashboard "${trimmedName}" 创建成功`, 'success');
+      loadDashboards();
+      setTimeout(() => switchTab(data.id), 300);
+    }
+  }).catch(err => {
+    if (err.message !== 'duplicate') {
+      console.error('Create dashboard failed:', err);
+      showToast('创建失败', 'error');
+    }
   });
+}
+
+function deleteDashboard(dashId) {
+  const dash = dashboards[dashId];
+  if (!dash) return;
+  const name = dash.name;
+  const chartCount = dash.charts?.length || 0;
+
+  let confirmMsg = `确认删除 Dashboard "${name}"？\n`;
+  if (chartCount > 0) {
+    confirmMsg += `⚠️ 该 Dashboard 包含 ${chartCount} 个图表，删除后将无法恢复！`;
+  }
+  if (!confirm(confirmMsg)) return;
+
+  fetch(`/api/dashboards/${dashId}`, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(data => {
+      showToast(`Dashboard "${name}" 已删除`, 'success');
+      loadDashboards();
+      if (currentTab === dashId) {
+        switchTab('temp');
+      }
+    })
+    .catch(err => {
+      console.error('Delete dashboard failed:', err);
+      showToast('删除失败', 'error');
+    });
 }
 
 // --- Audit Modal ---
