@@ -704,22 +704,81 @@
 </div>
 
 <script>
-// --- Color Palettes ---
+// --- Color Palettes & Complete Theme Configurations ---
 const COLOR_PALETTES = {
   ggplot2: {
     name: 'GGPlot2',
     colors: ['#66C2A5', '#FC8D62', '#8DA0CB', '#E78AC3', '#A6D854', '#FFD92F', '#E5C494', '#B3B3B3', '#8DD3C7', '#FFFFB3', '#BEBADA'],
-    description: '清新学术风格'
+    description: '清新学术风格',
+    // Complete theme for dark background
+    theme: {
+      // 坐标轴
+      axisLine: { lineStyle: { color: '#888888' } },
+      axisLabel: { color: '#AAAAAA', fontSize: 11 },
+      axisTick: { lineStyle: { color: '#888888' } },
+      // 网格线 - ggplot2风格：浅灰色细线
+      splitLine: { lineStyle: { color: '#444444', type: 'dashed', width: 0.5 } },
+      // 标题
+      title: { textStyle: { color: '#CCCCCC', fontSize: 14 }, subtextStyle: { color: '#888888' } },
+      // 图例
+      legend: { textStyle: { color: '#AAAAAA', fontSize: 11 } },
+      // Tooltip
+      tooltip: {
+        backgroundColor: 'rgba(30, 30, 30, 0.85)',
+        borderColor: '#66C2A5',
+        textStyle: { color: '#CCCCCC' }
+      },
+      // 背景
+      backgroundColor: 'transparent'
+    }
   },
   viridis: {
     name: 'Viridis',
     colors: ['#440154', '#482878', '#3E4A89', '#31688E', '#26828E', '#1F9E89', '#35B779', '#6DCD59', '#B4DE2C', '#FDE725'],
-    description: '色盲友好科学配色'
+    description: '色盲友好科学配色',
+    theme: {
+      // 坐标轴 - viridis风格：深色调
+      axisLine: { lineStyle: { color: '#31688E' } },
+      axisLabel: { color: '#6DCD59', fontSize: 11 },
+      axisTick: { lineStyle: { color: '#31688E' } },
+      // 网格线 - 科学风格：细实线
+      splitLine: { lineStyle: { color: '#333333', type: 'solid', width: 0.5 } },
+      // 标题 - 高亮黄绿色
+      title: { textStyle: { color: '#FDE725', fontSize: 14 }, subtextStyle: { color: '#6DCD59' } },
+      // 图例
+      legend: { textStyle: { color: '#6DCD59', fontSize: 11 } },
+      // Tooltip - 深紫色调
+      tooltip: {
+        backgroundColor: 'rgba(68, 1, 84, 0.9)',
+        borderColor: '#6DCD59',
+        textStyle: { color: '#FDE725' }
+      },
+      backgroundColor: 'transparent'
+    }
   },
   tableau: {
     name: 'Tableau',
     colors: ['#4E79A7', '#F28E2B', '#E15759', '#76B7B2', '#59A14F', '#EDC948', '#B07AA1', '#FF9DA7', '#9C755F', '#BAB0AC'],
-    description: '商务BI专业配色'
+    description: '商务BI专业配色',
+    theme: {
+      // 坐标轴 - tableau风格：中性灰蓝
+      axisLine: { lineStyle: { color: '#9C755F' } },
+      axisLabel: { color: '#BAB0AC', fontSize: 11 },
+      axisTick: { lineStyle: { color: '#9C755F' } },
+      // 网格线 - 商务风格：清晰的分割线
+      splitLine: { lineStyle: { color: '#555555', type: 'solid', width: 1 } },
+      // 标题
+      title: { textStyle: { color: '#BAB0AC', fontSize: 14 }, subtextStyle: { color: '#9C755F' } },
+      // 图例
+      legend: { textStyle: { color: '#BAB0AC', fontSize: 11 } },
+      // Tooltip - Tableau蓝色调
+      tooltip: {
+        backgroundColor: 'rgba(78, 121, 167, 0.9)',
+        borderColor: '#F28E2B',
+        textStyle: { color: '#FFFFFF' }
+      },
+      backgroundColor: 'transparent'
+    }
   }
 };
 
@@ -728,13 +787,62 @@ let currentPalette = 'ggplot2';
 function changePalette() {
   currentPalette = document.getElementById('paletteSelect').value;
   updatePalettePreview();
-  // Refresh all charts with new palette
+  // Refresh all charts with new complete theme
+  const palette = COLOR_PALETTES[currentPalette];
   Object.keys(chartInstances).forEach(key => {
     const chart = chartInstances[key];
     if (chart) {
-      const option = chart.getOption();
-      option.color = COLOR_PALETTES[currentPalette].colors;
-      chart.setOption(option, {notMerge: false});
+      const currentOption = chart.getOption();
+      // Apply new theme while preserving chart-specific settings
+      const newOption = {
+        ...currentOption,
+        color: palette.colors,
+        // Update axis styles
+        xAxis: currentOption.xAxis?.map ? currentOption.xAxis.map(axis => ({
+          ...axis,
+          axisLine: palette.theme.axisLine,
+          axisLabel: palette.theme.axisLabel,
+          axisTick: palette.theme.axisTick,
+          splitLine: palette.theme.splitLine
+        })) : {
+          ...currentOption.xAxis,
+          axisLine: palette.theme.axisLine,
+          axisLabel: palette.theme.axisLabel,
+          axisTick: palette.theme.axisTick,
+          splitLine: palette.theme.splitLine
+        },
+        yAxis: currentOption.yAxis?.map ? currentOption.yAxis.map(axis => ({
+          ...axis,
+          axisLine: palette.theme.axisLine,
+          axisLabel: palette.theme.axisLabel,
+          axisTick: palette.theme.axisTick,
+          splitLine: palette.theme.splitLine
+        })) : {
+          ...currentOption.yAxis,
+          axisLine: palette.theme.axisLine,
+          axisLabel: palette.theme.axisLabel,
+          axisTick: palette.theme.axisTick,
+          splitLine: palette.theme.splitLine
+        },
+        // Update legend style
+        legend: {
+          ...(currentOption.legend?.[0] || currentOption.legend || {}),
+          textStyle: palette.theme.legend.textStyle
+        },
+        // Update title style
+        title: {
+          ...(currentOption.title?.[0] || currentOption.title || {}),
+          textStyle: palette.theme.title.textStyle
+        },
+        // Update tooltip style
+        tooltip: {
+          ...(currentOption.tooltip?.[0] || currentOption.tooltip || {}),
+          backgroundColor: palette.theme.tooltip.backgroundColor,
+          borderColor: palette.theme.tooltip.borderColor,
+          textStyle: palette.theme.tooltip.textStyle
+        }
+      };
+      chart.setOption(newOption, {notMerge: false});
     }
   });
 }
@@ -1176,10 +1284,40 @@ function renderChart(result, tabId, chartId) {
       const w = dom.clientWidth || 400;
       const h = dom.clientHeight || 320;
       const chart = echarts.init(dom, 'dark', {width: w, height: h});
+
+      // Apply complete theme
+      const palette = COLOR_PALETTES[currentPalette];
+      const baseOption = {
+        backgroundColor: palette.theme.backgroundColor,
+        color: palette.colors,
+        // Global axis styles
+        xAxis: {
+          axisLine: palette.theme.axisLine,
+          axisLabel: palette.theme.axisLabel,
+          axisTick: palette.theme.axisTick,
+          splitLine: palette.theme.splitLine
+        },
+        yAxis: {
+          axisLine: palette.theme.axisLine,
+          axisLabel: palette.theme.axisLabel,
+          axisTick: palette.theme.axisTick,
+          splitLine: palette.theme.splitLine
+        },
+        // Global legend style
+        legend: palette.theme.legend,
+        // Global tooltip style
+        tooltip: palette.theme.tooltip
+      };
+
+      // Merge with chart_option (chart_option can override)
       chart.setOption({
-        backgroundColor: 'transparent',
-        color: COLOR_PALETTES[currentPalette].colors,
+        ...baseOption,
         ...result.chart_option,
+        // Ensure title uses theme style if not specified
+        title: {
+          ...palette.theme.title,
+          ...(result.chart_option.title || {})
+        }
       });
       chartInstances[containerId] = chart;
       new ResizeObserver(() => chart.resize()).observe(dom);
