@@ -793,10 +793,28 @@ function changePalette() {
     const chart = chartInstances[key];
     if (chart) {
       const currentOption = chart.getOption();
-      // Apply new theme while preserving chart-specific settings
+      // Apply new theme with proper layout to prevent overlapping
       const newOption = {
         ...currentOption,
         color: palette.colors,
+        // Force proper layout positions
+        title: {
+          ...(currentOption.title?.[0] || currentOption.title || {}),
+          top: 10,
+          textStyle: palette.theme.title.textStyle
+        },
+        grid: {
+          ...(currentOption.grid?.[0] || currentOption.grid || {}),
+          top: 55,
+          bottom: 25,
+          left: 50,
+          right: 30
+        },
+        legend: {
+          ...(currentOption.legend?.[0] || currentOption.legend || {}),
+          top: 35,
+          textStyle: palette.theme.legend.textStyle
+        },
         // Update axis styles
         xAxis: currentOption.xAxis?.map ? currentOption.xAxis.map(axis => ({
           ...axis,
@@ -823,16 +841,6 @@ function changePalette() {
           axisLabel: palette.theme.axisLabel,
           axisTick: palette.theme.axisTick,
           splitLine: palette.theme.splitLine
-        },
-        // Update legend style
-        legend: {
-          ...(currentOption.legend?.[0] || currentOption.legend || {}),
-          textStyle: palette.theme.legend.textStyle
-        },
-        // Update title style
-        title: {
-          ...(currentOption.title?.[0] || currentOption.title || {}),
-          textStyle: palette.theme.title.textStyle
         },
         // Update tooltip style
         tooltip: {
@@ -1289,39 +1297,83 @@ function renderChart(result, tabId, chartId) {
       const h = dom.clientHeight || 320;
       const chart = echarts.init(dom, 'dark', {width: w, height: h});
 
-      // Apply complete theme
+      // Apply complete theme with proper layout to prevent overlapping
       const palette = COLOR_PALETTES[currentPalette];
-      const baseOption = {
-        backgroundColor: palette.theme.backgroundColor,
-        color: palette.colors,
-        // Global axis styles
+      const chartType = result.chart_type || 'line';
+
+      // Default layout config to prevent title/legend overlapping
+      const defaultLayout = {
+        // Title always at top with padding
+        title: {
+          top: 10,
+          left: 'center',
+          textStyle: { fontSize: 14 },
+          ...(result.chart_option?.title || {})
+        },
+        // Grid margins for line/bar/scatter
+        grid: {
+          top: 55,
+          bottom: 25,
+          left: 50,
+          right: 30,
+          ...(result.chart_option?.grid || {})
+        },
+        // Legend position based on chart type
+        legend: {
+          top: 35,
+          left: 'center',
+          itemWidth: 15,
+          itemHeight: 10,
+          ...(result.chart_option?.legend || {})
+        },
+        // Axis styles from palette
         xAxis: {
           axisLine: palette.theme.axisLine,
           axisLabel: palette.theme.axisLabel,
           axisTick: palette.theme.axisTick,
-          splitLine: palette.theme.splitLine
+          splitLine: palette.theme.splitLine,
+          ...(result.chart_option?.xAxis || {})
         },
         yAxis: {
           axisLine: palette.theme.axisLine,
           axisLabel: palette.theme.axisLabel,
           axisTick: palette.theme.axisTick,
-          splitLine: palette.theme.splitLine
-        },
-        // Global legend style
-        legend: palette.theme.legend,
-        // Global tooltip style
-        tooltip: palette.theme.tooltip
+          splitLine: palette.theme.splitLine,
+          ...(result.chart_option?.yAxis || {})
+        }
       };
 
-      // Merge with chart_option (chart_option can override)
+      // Special layout for pie/funnel charts
+      if (chartType === 'pie') {
+        defaultLayout.legend = {
+          orient: 'vertical',
+          left: 5,
+          top: 45,
+          itemWidth: 12,
+          itemHeight: 10,
+          ...(result.chart_option?.legend || {})
+        };
+        delete defaultLayout.grid;
+      } else if (chartType === 'funnel') {
+        defaultLayout.legend = {
+          top: 35,
+          left: 'center',
+          ...(result.chart_option?.legend || {})
+        };
+        delete defaultLayout.grid;
+      }
+
       chart.setOption({
-        ...baseOption,
+        backgroundColor: palette.theme.backgroundColor,
+        color: palette.colors,
+        tooltip: palette.theme.tooltip,
+        ...defaultLayout,
         ...result.chart_option,
-        // Ensure title uses theme style if not specified
-        title: {
-          ...palette.theme.title,
-          ...(result.chart_option.title || {})
-        }
+        // Force title position
+        title: defaultLayout.title,
+        // Force grid/legend position
+        grid: defaultLayout.grid,
+        legend: defaultLayout.legend
       });
       chartInstances[containerId] = chart;
       new ResizeObserver(() => chart.resize()).observe(dom);
