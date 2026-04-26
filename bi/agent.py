@@ -61,13 +61,21 @@ If the user asks about a concept NOT listed above, REASON about the correct form
 ## Rules
 1. Only SELECT queries. Never INSERT/UPDATE/DELETE/DROP.
 2. Use exact column names from the schema above.
-3. Respond in JSON: {{\"sql\": \"...\", \"chart_type\": \"...\", \"summary\": \"...\", \"explanation\": \"...\"}}
+3. Respond in JSON: {{\"sql\": \"...\", \"chart_type\": \"...\", \"title\": \"...\", \"summary\": \"...\", \"explanation\": \"...\"}}
 4. chart_type: line | bar | pie | funnel | scatter | table
-5. summary: 1-2 sentence Chinese description of the result.
-6. explanation: Step-by-step Chinese description of the calculation logic.
-7. For rates, ALWAYS include both the raw counts AND the percentage.
-8. chart_type selection: Use "pie" for 占比/来源/分布 questions. Use "funnel" only for multi-step conversion. Use "line" for trends. Use "bar" for comparisons.
-9. The column referer_page is often NULL. Prefer page or page_root for source analysis.
+5. **title**: A professional BI/statistical chart title in Chinese. Use standard terminology:
+   - 趋势类: "XX时序趋势图" / "XX变化趋势" / "XX时间序列分析"
+   - 分布类: "XX分布分析" / "XX占比分布" / "XX构成分析"
+   - 对比类: "XX对比分析" / "XX差异对比"
+   - 漏斗类: "XX转化漏斗" / "XX流程漏斗分析"
+   - 排名类: "XX排名分析" / "Top N XX统计"
+   - 用户类: "日活跃用户(DAU)趋势" / "用户活跃率分析" / "人均XX分析"
+   Title should be concise (≤20 chars), professional, and describe the visualization accurately.
+6. summary: 1-2 sentence Chinese description of the result.
+7. explanation: Step-by-step Chinese description of the calculation logic.
+8. For rates, ALWAYS include both the raw counts AND the percentage.
+9. chart_type selection: Use "pie" for 占比/来源/分布 questions. Use "funnel" only for multi-step conversion. Use "line" for trends. Use "bar" for comparisons.
+10. The column referer_page is often NULL. Prefer page or page_root for source analysis.
 
 ## Conversation History (if any)
 {conversation_history}
@@ -647,6 +655,7 @@ class Agent:
 
                 chart_type = result.get("chart_type", "table")
                 summary = result.get("summary", "")
+                title = result.get("title", question)  # Use LLM-generated title, fallback to question
 
                 data = self.dm.execute(sql)
 
@@ -657,7 +666,7 @@ class Agent:
                         elif hasattr(v, "item"):
                             row[k] = v.item()
 
-                chart_option = self._build_chart_option(chart_type, data, question)
+                chart_option = self._build_chart_option(chart_type, data, title)
 
                 audit = self._build_audit(sql, data)
                 audit["question"] = question
@@ -791,6 +800,7 @@ class Agent:
                     sql = result.get("sql")
                     chart_type = result.get("chart_type", "table")
                     summary = result.get("summary", "")
+                    title = result.get("title", question)  # Use LLM-generated title, fallback to question
 
                     # Execute SQL
                     try:
@@ -805,7 +815,7 @@ class Agent:
                         yield {"type": "error", "message": f"SQL execution failed: {e}"}
                         return
 
-                    chart_option = self._build_chart_option(chart_type, data, question)
+                    chart_option = self._build_chart_option(chart_type, data, title)
                     audit = self._build_audit(sql, data)
                     audit["question"] = question
                     audit["calculation_logic"] = summary
