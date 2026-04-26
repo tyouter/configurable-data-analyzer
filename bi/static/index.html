@@ -701,7 +701,9 @@
 
 <!-- Context Menu -->
 <div class="context-menu" id="contextMenu">
-  <div class="menu-item" onclick="showAuditFromContext()">审计详情</div>
+  <div class="menu-item" onclick="showAuditFromContext()">📊 审计详情</div>
+  <div class="menu-item" onclick="copyChartImage()">📋 复制图表</div>
+  <div class="menu-item" onclick="downloadChartImage()">⬇️ 下载图表</div>
 </div>
 
 <script>
@@ -1726,6 +1728,71 @@ function deleteDashboard(dashId) {
       console.error('Delete dashboard failed:', err);
       showToast('删除失败', 'error');
     });
+}
+
+// --- Chart Copy & Download ---
+function getChartInstanceFromCard() {
+  if (!contextCard) return null;
+  // Find the chart instance from the card
+  const container = contextCard.querySelector('.chart-container');
+  if (!container) return null;
+  const containerId = container.id;
+  return chartInstances[containerId];
+}
+
+function copyChartImage() {
+  document.getElementById('contextMenu').classList.remove('show');
+  const chart = getChartInstanceFromCard();
+  if (!chart) {
+    showToast('无法获取图表', 'error');
+    return;
+  }
+
+  // Get image as base64 URL
+  const imageUrl = chart.getDataURL({
+    type: 'png',
+    pixelRatio: 2,
+    backgroundColor: '#303030'
+  });
+
+  // Convert to blob and copy to clipboard
+  fetch(imageUrl)
+    .then(res => res.blob())
+    .then(blob => {
+      const item = new ClipboardItem({ 'image/png': blob });
+      navigator.clipboard.write([item])
+        .then(() => showToast('图表已复制到剪贴板', 'success'))
+        .catch(() => showToast('复制失败，请手动保存', 'error'));
+    })
+    .catch(() => showToast('复制失败', 'error'));
+}
+
+function downloadChartImage() {
+  document.getElementById('contextMenu').classList.remove('show');
+  const chart = getChartInstanceFromCard();
+  if (!chart) {
+    showToast('无法获取图表', 'error');
+    return;
+  }
+
+  // Get image URL with high resolution
+  const imageUrl = chart.getDataURL({
+    type: 'png',
+    pixelRatio: 2,
+    backgroundColor: '#303030'
+  });
+
+  // Get chart title for filename
+  const chartData = contextCard.__chartData || {};
+  const title = chartData.chart_option?.title?.text || chartData.audit?.question || 'chart';
+  const filename = `rednote-bi-${title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}.png`;
+
+  // Create download link
+  const link = document.createElement('a');
+  link.href = imageUrl;
+  link.download = filename;
+  link.click();
+  showToast('图表已下载', 'success');
 }
 
 // --- Audit Modal ---
