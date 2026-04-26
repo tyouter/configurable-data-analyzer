@@ -1,0 +1,148 @@
+{
+  "id": "d665bdaf",
+  "name": "Basic",
+  "charts": [
+    {
+      "type": "result",
+      "sql": "SELECT event_name, COUNT(*) as cnt FROM events GROUP BY event_name ORDER BY cnt DESC LIMIT 10",
+      "data": [
+        {
+          "event_name": "porsche_page_Map_poi_card_cardshow",
+          "cnt": 10884
+        },
+        {
+          "event_name": "discovery_page_post_card_cardshow",
+          "cnt": 9300
+        },
+        {
+          "event_name": "discovery_page_pageshow",
+          "cnt": 4999
+        },
+        {
+          "event_name": "porsche_page_recommend_post_card_cardshow",
+          "cnt": 3788
+        },
+        {
+          "event_name": "search_results_page_post_card_carshow",
+          "cnt": 3684
+        },
+        {
+          "event_name": "porsche_page_pageshow",
+          "cnt": 3518
+        },
+        {
+          "event_name": "post_detail_page_pageshow",
+          "cnt": 3113
+        },
+        {
+          "event_name": "search_homepage_search_history_query_item_show",
+          "cnt": 2027
+        },
+        {
+          "event_name": "post_detail_page_back_button_click",
+          "cnt": 1675
+        },
+        {
+          "event_name": "post_detail_page_body_video_swipe_for_the_next_post",
+          "cnt": 1473
+        }
+      ],
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "Top 10 热门事件",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "porsche_page_Map_poi_card_cardshow",
+            "discovery_page_post_card_cardshow",
+            "discovery_page_pageshow",
+            "porsche_page_recommend_post_card_cardshow",
+            "search_results_page_post_card_carshow",
+            "porsche_page_pageshow",
+            "post_detail_page_pageshow",
+            "search_homepage_search_history_query_item_show",
+            "post_detail_page_back_button_click",
+            "post_detail_page_body_video_swipe_for_the_next_post"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "cnt",
+            "data": [
+              10884,
+              9300,
+              4999,
+              3788,
+              3684,
+              3518,
+              3113,
+              2027,
+              1675,
+              1473
+            ]
+          }
+        ]
+      },
+      "summary": "该查询展示了Porsche车机端小红书应用中最频繁触发的10个埋点事件及其次数，帮助了解用户的核心操作偏好。",
+      "audit": {
+        "question": "Top 10 热门事件",
+        "generated_at": "2026-04-26T13:22:25.954783",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_name, COUNT(*) as cnt FROM events GROUP BY event_name ORDER BY cnt DESC LIMIT 10",
+        "sql_explanation": "1. 从events表中选择event_name和计数；2. 按event_name分组统计每个事件的次数；3. 按次数降序排列；4. 取前10条记录。",
+        "columns_used": [
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "该查询展示了Porsche车机端小红书应用中最频繁触发的10个埋点事件及其次数，帮助了解用户的核心操作偏好。",
+        "sample_data": [
+          {
+            "event_name": "porsche_page_Map_poi_card_cardshow",
+            "cnt": 10884
+          },
+          {
+            "event_name": "discovery_page_post_card_cardshow",
+            "cnt": 9300
+          },
+          {
+            "event_name": "discovery_page_pageshow",
+            "cnt": 4999
+          }
+        ]
+      },
+      "reasoning": "We need to respond with a JSON object containing sql, chart_type, summary, and explanation. The user asked: \"Top 10 热门事件\". This matches example 11 from the given examples: \"Top 10 热门事件\". The example query is: SELECT event_name, COUNT(*) as cnt FROM events GROUP BY event_name ORDER BY cnt DESC LIMIT 10. Chart type is bar. Summary should be in Chinese, something like \"事件 'xxx' 发生次数最多，共 xxx 次，是最高频的用户行为事件。\" Actually, we need a 1-2 sentence Chinese description of the result. But we can't actually run the query, so we'll provide a plausible summary based on the data context? Maybe we can just say \"查询得到发生次数最多的10个事件及其计数，可用于了解用户行为热点。\" Or something generic. The instructions: \"summary: 1-2 sentence Chinese description of the result.\" So we can describe what the query does. \"该查询返回小红书中前10个发生次数最多的事件名称和对应的次数，用于识别用户最常见的行为。\" That works. Explanation should be step-by-step Chinese logic. So: \"1. 从events表中选择event_name和计数；2. 按event_name分组统计每个事件的次数；3. 按次数降序排列；4. 取前10条记录。\" chart_type: \"bar\". So final JSON. Make sure no markdown fences, only JSON.\n\nThus:\n{\n  \"sql\": \"SELECT event_name, COUNT(*) as cnt FROM events GROUP BY event_name ORDER BY cnt DESC LIMIT 10\",\n  \"chart_type\": \"bar\",\n  \"summary\": \"该查询返回小红书中前10个发生次数最多的事件名称和对应的次数，用于识别用户最常见的行为。\",\n  \"explanation\": \"1. 从events表中选择event_name和计数；2. 按event_name分组统计每个事件的次数；3. 按次数降序排列；4. 取前10条记录。\"\n}\n\nBut the user is a product manager for in-car Rednote, so maybe we can incorporate that. Summary: \"该查询展示了Porsche车机端小红书应用中最频繁触发的10个埋点事件及其次数，帮助了解用户的核心操作偏好。\" That's more tailored. I'll use that. Explanation is fine.\n\nMake sure chart_type is 'bar' per example. Good.",
+      "id": "39070705",
+      "saved_at": "2026-04-26T13:47:41.383352"
+    }
+  ],
+  "created_at": "2026-04-26T13:47:17.476719",
+  "updated_at": "2026-04-26T13:47:41.383361"
+}
