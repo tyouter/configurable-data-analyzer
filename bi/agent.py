@@ -21,7 +21,8 @@ from bi.data_layer import DataManager
 # DeepSeek API configuration
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = os.environ.get("BI_MODEL", "deepseek-chat")
+# Use deepseek-v4-pro for intelligent reasoning
+DEEPSEEK_MODEL = os.environ.get("BI_MODEL", "deepseek-v4-pro")
 
 PROMPT_TEMPLATE = """You are a senior product data analyst for a Rednote (小红书) in-car (Porsche) application.
 
@@ -181,17 +182,32 @@ class Agent:
             return yaml.safe_load(f)
 
     def _get_event_types_sample(self) -> str:
-        """Get top event types for clarification context."""
+        """Get top event types with business semantics for clarification context."""
         if self._event_types_cache:
             return self._event_types_cache
         try:
             results = self.dm.execute(
                 "SELECT event_name, COUNT(*) as cnt FROM events "
-                "GROUP BY event_name ORDER BY cnt DESC LIMIT 30"
+                "GROUP BY event_name ORDER BY cnt DESC LIMIT 50"
             )
+            # Get event definitions from semantic layer
+            event_defs = self.semantic.get("event_definitions", {})
             lines = []
             for r in results:
-                lines.append(f"- {r['event_name']}: {r['cnt']}次")
+                event_name = r['event_name']
+                cnt = r['cnt']
+                # Look up business semantics
+                def_info = event_defs.get(event_name, {})
+                business_name = def_info.get("business_name", "")
+                description = def_info.get("description", "")
+                category = def_info.get("category", "")
+                if business_name:
+                    lines.append(f"- {event_name} ({business_name}): {cnt}次 — {description[:50] if description else ''}")
+                else:
+                    # Generate heuristic description for unknown events
+                    parts = event_name.replace("_click", "").replace("_show", "").split("_")
+                    heuristic = " ".join(parts[:3])
+                    lines.append(f"- {event_name}: {cnt}次")
             self._event_types_cache = "\n".join(lines)
             return self._event_types_cache
         except Exception:
@@ -278,8 +294,8 @@ class Agent:
         )
 
     def _call_deepseek(self, prompt: str) -> dict:
-        """Call DeepSeek API (OpenAI-compatible endpoint)."""
-        url = f"{self.base_url}/v1/chat/completions"
+        """Call DeepSeek V4 Pro API with thinking enabled."""
+        url = f"{self.base_url}/chat/completions"
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -288,14 +304,20 @@ class Agent:
 
         payload = {
             "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [
+                {"role": "system", "content": "You are a helpful data analyst assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": "high",
             "max_tokens": 4096,
+            "stream": False,
         }
 
         response = requests.post(url, headers=headers, json=payload, timeout=120)
 
         if response.status_code != 200:
-            raise Exception(f"DeepSeek API error: {response.status_code} - {response.text[:200]}")
+            raise Exception(f"DeepSeek API error: {response.status_code} - {response.text[:500]}")
 
         data = response.json()
 
@@ -304,28 +326,26 @@ class Agent:
         message = choice.get("message", {})
         content = message.get("content", "")
 
-        # For deepseek-reasoner, also check reasoning_content
-        if not content:
-            content = message.get("reasoning_content", "")
+        # For V4 Pro with thinking, reasoning may be in reasoning_content or embedded in content
+        reasoning_content = message.get("reasoning_content", "")
 
-        if not content:
+        if not content and not reasoning_content:
             raise Exception("Empty response from DeepSeek")
 
         # Strip markdown fences if present
-        content = content.strip()
+        content = content.strip() if content else ""
         if content.startswith("```"):
             content = re.sub(r"^```(?:json)?\s*\n?", "", content)
             content = re.sub(r"\n?```\s*$", "", content)
 
         # Parse JSON
         try:
-            result = json.loads(content)
+            result = json.loads(content) if content else {}
         except json.JSONDecodeError as e:
             raise Exception(f"JSON parse error: {e}. Content: {content[:200]}")
 
         # Ensure result is a dict
         if isinstance(result, str):
-            # Sometimes DeepSeek returns double-encoded JSON
             try:
                 result = json.loads(result)
             except:
@@ -334,7 +354,65 @@ class Agent:
         if not isinstance(result, dict):
             raise Exception(f"Expected dict, got {type(result).__name__}: {str(result)[:100]}")
 
+        # Return both result and reasoning_content for display
+        result["_reasoning_content"] = reasoning_content
         return result
+
+    def _call_deepseek_stream(self, prompt: str):
+        """Call DeepSeek V4 Pro API with streaming (SSE). Yields chunks including reasoning."""
+        url = f"{self.base_url}/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful data analyst assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": "high",
+            "max_tokens": 4096,
+            "stream": True,
+        }
+
+        response = requests.post(url, headers=headers, json=payload, timeout=120, stream=True)
+
+        if response.status_code != 200:
+            raise Exception(f"DeepSeek API error: {response.status_code} - {response.text[:500]}")
+
+        full_content = ""
+        reasoning_content = ""
+
+        for line in response.iter_lines():
+            if not line:
+                continue
+            line = line.decode("utf-8")
+            if line.startswith("data: "):
+                data_str = line[6:]
+                if data_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    # Content chunk - may be None
+                    content_chunk = delta.get("content")
+                    if content_chunk:
+                        full_content += content_chunk
+                        yield {"type": "content", "text": content_chunk}
+                    # Reasoning chunk (for V4 Pro with thinking) - may be None
+                    reasoning_chunk = delta.get("reasoning_content")
+                    if reasoning_chunk:
+                        reasoning_content += reasoning_chunk
+                        yield {"type": "reasoning", "text": reasoning_chunk}
+                except json.JSONDecodeError:
+                    continue
+
+        # Final yield with full content
+        yield {"type": "done", "content": full_content, "reasoning": reasoning_content}
 
     def _build_chart_option(self, chart_type: str, data: list[dict], title: str) -> dict:
         if chart_type not in CHART_TEMPLATES or chart_type == "table":
@@ -623,3 +701,109 @@ class Agent:
             "audit": None,
             "error": last_error,
         }
+
+    def query_stream(self, question: str, skip_clarification: bool = False, clear_history: bool = False):
+        """Stream-based query with real-time reasoning display."""
+        # Clear history if requested (for fresh start)
+        if clear_history:
+            self.conversation_history = []
+
+        # Limit history to prevent context pollution
+        if len(self.conversation_history) > 10:
+            self.conversation_history = self.conversation_history[-10:]
+
+        self.conversation_history.append({"role": "user", "content": question})
+
+        # Step 1: Check clarification (non-streaming for now)
+        if not skip_clarification:
+            clarification_prompt = self._build_clarification_prompt(question)
+            try:
+                clarification_result = self._call_deepseek(clarification_prompt)
+                if isinstance(clarification_result, dict) and clarification_result.get("action") == "clarify":
+                    reasoning = clarification_result.get("_reasoning_content", "")
+                    self.conversation_history.append({
+                        "role": "assistant",
+                        "content": clarification_result.get("question", ""),
+                        "type": "clarification",
+                    })
+                    yield {
+                        "type": "clarification",
+                        "message": clarification_result.get("question", "请问您能提供更多信息吗？"),
+                        "options": clarification_result.get("options", []),
+                        "reasoning": reasoning,
+                        "original_question": question,
+                    }
+                    return  # Stop here, wait for user clarification
+            except Exception as e:
+                print(f"[Agent] Clarification check failed: {e}")
+                pass
+
+        # Step 2: Stream SQL generation
+        prompt = self._build_prompt(question)
+        full_reasoning = ""
+        full_content = ""
+
+        try:
+            for chunk in self._call_deepseek_stream(prompt):
+                if chunk["type"] == "reasoning":
+                    full_reasoning += chunk["text"]
+                    yield {"type": "reasoning", "text": chunk["text"]}
+                elif chunk["type"] == "content":
+                    full_content += chunk["text"]
+                    yield {"type": "content", "text": chunk["text"]}
+                elif chunk["type"] == "done":
+                    # Parse final JSON
+                    content = full_content.strip()
+                    if content.startswith("```"):
+                        content = re.sub(r"^```(?:json)?\s*\n?", "", content)
+                        content = re.sub(r"\n?```\s*$", "", content)
+                    try:
+                        result = json.loads(content)
+                    except json.JSONDecodeError:
+                        yield {"type": "error", "message": f"JSON parse failed: {content[:100]}"}
+                        return
+
+                    sql = result.get("sql")
+                    chart_type = result.get("chart_type", "table")
+                    summary = result.get("summary", "")
+
+                    # Execute SQL
+                    try:
+                        data = self.dm.execute(sql)
+                        for row in data:
+                            for k, v in row.items():
+                                if hasattr(v, "isoformat"):
+                                    row[k] = v.isoformat()
+                                elif hasattr(v, "item"):
+                                    row[k] = v.item()
+                    except Exception as e:
+                        yield {"type": "error", "message": f"SQL execution failed: {e}"}
+                        return
+
+                    chart_option = self._build_chart_option(chart_type, data, question)
+                    audit = self._build_audit(sql, data)
+                    audit["question"] = question
+                    audit["calculation_logic"] = summary
+                    explanation = result.get("explanation", "")
+                    if explanation:
+                        audit["sql_explanation"] = explanation
+
+                    self.conversation_history.append({
+                        "role": "assistant",
+                        "content": summary,
+                        "type": "result",
+                    })
+
+                    yield {
+                        "type": "result",
+                        "sql": sql,
+                        "data": data,
+                        "chart_type": chart_type,
+                        "chart_option": chart_option,
+                        "summary": summary,
+                        "audit": audit,
+                        "reasoning": full_reasoning,
+                    }
+
+        except Exception as e:
+            yield {"type": "error", "message": str(e)}

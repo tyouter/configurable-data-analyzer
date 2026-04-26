@@ -55,6 +55,21 @@
     letter-spacing: 1px;
     font-family: Arial, Helvetica, sans-serif;
   }
+  .header .clear-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .header .clear-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   /* ── Main layout ── */
   .main { display: flex; flex: 1; overflow: hidden; }
@@ -123,6 +138,146 @@
   }
   .clarify-btn:hover { border-color: var(--accent); color: var(--accent); }
   .clarify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Reasoning block (collapsible) ── */
+  .reasoning-block {
+    margin: 10px 0;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: var(--near-black);
+  }
+  .reasoning-summary {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: Arial, Helvetica, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .reasoning-summary:hover { color: var(--text); }
+  .reasoning-status { color: var(--accent); font-weight: 700; }
+  .reasoning-content {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    line-height: 1.4;
+    border-top: 1px solid var(--border);
+  }
+  /* ── Toast notification ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 2px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 9999;
+    animation: toastIn 0.3s ease;
+  }
+  .toast-success { background: var(--green); }
+  .toast-error { background: var(--accent); }
+  .toast-fade { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+
+  /* ── Pin Dialog ── */
+  .pin-dialog-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pin-dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 360px;
+    max-height: 80vh;
+    overflow: hidden;
+  }
+  .pin-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .pin-dialog-header button {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .pin-dialog-header button:hover { color: var(--text); }
+  .pin-dialog-body { padding: 20px; }
+  .pin-dialog-section { margin-bottom: 20px; }
+  .pin-dialog-section label {
+    display: block;
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .pin-dashboard-list { display: flex; flex-direction: column; gap: 8px; }
+  .pin-dashboard-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pin-dashboard-item:hover { border-color: var(--accent); background: var(--near-black); }
+  .pin-count { font-size: 11px; color: var(--text2); }
+  .pin-empty { padding: 12px; color: var(--text2); text-align: center; font-size: 13px; }
+  .pin-new-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 10px;
+    outline: none;
+  }
+  .pin-new-input:focus { border-color: var(--accent); }
+  .pin-new-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pin-new-btn:hover { background: var(--accent-hover); }
 
   /* ── Quick metrics ── */
   .quick-metrics { padding: 14px 16px; border-top: 1px solid var(--border); }
@@ -426,6 +581,7 @@
 <div class="header">
   <h1><span>Rednote</span> BI</h1>
   <div class="meta" id="headerMeta">Loading...</div>
+  <button class="clear-btn" onclick="clearHistory()">CLEAR</button>
 </div>
 
 <div class="main">
@@ -496,6 +652,22 @@ let contextCard = null;
 let chartInstances = {};
 let tempDashboardId = null;
 
+// --- Clear History ---
+function clearHistory() {
+  // Clear chat messages
+  const chatMessages = document.getElementById('chatMessages');
+  chatMessages.innerHTML = `
+    <div class="chat-msg">
+      <div class="role ai">AI ANALYST</div>
+      <div class="content">欢迎使用 Rednote BI。你可以用自然语言提问，例如「每天的日活趋势」「各页面访问占比」「导航漏斗转化」</div>
+    </div>
+  `;
+  // Clear temp dashboard charts
+  const chartGrid = document.getElementById('chartGrid');
+  chartGrid.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>在左侧输入问题或点击快捷指标<br>图表将显示在这里</p></div>`;
+  chartGrid.classList.add('empty');
+}
+
 // --- Init ---
 document.addEventListener('DOMContentLoaded', async () => {
   loadDashboards();
@@ -536,24 +708,112 @@ async function sendQuery() {
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span>';
 
+  // Create a placeholder for streaming response
+  const streamMsgId = 'stream-' + Date.now();
+  const streamDiv = document.createElement('div');
+  streamDiv.className = 'chat-msg';
+  streamDiv.id = streamMsgId;
+  streamDiv.innerHTML = `
+    <div class="role ai">AI ANALYST</div>
+    <details class="reasoning-block" open>
+      <summary class="reasoning-summary">推理过程 <span class="reasoning-status">...</span></summary>
+      <div class="reasoning-content" id="${streamMsgId}-reasoning"></div>
+    </details>
+    <div class="content" id="${streamMsgId}-content"></div>
+    <div class="chart-placeholder" id="${streamMsgId}-chart"></div>
+  `;
+  document.getElementById('chatMessages').appendChild(streamDiv);
+  streamDiv.scrollIntoView({behavior: 'smooth'});
+
+  let reasoningText = '';
+  let contentText = '';
+  let reasoningDiv = document.getElementById(`${streamMsgId}-reasoning`);
+  let contentDiv = document.getElementById(`${streamMsgId}-content`);
+  let statusSpan = streamDiv.querySelector('.reasoning-status');
+
   try {
-    const r = await fetch('/api/query', {
+    const r = await fetch('/api/query/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({question})
+      body: JSON.stringify({question, clear_history: true})
     });
-    const result = await r.json();
 
-    // Handle clarification request
-    if (result.need_clarification) {
-      addClarificationMsg(result);
-    } else if (result.error) {
-      addChatMsg('ai', `查询失败: ${result.error}`);
-    } else {
-      addChatMsg('ai', result.summary || '查询完成', result.sql, result);
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6);
+          try {
+            const chunk = JSON.parse(dataStr);
+
+            if (chunk.type === 'reasoning') {
+              reasoningText += chunk.text;
+              reasoningDiv.textContent = reasoningText;
+              statusSpan.textContent = '思考中...';
+              streamDiv.scrollIntoView({behavior: 'smooth'});
+            } else if (chunk.type === 'content') {
+              contentText += chunk.text;
+              contentDiv.textContent = contentText;
+              statusSpan.textContent = '生成SQL...';
+            } else if (chunk.type === 'clarification') {
+              // Remove streaming placeholder
+              streamDiv.remove();
+              // Show reasoning if any
+              if (chunk.reasoning) {
+                addChatMsg('ai', `[推理] ${chunk.reasoning.slice(0, 200)}...`);
+              }
+              addClarificationMsg(chunk);
+              btn.disabled = false;
+              btn.textContent = 'SEND';
+              return;
+            } else if (chunk.type === 'result') {
+              statusSpan.textContent = '完成';
+              reasoningDiv.textContent = chunk.reasoning || reasoningText;
+              contentDiv.textContent = chunk.summary || '查询完成';
+              // Remove chart-placeholder from chat - chart goes to dashboard
+              streamDiv.querySelector('.chart-placeholder').remove();
+              // Render chart to right-side dashboard (temp area)
+              if (chunk.chart_option) {
+                renderChart(chunk, 'temp');
+                persistChart(TEMP_DASHBOARD, chunk, (savedData) => {
+                  if (currentTab === 'temp' && savedData.chart_id) {
+                    const cards = document.querySelectorAll('#chartGrid .chart-card');
+                    if (cards.length > 0) cards[0].__chartId = savedData.chart_id;
+                  }
+                });
+              } else if (chunk.data?.length) {
+                renderTable(chunk, 'temp');
+                persistChart(TEMP_DASHBOARD, chunk, (savedData) => {
+                  if (currentTab === 'temp' && savedData.chart_id) {
+                    const cards = document.querySelectorAll('#chartGrid .chart-card');
+                    if (cards.length > 0) cards[0].__chartId = savedData.chart_id;
+                  }
+                });
+              }
+            } else if (chunk.type === 'error') {
+              contentDiv.textContent = `错误: ${chunk.message}`;
+              statusSpan.textContent = '失败';
+            }
+          } catch (parseErr) {
+            console.warn('Parse error:', parseErr);
+          }
+        }
+      }
     }
+
   } catch(e) {
-    addChatMsg('ai', `请求失败: ${e.message}`);
+    contentDiv.textContent = `请求失败: ${e.message}`;
+    statusSpan.textContent = '失败';
   }
 
   btn.disabled = false;
@@ -581,7 +841,7 @@ function addClarificationMsg(clarification) {
   div.scrollIntoView({behavior: 'smooth'});
 }
 
-// Handle user's clarification choice - supports multi-turn clarification
+// Handle user's clarification choice - supports multi-turn clarification with streaming
 async function handleClarification(btn) {
   const info = JSON.parse(btn.dataset.info);
 
@@ -604,24 +864,121 @@ async function handleClarification(btn) {
   sendBtn.disabled = true;
   sendBtn.innerHTML = '<span class="loading"></span>';
 
+  // Create streaming placeholder (same as sendQuery)
+  const streamMsgId = 'stream-' + Date.now();
+  const streamDiv = document.createElement('div');
+  streamDiv.className = 'chat-msg';
+  streamDiv.id = streamMsgId;
+  streamDiv.innerHTML = `
+    <div class="role ai">AI ANALYST</div>
+    <details class="reasoning-block" open>
+      <summary class="reasoning-summary">推理过程 <span class="reasoning-status">...</span></summary>
+      <div class="reasoning-content" id="${streamMsgId}-reasoning"></div>
+    </details>
+    <div class="content" id="${streamMsgId}-content"></div>
+    <div class="clarification-options" id="${streamMsgId}-options"></div>
+    <div class="chart-placeholder" id="${streamMsgId}-chart"></div>
+  `;
+  document.getElementById('chatMessages').appendChild(streamDiv);
+  streamDiv.scrollIntoView({behavior: 'smooth'});
+
+  let reasoningText = '';
+  let contentText = '';
+  let reasoningDiv = document.getElementById(`${streamMsgId}-reasoning`);
+  let contentDiv = document.getElementById(`${streamMsgId}-content`);
+  let optionsDiv = document.getElementById(`${streamMsgId}-options`);
+  let statusSpan = streamDiv.querySelector('.reasoning-status');
+
   try {
-    const r = await fetch('/api/query', {
+    const r = await fetch('/api/query/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({question: refinedQuestion})
     });
-    const result = await r.json();
 
-    // Handle potential multi-turn clarification
-    if (result.need_clarification) {
-      addClarificationMsg(result);
-    } else if (result.error) {
-      addChatMsg('ai', `查询失败: ${result.error}`);
-    } else {
-      addChatMsg('ai', result.summary || '查询完成', result.sql, result);
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6);
+          try {
+            const chunk = JSON.parse(dataStr);
+
+            if (chunk.type === 'reasoning') {
+              reasoningText += chunk.text;
+              reasoningDiv.textContent = reasoningText;
+              statusSpan.textContent = '思考中...';
+              streamDiv.scrollIntoView({behavior: 'smooth'});
+            } else if (chunk.type === 'content') {
+              contentText += chunk.text;
+              contentDiv.textContent = contentText;
+              statusSpan.textContent = '生成SQL...';
+            } else if (chunk.type === 'clarification') {
+              // Another round of clarification needed
+              statusSpan.textContent = '需要澄清';
+              reasoningDiv.textContent = chunk.reasoning || reasoningText;
+              contentDiv.textContent = chunk.message;
+              // Add clarification options
+              chunk.options.forEach(opt => {
+                const optBtn = document.createElement('button');
+                optBtn.className = 'clarify-btn';
+                optBtn.textContent = opt.label;
+                optBtn.dataset.info = JSON.stringify({
+                  value: opt.value,
+                  label: opt.label,
+                  original_question: chunk.original_question || refinedQuestion
+                });
+                optBtn.onclick = function() { handleClarification(this); };
+                optionsDiv.appendChild(optBtn);
+              });
+            } else if (chunk.type === 'result') {
+              statusSpan.textContent = '完成';
+              reasoningDiv.textContent = chunk.reasoning || reasoningText;
+              contentDiv.textContent = chunk.summary || '查询完成';
+              // Remove chart-placeholder from chat - chart goes to dashboard
+              streamDiv.querySelector('.chart-placeholder').remove();
+              // Render chart to right-side dashboard (temp area)
+              if (chunk.chart_option) {
+                renderChart(chunk, 'temp');
+                persistChart(TEMP_DASHBOARD, chunk, (savedData) => {
+                  if (currentTab === 'temp' && savedData.chart_id) {
+                    const cards = document.querySelectorAll('#chartGrid .chart-card');
+                    if (cards.length > 0) cards[0].__chartId = savedData.chart_id;
+                  }
+                });
+              } else if (chunk.data?.length) {
+                renderTable(chunk, 'temp');
+                persistChart(TEMP_DASHBOARD, chunk, (savedData) => {
+                  if (currentTab === 'temp' && savedData.chart_id) {
+                    const cards = document.querySelectorAll('#chartGrid .chart-card');
+                    if (cards.length > 0) cards[0].__chartId = savedData.chart_id;
+                  }
+                });
+              }
+            } else if (chunk.type === 'error') {
+              contentDiv.textContent = `错误: ${chunk.message}`;
+              statusSpan.textContent = '失败';
+            }
+          } catch (parseErr) {
+            console.warn('Parse error:', parseErr);
+          }
+        }
+      }
     }
+
   } catch(e) {
-    addChatMsg('ai', `请求失败: ${e.message}`);
+    contentDiv.textContent = `请求失败: ${e.message}`;
+    statusSpan.textContent = '失败';
   }
 
   sendBtn.disabled = false;
@@ -796,27 +1153,96 @@ function persistChart(dashboardName, chartData, onSaved) {
     }
     loadDashboards();
     if (onSaved) onSaved(data);
-  }).catch(() => {});
+  }).catch(err => {
+    console.error('Persist chart failed:', err);
+  });
 }
 
-// --- Pin to Dashboard ---
-function pinChart(btn) {
-  const result = JSON.parse(btn.dataset.result);
-  const name = prompt('保存到 Dashboard (输入名称):', '默认');
-  if (!name) return;
-  persistChart(name, result);
-  btn.textContent = 'SAVED';
-  btn.disabled = true;
-}
-
+// --- Pin to Dashboard with selection ---
 function pinFromCard(btn) {
   const card = btn.closest('.chart-card');
-  const audit = JSON.parse(card.dataset.audit || '{}');
-  const summary = card.querySelector('.summary')?.textContent || '';
-  const chartData = card.__chartData || { audit, summary };
-  const name = prompt('保存到 Dashboard (输入名称):', '默认');
-  if (!name) return;
-  persistChart(name, chartData);
+  const chartData = card.__chartData || { audit: JSON.parse(card.dataset.audit || '{}') };
+  showPinDialog(chartData);
+}
+
+function showPinDialog(chartData) {
+  // Get existing dashboards
+  fetch('/api/dashboards').then(r => r.json()).then(dashboards => {
+    // Filter out __temp__
+    const savedDashboards = dashboards.filter(d => d.name !== '__temp__');
+
+    // Build selection dialog HTML
+    const dialogHtml = `
+      <div class="pin-dialog-overlay" onclick="closePinDialog()">
+        <div class="pin-dialog" onclick="event.stopPropagation()">
+          <div class="pin-dialog-header">
+            <span>PIN TO DASHBOARD</span>
+            <button onclick="closePinDialog()">&times;</button>
+          </div>
+          <div class="pin-dialog-body">
+            <div class="pin-dialog-section">
+              <label>选择已有看板:</label>
+              <div class="pin-dashboard-list">
+                ${savedDashboards.map(d => `
+                  <div class="pin-dashboard-item" onclick="pinToDashboard('${d.name}', ${JSON.stringify(chartData).replace(/"/g, '&quot;')})">
+                    <span>${d.name}</span>
+                    <span class="pin-count">${d.charts?.length || 0} 图表</span>
+                  </div>
+                `).join('')}
+                ${savedDashboards.length === 0 ? '<div class="pin-empty">暂无已保存的看板</div>' : ''}
+              </div>
+            </div>
+            <div class="pin-dialog-section">
+              <label>或新建看板:</label>
+              <input type="text" class="pin-new-input" id="pinNewName" placeholder="输入新看板名称" />
+              <button class="pin-new-btn" onclick="pinToNewDashboard(${JSON.stringify(chartData).replace(/"/g, '&quot;')})">新建并保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add dialog to body
+    const dialogDiv = document.createElement('div');
+    dialogDiv.id = 'pinDialogContainer';
+    dialogDiv.innerHTML = dialogHtml;
+    document.body.appendChild(dialogDiv);
+  });
+}
+
+function pinToDashboard(name, chartData) {
+  persistChart(name, chartData, () => {
+    closePinDialog();
+    showToast(`已保存到「${name}」看板`);
+  });
+}
+
+function pinToNewDashboard(chartData) {
+  const name = document.getElementById('pinNewName').value.trim();
+  if (!name) {
+    showToast('请输入看板名称', 'error');
+    return;
+  }
+  persistChart(name, chartData, () => {
+    closePinDialog();
+    showToast(`已创建「${name}」看板并保存`);
+  });
+}
+
+function closePinDialog() {
+  const dialog = document.getElementById('pinDialogContainer');
+  if (dialog) dialog.remove();
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-fade');
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
 }
 
 function removeCard(btn) {

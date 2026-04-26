@@ -20,7 +20,7 @@ if _PROJECT_ROOT not in sys.path:
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from bi.data_layer import get_data_manager
 from bi.agent import Agent
@@ -46,6 +46,7 @@ async def startup():
 
 class QueryRequest(BaseModel):
     question: str
+    clear_history: bool = False
 
 
 @app.post("/api/query")
@@ -54,6 +55,29 @@ async def api_query(req: QueryRequest):
         raise HTTPException(500, "Agent not initialized")
     result = _agent.query(req.question)
     return JSONResponse(result)
+
+
+@app.post("/api/query/stream")
+async def api_query_stream(req: QueryRequest):
+    """SSE streaming endpoint for query with reasoning display."""
+    if not _agent:
+        raise HTTPException(500, "Agent not initialized")
+
+    def generate():
+        import json
+        for chunk in _agent.query_stream(req.question, clear_history=req.clear_history):
+            # SSE format: data: {json}\n\n
+            yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 @app.get("/api/schema")

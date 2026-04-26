@@ -1,7 +1,227 @@
 # Semantic Layer for Rednote BI
-# Columns, metrics, and example queries for NL→SQL accuracy
+# Columns, metrics, event definitions, and example queries for NL→SQL accuracy
 
 table: events
+
+# ═══════════════════════════════════════════════════════════════════════════
+# EVENT DEFINITIONS — Business semantics for each event type
+# ═══════════════════════════════════════════════════════════════════════════
+# These definitions help the LLM understand what each event means in business context.
+
+event_definitions:
+  # ── Page Views (pageshow) ──
+  discovery_page_pageshow:
+    business_name: "发现页展示"
+    description: "用户进入小红书发现页（推荐内容首页），系统展示页面"
+    category: "页面展示"
+  porsche_page_pageshow:
+    business_name: "Porsche+主页展示"
+    description: "用户进入保时捷专属页面，展示保时捷相关内容和地图"
+    category: "页面展示"
+  post_detail_page_pageshow:
+    business_name: "笔记详情页展示"
+    description: "用户点击笔记卡片后进入详情页查看完整内容"
+    category: "页面展示"
+  poi_detail_page_pageshow:
+    business_name: "POI详情页展示"
+    description: "用户点击POI(地点)卡片后进入详情页，展示地点信息、地址、相关笔记"
+    category: "页面展示"
+  search_homepage_pageshow:
+    business_name: "搜索首页展示"
+    description: "用户进入搜索页面，展示搜索历史和推荐"
+    category: "页面展示"
+  search_results_page_pageshow:
+    business_name: "搜索结果页展示"
+    description: "用户提交搜索后展示搜索结果列表"
+    category: "页面展示"
+  profile_page_pageshow:
+    business_name: "个人主页展示"
+    description: "用户进入自己的个人主页，展示发布的笔记、收藏等"
+    category: "页面展示"
+  trival_guide_page_pageshow:
+    business_name: "旅行指南页展示"
+    description: "用户进入旅行指南页面，展示行程规划和攻略"
+    category: "页面展示"
+  login_page_pageshow:
+    business_name: "登录页展示"
+    description: "用户进入登录页面"
+    category: "页面展示"
+
+  # ── Card Impressions (cardshow/carshow) ──
+  discovery_page_post_card_cardshow:
+    business_name: "发现页笔记卡片曝光"
+    description: "发现页上的笔记卡片被展示给用户（曝光事件）"
+    category: "卡片曝光"
+  porsche_page_Map_poi_card_cardshow:
+    business_name: "Porsche+地图POI卡片曝光"
+    description: "保时捷页地图上的POI(地点)卡片被展示"
+    category: "卡片曝光"
+  porsche_page_recommend_post_card_cardshow:
+    business_name: "Porsche+推荐笔记卡片曝光"
+    description: "保时捷页推荐区域的笔记卡片曝光"
+    category: "卡片曝光"
+  search_results_page_post_card_carshow:
+    business_name: "搜索结果笔记卡片曝光"
+    description: "搜索结果页的笔记卡片被展示"
+    category: "卡片曝光"
+  poi_detail_page_post_card_cardshow:
+    business_name: "POI详情页笔记卡片曝光"
+    description: "POI详情页中关联的笔记卡片曝光"
+    category: "卡片曝光"
+
+  # ── Card Clicks ──
+  discovery_page_post_card_click:
+    business_name: "发现页笔记卡片点击"
+    description: "用户在发现页点击笔记卡片进入详情"
+    category: "卡片点击"
+  porsche_page_Map_poi_card_click:
+    business_name: "Porsche+地图POI卡片点击"
+    description: "用户在保时捷页地图点击POI卡片查看详情"
+    category: "卡片点击"
+  porsche_page_recommend_post_card_click:
+    business_name: "Porsche+推荐笔记卡片点击"
+    description: "用户在保时捷页推荐区点击笔记卡片"
+    category: "卡片点击"
+  search_results_page_post_card_click:
+    business_name: "搜索结果笔记卡片点击"
+    description: "用户在搜索结果页点击笔记卡片"
+    category: "卡片点击"
+  poi_detail_page_post_card_click:
+    business_name: "POI详情页笔记卡片点击"
+    description: "用户在POI详情页点击相关笔记卡片"
+    category: "卡片点击"
+
+  # ── Navigation Events (导航栏) ──
+  navigation_bar_porsche_tab_click:
+    business_name: "导航栏保时捷Tab点击"
+    description: "用户点击底部导航栏的保时捷图标，切换到保时捷页"
+    category: "导航"
+  navigation_bar_discovery_tab_click:
+    business_name: "导航栏发现Tab点击"
+    description: "用户点击底部导航栏的发现图标，切换到发现页"
+    category: "导航"
+  navigation_bar_profile_icon_click:
+    business_name: "导航栏个人主页点击"
+    description: "用户点击底部导航栏的个人图标，进入个人主页"
+    category: "导航"
+
+  # ── POI Navigation (发起导航) ──
+  poi_detail_page_navigation_button_click:
+    business_name: "POI详情页发起导航按钮点击"
+    description: "用户在POI详情页点击「导航」按钮，准备发起路线导航"
+    category: "导航发起"
+  poi_detail_page_navigation_popup_confirm_click:
+    business_name: "POI详情页导航确认点击"
+    description: "用户在导航弹窗中点击「确认」，正式发起导航"
+    category: "导航确认"
+  poi_detail_page_navigation_popup_cancel_click:
+    business_name: "POI详情页导航取消点击"
+    description: "用户在导航弹窗中点击「取消」，放弃导航"
+    category: "导航取消"
+  trival_guide_page_detail_tab_poi_navigation_button_click:
+    business_name: "旅行指南页POI导航按钮点击"
+    description: "用户在旅行指南详情页点击POI的导航按钮"
+    category: "导航发起"
+  trival_guide_page_detail_tab_poi_navigation_popup_confirm_click:
+    business_name: "旅行指南页导航确认点击"
+    description: "用户在旅行指南页确认发起导航"
+    category: "导航确认"
+
+  # ── Search Events ──
+  search_homepage_search_history_query_item_show:
+    business_name: "搜索历史词条曝光"
+    description: "搜索页展示用户的历史搜索词条"
+    category: "搜索"
+  search_homepage_search_history_query_item_click:
+    business_name: "搜索历史词条点击"
+    description: "用户点击搜索历史中的某个词条重新搜索"
+    category: "搜索"
+  search_results_page_all_tab_switch_click:
+    business_name: "搜索结果全部Tab切换"
+    description: "用户在搜索结果页切换到「全部」分类"
+    category: "搜索"
+
+  # ── Post Interaction (笔记互动) ──
+  post_detail_page_post_like_click:
+    business_name: "笔记详情页点赞点击"
+    description: "用户在笔记详情页点击点赞按钮"
+    category: "互动"
+  post_detail_page_save_button_click:
+    business_name: "笔记详情页收藏点击"
+    description: "用户在笔记详情页点击收藏按钮"
+    category: "互动"
+  discovery_page_post_like_click:
+    business_name: "发现页点赞点击"
+    description: "用户在发现页笔记卡片上点赞"
+    category: "互动"
+
+  # ── Video Events ──
+  post_detail_page_body_video_play_icon_click:
+    business_name: "笔记视频播放点击"
+    description: "用户点击视频播放按钮开始播放"
+    category: "视频"
+  post_detail_page_body_video_fullscreen_play_click:
+    business_name: "视频全屏播放点击"
+    description: "用户点击进入全屏视频播放模式"
+    category: "视频"
+  post_detail_page_body_video_swipe_for_the_next_post:
+    business_name: "视频滑动切换下一篇"
+    description: "用户在播放视频时滑动切换到下一篇笔记"
+    category: "视频"
+
+  # ── Travel Guide Events ──
+  post_detail_page_ai_travel_guide_button_show:
+    business_name: "AI旅行指南按钮展示"
+    description: "笔记详情页展示AI生成的旅行指南入口按钮"
+    category: "旅行指南"
+  post_detail_page_ai_travel_guide_button_click:
+    business_name: "AI旅行指南按钮点击"
+    description: "用户点击AI旅行指南按钮查看攻略"
+    category: "旅行指南"
+  trival_guide_page_detail_tab_click:
+    business_name: "旅行指南详情Tab点击"
+    description: "用户切换旅行指南的详情视图"
+    category: "旅行指南"
+
+  # ── Login Events ──
+  login_page_QRCode_Authentication:
+    business_name: "二维码登录认证"
+    description: "用户通过扫描二维码完成登录认证"
+    category: "登录"
+
+  # ── Map Events ──
+  porsche_page_map_onFullscreen_Entry_Click:
+    business_name: "地图全屏进入点击"
+    description: "用户点击进入地图全屏模式"
+    category: "地图"
+  porsche_page_map_onFullscreen_Exit_Click:
+    business_name: "地图全屏退出点击"
+    description: "用户退出地图全屏模式"
+    category: "地图"
+  porsche_page_map_return_to_my_location_click:
+    business_name: "地图返回当前位置点击"
+    description: "用户点击返回自己的当前位置"
+    category: "地图"
+
+  # ── Refresh/Slide ──
+  discovery_page_pull_to_refresh:
+    business_name: "发现页下拉刷新"
+    description: "用户在发现页下拉刷新获取新内容"
+    category: "刷新"
+  porsche_page_pull_to_refresh:
+    business_name: "Porsche+页下拉刷新"
+    description: "用户在保时捷页下拉刷新"
+    category: "刷新"
+  discovery_page_pageslide:
+    business_name: "发现页滑动翻页"
+    description: "用户在发现页滑动浏览更多内容"
+    category: "滑动"
+
+  # ── Back Button ──
+  post_detail_page_back_button_click:
+    business_name: "笔记详情页返回点击"
+    description: "用户点击返回按钮退出笔记详情页"
+    category: "返回"
 
 columns:
   reduser_id:
