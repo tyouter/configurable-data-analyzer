@@ -1,0 +1,1838 @@
+{
+  "id": "d8b924e0",
+  "name": "Strategy",
+  "charts": [
+    {
+      "id": "a7858292",
+      "name": "S01 North Star Metrics",
+      "chart_type": "table",
+      "chart_option": null,
+      "sql": "WITH poi_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE page_root = 'poi_detail'\n),\nnav_click_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name LIKE '%navigation_button_click'\n),\nnav_confirm_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name LIKE '%navigation_popup_confirm_click'\n),\ntotal_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events\n)\nSELECT \n    '导航转化效率' AS metric_name,\n    ROUND(CAST(nav_confirm.cnt AS DOUBLE) / NULLIF(poi.cnt, 0) * 100, 2) AS value_pct\nFROM poi_users poi, nav_confirm_users nav_confirm\nUNION ALL\nSELECT \n    '导航确认率',\n    ROUND(CAST(nav_confirm2.cnt AS DOUBLE) / NULLIF(nav_click.cnt, 0) * 100, 2)\nFROM nav_click_users nav_click, nav_confirm_users nav_confirm2\nUNION ALL\nSELECT \n    '导航用户渗透率',\n    ROUND(CAST(nav_confirm3.cnt AS DOUBLE) / NULLIF(tot.cnt, 0) * 100, 2)\nFROM nav_confirm_users nav_confirm3, total_users tot",
+      "data": [
+        {
+          "metric_name": "导航转化效率",
+          "value_pct": null
+        },
+        {
+          "metric_name": "导航确认率",
+          "value_pct": 95.83
+        },
+        {
+          "metric_name": "导航用户渗透率",
+          "value_pct": 7.74
+        }
+      ],
+      "summary": "导航转化效率：从POI详情页到导航确认的转化率；导航确认率：点击导航按钮后确认导航的比例；导航用户渗透率：完成导航确认的用户占全量用户的比例。",
+      "audit": {
+        "question": "calculate navigation conversion efficiency, navigation confirmation rate, and navigation user penetration rate as three north star metrics",
+        "generated_at": "2026-04-26T15:21:54.093205",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH poi_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE page_root = 'poi_detail'\n),\nnav_click_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name LIKE '%navigation_button_click'\n),\nnav_confirm_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name LIKE '%navigation_popup_confirm_click'\n),\ntotal_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events\n)\nSELECT \n    '导航转化效率' AS metric_name,\n    ROUND(CAST(nav_confirm.cnt AS DOUBLE) / NULLIF(poi.cnt, 0) * 100, 2) AS value_pct\nFROM poi_users poi, nav_confirm_users nav_confirm\nUNION ALL\nSELECT \n    '导航确认率',\n    ROUND(CAST(nav_confirm2.cnt AS DOUBLE) / NULLIF(nav_click.cnt, 0) * 100, 2)\nFROM nav_click_users nav_click, nav_confirm_users nav_confirm2\nUNION ALL\nSELECT \n    '导航用户渗透率',\n    ROUND(CAST(nav_confirm3.cnt AS DOUBLE) / NULLIF(tot.cnt, 0) * 100, 2)\nFROM nav_confirm_users nav_confirm3, total_users tot",
+        "sql_explanation": "1. 导航转化效率 = 确认导航用户数 / 浏览POI详情页用户数 × 100%；分母为所有在poi_detail页面有过任意行为的用户，分子为点击确认导航的用户。\n2. 导航确认率 = 确认导航用户数 / 点击导航按钮用户数 × 100%，衡量按钮点击到最终确认的流失。\n3. 导航用户渗透率 = 确认导航用户数 / 全量用户总数 × 100%，反映导航功能在全用户群中的覆盖程度。所有比率均采用DISTINCT用户数计算，避免重复计数。",
+        "columns_used": [
+          {
+            "column": "page_root",
+            "business_name": "页面模块",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的第1段"
+          },
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          },
+          {
+            "metric": "navigation_confirms",
+            "business_name": "导航确认次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_popup_confirm_click')"
+          },
+          {
+            "metric": "poi_views",
+            "business_name": "POI浏览次数",
+            "formula_human": "COUNT(*) FILTER (WHERE page_root = 'poi_detail')"
+          }
+        ],
+        "filters_applied": [
+          "page_root = 'poi_detail'\n),\nnav_click_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name LIKE '%navigation_button_click'\n),\nnav_confirm_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name LIKE '%navigation_popup_confirm_click'\n),\ntotal_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events\n)\nSELECT \n    '导航转化效率' AS metric_name,\n    ROUND(CAST(nav_confirm.cnt AS DOUBLE) / NULLIF(poi.cnt, 0) * 100, 2) AS value_pct\nFROM poi_users poi, nav_confirm_users nav_confirm\nUNION ALL\nSELECT \n    '导航确认率',\n    ROUND(CAST(nav_confirm2.cnt AS DOUBLE) / NULLIF(nav_click.cnt, 0) * 100, 2)\nFROM nav_click_users nav_click, nav_confirm_users nav_confirm2\nUNION ALL\nSELECT \n    '导航用户渗透率',\n    ROUND(CAST(nav_confirm3.cnt AS DOUBLE) / NULLIF(tot.cnt, 0) * 100, 2)\nFROM nav_confirm_users nav_confirm3, total_users tot"
+        ],
+        "filters_human": [
+          "页面模块为「poi_detail」\n),\nnav_click_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE 事件名称匹配「%navigation_button_click」\n),\nnav_confirm_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE 事件名称匹配「%navigation_popup_confirm_click」\n),\ntotal_users AS (\n    SELECT COUNT(DISTINCT reduser_id) AS cnt FROM events\n)\nSELECT \n    '导航转化效率' AS metric_name,\n    ROUND(CAST(nav_confirm.cnt AS DOUBLE) / NULLIF(poi.cnt, 0) * 100, 2) AS value_pct\nFROM poi_users poi, nav_confirm_users nav_confirm\nUNION ALL\nSELECT \n    '导航确认率',\n    ROUND(CAST(nav_confirm2.cnt AS DOUBLE) / NULLIF(nav_click.cnt, 0) * 100, 2)\nFROM nav_click_users nav_click, nav_confirm_users nav_confirm2\nUNION ALL\nSELECT \n    '导航用户渗透率',\n    ROUND(CAST(nav_confirm3.cnt AS DOUBLE) / NULLIF(tot.cnt, 0) * 100, 2)\nFROM nav_confirm_users nav_confirm3, total_users tot"
+        ],
+        "calculation_logic": "导航转化效率：从POI详情页到导航确认的转化率；导航确认率：点击导航按钮后确认导航的比例；导航用户渗透率：完成导航确认的用户占全量用户的比例。",
+        "sample_data": [
+          {
+            "metric_name": "导航转化效率",
+            "value_pct": null
+          },
+          {
+            "metric_name": "导航确认率",
+            "value_pct": 95.83
+          },
+          {
+            "metric_name": "导航用户渗透率",
+            "value_pct": 7.74
+          }
+        ]
+      },
+      "query": "calculate navigation conversion efficiency, navigation confirmation rate, and navigation user penetration rate as three north star metrics",
+      "saved_at": "2026-04-26T15:21:54.096662"
+    },
+    {
+      "id": "e72022ef",
+      "name": "S02 Navigation Efficiency Trend",
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "导航转化效率趋势",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "total_clicks",
+            "data": [
+              198,
+              1044,
+              202,
+              332,
+              308,
+              826,
+              481,
+              253,
+              182,
+              292,
+              316,
+              319,
+              197,
+              161,
+              365,
+              288,
+              314,
+              336,
+              143,
+              160,
+              343,
+              695,
+              796,
+              301,
+              297
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "navigation_initiations",
+            "data": [
+              7,
+              71,
+              8,
+              0,
+              0,
+              31,
+              7,
+              0,
+              2,
+              0,
+              0,
+              22,
+              8,
+              1,
+              18,
+              0,
+              1,
+              0,
+              0,
+              0,
+              2,
+              18,
+              14,
+              0,
+              0
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "conversion_rate",
+            "data": [
+              0.0354,
+              0.068,
+              0.0396,
+              0.0,
+              0.0,
+              0.0375,
+              0.0146,
+              0.0,
+              0.011,
+              0.0,
+              0.0,
+              0.069,
+              0.0406,
+              0.0062,
+              0.0493,
+              0.0,
+              0.0032,
+              0.0,
+              0.0,
+              0.0,
+              0.0058,
+              0.0259,
+              0.0176,
+              0.0,
+              0.0
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "sql": "SELECT event_date, COUNT(*) AS total_clicks, SUM(CASE WHEN event_name LIKE '%navigation_button_click' THEN 1 ELSE 0 END) AS navigation_initiations, ROUND(SUM(CASE WHEN event_name LIKE '%navigation_button_click' THEN 1 ELSE 0 END) * 1.0 / COUNT(*), 4) AS conversion_rate FROM events WHERE is_click = 1 GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "total_clicks": 198,
+          "navigation_initiations": 7,
+          "conversion_rate": 0.0354
+        },
+        {
+          "event_date": "2026-03-20",
+          "total_clicks": 1044,
+          "navigation_initiations": 71,
+          "conversion_rate": 0.068
+        },
+        {
+          "event_date": "2026-03-21",
+          "total_clicks": 202,
+          "navigation_initiations": 8,
+          "conversion_rate": 0.0396
+        },
+        {
+          "event_date": "2026-03-22",
+          "total_clicks": 332,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-03-23",
+          "total_clicks": 308,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-03-24",
+          "total_clicks": 826,
+          "navigation_initiations": 31,
+          "conversion_rate": 0.0375
+        },
+        {
+          "event_date": "2026-03-25",
+          "total_clicks": 481,
+          "navigation_initiations": 7,
+          "conversion_rate": 0.0146
+        },
+        {
+          "event_date": "2026-03-26",
+          "total_clicks": 253,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-03-27",
+          "total_clicks": 182,
+          "navigation_initiations": 2,
+          "conversion_rate": 0.011
+        },
+        {
+          "event_date": "2026-03-28",
+          "total_clicks": 292,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-03-29",
+          "total_clicks": 316,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-03-30",
+          "total_clicks": 319,
+          "navigation_initiations": 22,
+          "conversion_rate": 0.069
+        },
+        {
+          "event_date": "2026-03-31",
+          "total_clicks": 197,
+          "navigation_initiations": 8,
+          "conversion_rate": 0.0406
+        },
+        {
+          "event_date": "2026-04-01",
+          "total_clicks": 161,
+          "navigation_initiations": 1,
+          "conversion_rate": 0.0062
+        },
+        {
+          "event_date": "2026-04-02",
+          "total_clicks": 365,
+          "navigation_initiations": 18,
+          "conversion_rate": 0.0493
+        },
+        {
+          "event_date": "2026-04-03",
+          "total_clicks": 288,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-04-04",
+          "total_clicks": 314,
+          "navigation_initiations": 1,
+          "conversion_rate": 0.0032
+        },
+        {
+          "event_date": "2026-04-05",
+          "total_clicks": 336,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-04-06",
+          "total_clicks": 143,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-04-07",
+          "total_clicks": 160,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-04-08",
+          "total_clicks": 343,
+          "navigation_initiations": 2,
+          "conversion_rate": 0.0058
+        },
+        {
+          "event_date": "2026-04-09",
+          "total_clicks": 695,
+          "navigation_initiations": 18,
+          "conversion_rate": 0.0259
+        },
+        {
+          "event_date": "2026-04-10",
+          "total_clicks": 796,
+          "navigation_initiations": 14,
+          "conversion_rate": 0.0176
+        },
+        {
+          "event_date": "2026-04-11",
+          "total_clicks": 301,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        },
+        {
+          "event_date": "2026-04-12",
+          "total_clicks": 297,
+          "navigation_initiations": 0,
+          "conversion_rate": 0.0
+        }
+      ],
+      "summary": "展示每日导航按钮点击次数在所有点击事件中的占比趋势，反映导航功能的发起转化效率。",
+      "audit": {
+        "question": "daily trend of navigation conversion efficiency, numerator is navigation initiation count, denominator is all CLICK events count",
+        "generated_at": "2026-04-26T15:22:17.531053",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_date, COUNT(*) AS total_clicks, SUM(CASE WHEN event_name LIKE '%navigation_button_click' THEN 1 ELSE 0 END) AS navigation_initiations, ROUND(SUM(CASE WHEN event_name LIKE '%navigation_button_click' THEN 1 ELSE 0 END) * 1.0 / COUNT(*), 4) AS conversion_rate FROM events WHERE is_click = 1 GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "分子：每日导航按钮点击事件(event_name匹配'navigation_button_click')数量；分母：每日所有点击事件(is_click=1)总数；转化率=分子/分母。按日期分组排序，输出时序数据。",
+        "columns_used": [
+          {
+            "column": "is_click",
+            "business_name": "是否点击",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "判断 span_name 最后一段是否包含 click"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "is_click = 1"
+        ],
+        "filters_human": [
+          "仅点击事件"
+        ],
+        "calculation_logic": "展示每日导航按钮点击次数在所有点击事件中的占比趋势，反映导航功能的发起转化效率。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "total_clicks": 198,
+            "navigation_initiations": 7,
+            "conversion_rate": 0.0354
+          },
+          {
+            "event_date": "2026-03-20",
+            "total_clicks": 1044,
+            "navigation_initiations": 71,
+            "conversion_rate": 0.068
+          },
+          {
+            "event_date": "2026-03-21",
+            "total_clicks": 202,
+            "navigation_initiations": 8,
+            "conversion_rate": 0.0396
+          }
+        ]
+      },
+      "query": "daily trend of navigation conversion efficiency, numerator is navigation initiation count, denominator is all CLICK events count",
+      "saved_at": "2026-04-26T15:22:17.543639"
+    },
+    {
+      "id": "58b1bc30",
+      "name": "S03 Seeding to Purchase Funnel",
+      "chart_type": "funnel",
+      "chart_option": {
+        "title": {
+          "text": "内容曝光至导航确认转化漏斗",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "item"
+        },
+        "series": [
+          {
+            "type": "funnel",
+            "left": "10%",
+            "top": 40,
+            "width": "80%",
+            "sort": "none",
+            "data": [
+              {
+                "name": "内容曝光",
+                "value": 0
+              },
+              {
+                "name": "内容点击",
+                "value": 207
+              },
+              {
+                "name": "POI触发",
+                "value": 0
+              },
+              {
+                "name": "POI详情",
+                "value": 0
+              },
+              {
+                "name": "导航发起",
+                "value": 24
+              },
+              {
+                "name": "导航确认",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "sql": "SELECT '内容曝光' AS step, COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name = 'discovery_page_post_card_show' UNION ALL SELECT '内容点击', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'discovery_page_post_card_click' UNION ALL SELECT 'POI触发', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'post_detail_poi_button_click' UNION ALL SELECT 'POI详情', COUNT(DISTINCT reduser_id) FROM events WHERE page_root = 'poi_detail' UNION ALL SELECT '导航发起', COUNT(DISTINCT reduser_id) FROM events WHERE event_name LIKE '%navigation_button_click' UNION ALL SELECT '导航确认', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'poi_detail_navigation_popup_confirm_click'",
+      "data": [
+        {
+          "step": "内容曝光",
+          "cnt": 0
+        },
+        {
+          "step": "内容点击",
+          "cnt": 207
+        },
+        {
+          "step": "POI触发",
+          "cnt": 0
+        },
+        {
+          "step": "POI详情",
+          "cnt": 0
+        },
+        {
+          "step": "导航发起",
+          "cnt": 24
+        },
+        {
+          "step": "导航确认",
+          "cnt": 0
+        }
+      ],
+      "summary": "展示从内容曝光到最终导航确认的六步用户转化情况，识别关键流失环节。",
+      "audit": {
+        "question": "build a 6-step funnel from content exposure to navigation confirmation: content exposure, content click, POI trigger, POI detail, navigation initiation, navigation confirmation, count unique users at each step",
+        "generated_at": "2026-04-26T15:23:46.885685",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT '内容曝光' AS step, COUNT(DISTINCT reduser_id) AS cnt FROM events WHERE event_name = 'discovery_page_post_card_show' UNION ALL SELECT '内容点击', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'discovery_page_post_card_click' UNION ALL SELECT 'POI触发', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'post_detail_poi_button_click' UNION ALL SELECT 'POI详情', COUNT(DISTINCT reduser_id) FROM events WHERE page_root = 'poi_detail' UNION ALL SELECT '导航发起', COUNT(DISTINCT reduser_id) FROM events WHERE event_name LIKE '%navigation_button_click' UNION ALL SELECT '导航确认', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'poi_detail_navigation_popup_confirm_click'",
+        "sql_explanation": "1. 内容曝光：使用discovery_page_post_card_show事件，统计进入发现页且帖子卡片曝光的独立用户数；2. 内容点击：统计discovery_page_post_card_click事件的独立用户数；3. POI触发：假设POI触发为用户在帖子详情页点击POI按钮，使用post_detail_poi_button_click事件计数；4. POI详情：统计所有访问过poi_detail页面的独立用户数；5. 导航发起：使用navigation_button_click相关事件统计点击导航按钮的独立用户数；6. 导航确认：统计最终确认导航（如popup确认）的独立用户数。每个步骤均使用COUNT(DISTINCT reduser_id)，确保用户去重。",
+        "columns_used": [
+          {
+            "column": "page_root",
+            "business_name": "页面模块",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的第1段"
+          },
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          },
+          {
+            "metric": "navigation_confirms",
+            "business_name": "导航确认次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_popup_confirm_click')"
+          },
+          {
+            "metric": "poi_views",
+            "business_name": "POI浏览次数",
+            "formula_human": "COUNT(*) FILTER (WHERE page_root = 'poi_detail')"
+          }
+        ],
+        "filters_applied": [
+          "event_name = 'discovery_page_post_card_show' UNION ALL SELECT '内容点击', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'discovery_page_post_card_click' UNION ALL SELECT 'POI触发', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'post_detail_poi_button_click' UNION ALL SELECT 'POI详情', COUNT(DISTINCT reduser_id) FROM events WHERE page_root = 'poi_detail' UNION ALL SELECT '导航发起', COUNT(DISTINCT reduser_id) FROM events WHERE event_name LIKE '%navigation_button_click' UNION ALL SELECT '导航确认', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'poi_detail_navigation_popup_confirm_click'"
+        ],
+        "filters_human": [
+          "event_name = 'discovery_page_post_card_show' UNION ALL SELECT '内容点击', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'discovery_page_post_card_click' UNION ALL SELECT 'POI触发', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'post_detail_poi_button_click' UNION ALL SELECT 'POI详情', COUNT(DISTINCT reduser_id) FROM events WHERE 页面模块为「poi_detail」 UNION ALL SELECT '导航发起', COUNT(DISTINCT reduser_id) FROM events WHERE 事件名称匹配「%navigation_button_click」 UNION ALL SELECT '导航确认', COUNT(DISTINCT reduser_id) FROM events WHERE event_name = 'poi_detail_navigation_popup_confirm_click'"
+        ],
+        "calculation_logic": "展示从内容曝光到最终导航确认的六步用户转化情况，识别关键流失环节。",
+        "sample_data": [
+          {
+            "step": "内容曝光",
+            "cnt": 0
+          },
+          {
+            "step": "内容点击",
+            "cnt": 207
+          },
+          {
+            "step": "POI触发",
+            "cnt": 0
+          }
+        ]
+      },
+      "query": "build a 6-step funnel from content exposure to navigation confirmation: content exposure, content click, POI trigger, POI detail, navigation initiation, navigation confirmation, count unique users at each step",
+      "saved_at": "2026-04-26T15:23:46.897908"
+    },
+    {
+      "id": "9169bada",
+      "name": "S04 Entry Source Comparison",
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "发现页与Porsche页点击率与导航率对比",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "discovery",
+            "porsche"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "click_rate_pct",
+            "data": [
+              5.49,
+              5.78
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "navigation_rate_pct",
+            "data": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      },
+      "sql": "SELECT page_root, ROUND(COUNT(CASE WHEN is_click = 1 THEN 1 END) * 100.0 / COUNT(*), 2) AS click_rate_pct, ROUND(COUNT(CASE WHEN event_name LIKE '%navigation_button_click' THEN 1 END) * 100.0 / COUNT(*), 2) AS navigation_rate_pct FROM events WHERE page_root IN ('discovery', 'porsche') GROUP BY page_root",
+      "data": [
+        {
+          "page_root": "discovery",
+          "click_rate_pct": 5.49,
+          "navigation_rate_pct": 0.0
+        },
+        {
+          "page_root": "porsche",
+          "click_rate_pct": 5.78,
+          "navigation_rate_pct": 0.0
+        }
+      ],
+      "summary": "展示发现页与Porsche页的点击率（点击事件占比）和导航率（导航按钮点击事件占比）对比，帮助评估两个页面的交互效率与导航引导能力。",
+      "audit": {
+        "question": "compare click rate and navigation rate between Discovery page and Porsche+ page",
+        "generated_at": "2026-04-26T15:24:24.150280",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT page_root, ROUND(COUNT(CASE WHEN is_click = 1 THEN 1 END) * 100.0 / COUNT(*), 2) AS click_rate_pct, ROUND(COUNT(CASE WHEN event_name LIKE '%navigation_button_click' THEN 1 END) * 100.0 / COUNT(*), 2) AS navigation_rate_pct FROM events WHERE page_root IN ('discovery', 'porsche') GROUP BY page_root",
+        "sql_explanation": "计算逻辑：首先筛选page_root为'discovery'和'porsche'的事件，然后分别统计每类页面的事件总数、点击事件数（is_click=1）以及导航按钮点击事件数（event_name包含'navigation_button_click'）；最后计算占比得到点击率和导航率，并分组呈现对比结果。",
+        "columns_used": [
+          {
+            "column": "page_root",
+            "business_name": "页面模块",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的第1段"
+          },
+          {
+            "column": "is_click",
+            "business_name": "是否点击",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "判断 span_name 最后一段是否包含 click"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "page_root IN ('discovery', 'porsche')"
+        ],
+        "filters_human": [
+          "page_root IN ('discovery', 'porsche')"
+        ],
+        "calculation_logic": "展示发现页与Porsche页的点击率（点击事件占比）和导航率（导航按钮点击事件占比）对比，帮助评估两个页面的交互效率与导航引导能力。",
+        "sample_data": [
+          {
+            "page_root": "discovery",
+            "click_rate_pct": 5.49,
+            "navigation_rate_pct": 0.0
+          },
+          {
+            "page_root": "porsche",
+            "click_rate_pct": 5.78,
+            "navigation_rate_pct": 0.0
+          }
+        ]
+      },
+      "query": "compare click rate and navigation rate between Discovery page and Porsche+ page",
+      "saved_at": "2026-04-26T15:24:24.162400"
+    },
+    {
+      "id": "5f4f874b",
+      "name": "S06 AI Guide Effect",
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "AI旅行指南用户与非用户导航率对比",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "AI旅行指南用户",
+            "非AI旅行指南用户"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "total_events",
+            "data": [
+              20294,
+              42207
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "nav_events",
+            "data": [
+              119,
+              91
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "nav_rate_pct",
+            "data": [
+              0.59,
+              0.22
+            ]
+          }
+        ]
+      },
+      "sql": "WITH user_group AS (\n  SELECT reduser_id,\n         CASE WHEN EXISTS (\n           SELECT 1 FROM events e2 \n           WHERE e2.reduser_id = e1.reduser_id \n             AND e2.rednote_travel_guide_id IS NOT NULL\n         ) THEN 'AI旅行指南用户' ELSE '非AI旅行指南用户' END AS group_name\n  FROM events e1\n  GROUP BY reduser_id\n),\ngroup_stats AS (\n  SELECT ug.group_name,\n         COUNT(*) AS total_events,\n         SUM(CASE WHEN e.event_name LIKE '%navigation_button_click' THEN 1 ELSE 0 END) AS nav_events\n  FROM events e\n  JOIN user_group ug ON e.reduser_id = ug.reduser_id\n  GROUP BY ug.group_name\n)\nSELECT group_name,\n       total_events,\n       nav_events,\n       ROUND(nav_events * 100.0 / total_events, 2) AS nav_rate_pct\nFROM group_stats\nORDER BY group_name;",
+      "data": [
+        {
+          "group_name": "AI旅行指南用户",
+          "total_events": 20294,
+          "nav_events": 119,
+          "nav_rate_pct": 0.59
+        },
+        {
+          "group_name": "非AI旅行指南用户",
+          "total_events": 42207,
+          "nav_events": 91,
+          "nav_rate_pct": 0.22
+        }
+      ],
+      "summary": "展示使用过AI旅行指南的用户和未使用过的用户在导航按钮点击事件占比上的差异，导航率 = 导航按钮点击事件数 / 总事件数 × 100%。",
+      "audit": {
+        "question": "compare navigation rate between users who used AI travel guide and users who did not use AI travel guide",
+        "generated_at": "2026-04-26T15:25:13.548047",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH user_group AS (\n  SELECT reduser_id,\n         CASE WHEN EXISTS (\n           SELECT 1 FROM events e2 \n           WHERE e2.reduser_id = e1.reduser_id \n             AND e2.rednote_travel_guide_id IS NOT NULL\n         ) THEN 'AI旅行指南用户' ELSE '非AI旅行指南用户' END AS group_name\n  FROM events e1\n  GROUP BY reduser_id\n),\ngroup_stats AS (\n  SELECT ug.group_name,\n         COUNT(*) AS total_events,\n         SUM(CASE WHEN e.event_name LIKE '%navigation_button_click' THEN 1 ELSE 0 END) AS nav_events\n  FROM events e\n  JOIN user_group ug ON e.reduser_id = ug.reduser_id\n  GROUP BY ug.group_name\n)\nSELECT group_name,\n       total_events,\n       nav_events,\n       ROUND(nav_events * 100.0 / total_events, 2) AS nav_rate_pct\nFROM group_stats\nORDER BY group_name;",
+        "sql_explanation": "1. 首先识别用户群体：通过查询每名用户是否存在旅行指南相关记录（rednote_travel_guide_id 不为空）将其分为'AI旅行指南用户'和'非AI旅行指南用户'。\n2. 分别统计两组用户的总事件数和导航按钮点击事件数（event_name 包含 'navigation_button_click'）。\n3. 导航率 = (导航按钮点击事件数 / 总事件数) × 100%，保留两位小数。\n4. 结果以柱状图直观对比两组的导航率。",
+        "columns_used": [
+          {
+            "column": "rednote_travel_guide_id",
+            "business_name": "路书ID",
+            "role": "dimension"
+          },
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          },
+          {
+            "metric": "travel_guide_usage",
+            "business_name": "旅行指南使用次数",
+            "formula_human": "COUNT(*) FILTER (WHERE page_root = 'trival_guide')"
+          }
+        ],
+        "filters_applied": [
+          "e2.reduser_id = e1.reduser_id \n             AND e2.rednote_travel_guide_id IS NOT NULL\n         ) THEN 'AI旅行指南用户' ELSE '非AI旅行指南用户' END AS"
+        ],
+        "filters_human": [
+          "e2.reduser_id = e1.reduser_id \n             ，且 e2.rednote_travel_guide_id IS NOT NULL\n         ) THEN 'AI旅行指南用户' ELSE '非AI旅行指南用户' END AS"
+        ],
+        "calculation_logic": "展示使用过AI旅行指南的用户和未使用过的用户在导航按钮点击事件占比上的差异，导航率 = 导航按钮点击事件数 / 总事件数 × 100%。",
+        "sample_data": [
+          {
+            "group_name": "AI旅行指南用户",
+            "total_events": 20294,
+            "nav_events": 119,
+            "nav_rate_pct": 0.59
+          },
+          {
+            "group_name": "非AI旅行指南用户",
+            "total_events": 42207,
+            "nav_events": 91,
+            "nav_rate_pct": 0.22
+          }
+        ]
+      },
+      "query": "compare navigation rate between users who used AI travel guide and users who did not use AI travel guide",
+      "saved_at": "2026-04-26T15:25:13.559273"
+    },
+    {
+      "id": "f5c77169",
+      "name": "S09 Nav vs Non-Nav Users",
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "导航用户与非导航用户平均行为指标对比",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "导航用户",
+            "非导航用户"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "avg_events",
+            "data": [
+              243.41,
+              145.82
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "avg_active_days",
+            "data": [
+              1.74,
+              1.94
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "avg_feature_breadth",
+            "data": [
+              24.31,
+              11.27
+            ]
+          }
+        ]
+      },
+      "sql": "WITH navigation_users AS (\n  SELECT DISTINCT reduser_id\n  FROM events\n  WHERE event_name LIKE '%navigation%'\n)\nSELECT \n  CASE WHEN nu.reduser_id IS NOT NULL THEN '导航用户' ELSE '非导航用户' END AS user_group,\n  ROUND(AVG(e.event_count), 2) AS avg_events,\n  ROUND(AVG(e.active_days), 2) AS avg_active_days,\n  ROUND(AVG(e.feature_breadth), 2) AS avg_feature_breadth\nFROM (\n  SELECT \n    reduser_id,\n    COUNT(*) AS event_count,\n    COUNT(DISTINCT event_date) AS active_days,\n    COUNT(DISTINCT event_name) AS feature_breadth\n  FROM events\n  GROUP BY reduser_id\n) e\nLEFT JOIN navigation_users nu ON e.reduser_id = nu.reduser_id\nGROUP BY user_group\nORDER BY user_group",
+      "data": [
+        {
+          "user_group": "导航用户",
+          "avg_events": 243.41,
+          "avg_active_days": 1.74,
+          "avg_feature_breadth": 24.31
+        },
+        {
+          "user_group": "非导航用户",
+          "avg_events": 145.82,
+          "avg_active_days": 1.94,
+          "avg_feature_breadth": 11.27
+        }
+      ],
+      "summary": "对比导航用户（触发过导航相关事件）与非导航用户在平均事件数、平均活跃天数和平均功能使用广度三个维度上的差异，帮助评估导航功能使用的用户群体特征。",
+      "audit": {
+        "question": "compare average events, average active days, and average feature breadth between navigation users and non-navigation users",
+        "generated_at": "2026-04-26T15:26:07.196108",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH navigation_users AS (\n  SELECT DISTINCT reduser_id\n  FROM events\n  WHERE event_name LIKE '%navigation%'\n)\nSELECT \n  CASE WHEN nu.reduser_id IS NOT NULL THEN '导航用户' ELSE '非导航用户' END AS user_group,\n  ROUND(AVG(e.event_count), 2) AS avg_events,\n  ROUND(AVG(e.active_days), 2) AS avg_active_days,\n  ROUND(AVG(e.feature_breadth), 2) AS avg_feature_breadth\nFROM (\n  SELECT \n    reduser_id,\n    COUNT(*) AS event_count,\n    COUNT(DISTINCT event_date) AS active_days,\n    COUNT(DISTINCT event_name) AS feature_breadth\n  FROM events\n  GROUP BY reduser_id\n) e\nLEFT JOIN navigation_users nu ON e.reduser_id = nu.reduser_id\nGROUP BY user_group\nORDER BY user_group",
+        "sql_explanation": "1. 定义导航用户：所有在 events 表中 event_name 包含 'navigation' 的独立用户（包括导航按钮点击和导航确认等事件）。\n2. 对每个用户计算三个指标：总事件数（event_count）、活跃天数（DISTINCT event_date 计数）、功能广度（DISTINCT event_name 计数）。\n3. 使用 LEFT JOIN 将用户分为“导航用户”和“非导航用户”两组。\n4. 分别计算两组的各项指标平均值，结果保留两位小数。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation%'\n)\nSELECT \n  CASE WHEN nu.reduser_id IS NOT NULL THEN '导航用户' ELSE '非导航用户' END AS user_"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation%」\n)\nSELECT \n  CASE WHEN nu.reduser_id IS NOT NULL THEN '导航用户' ELSE '非导航用户' END AS user_"
+        ],
+        "calculation_logic": "对比导航用户（触发过导航相关事件）与非导航用户在平均事件数、平均活跃天数和平均功能使用广度三个维度上的差异，帮助评估导航功能使用的用户群体特征。",
+        "sample_data": [
+          {
+            "user_group": "导航用户",
+            "avg_events": 243.41,
+            "avg_active_days": 1.74,
+            "avg_feature_breadth": 24.31
+          },
+          {
+            "user_group": "非导航用户",
+            "avg_events": 145.82,
+            "avg_active_days": 1.94,
+            "avg_feature_breadth": 11.27
+          }
+        ]
+      },
+      "query": "compare average events, average active days, and average feature breadth between navigation users and non-navigation users",
+      "saved_at": "2026-04-26T15:26:07.209919"
+    },
+    {
+      "id": "90f7e105",
+      "name": "S10 Daily Activity Rate Trend",
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "日活跃率趋势",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              5,
+              5,
+              13,
+              14,
+              23,
+              52,
+              35,
+              29,
+              24,
+              22,
+              23,
+              15,
+              15,
+              17,
+              21,
+              17,
+              23,
+              22,
+              14,
+              20,
+              18,
+              19,
+              23,
+              22,
+              18
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "total_users",
+            "data": [
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "activity_rate_pct",
+            "data": [
+              1.68,
+              1.68,
+              4.38,
+              4.71,
+              7.74,
+              17.51,
+              11.78,
+              9.76,
+              8.08,
+              7.41,
+              7.74,
+              5.05,
+              5.05,
+              5.72,
+              7.07,
+              5.72,
+              7.74,
+              7.41,
+              4.71,
+              6.73,
+              6.06,
+              6.4,
+              7.74,
+              7.41,
+              6.06
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) AS dau, (SELECT COUNT(DISTINCT reduser_id) FROM events) AS total_users, ROUND(CAST(COUNT(DISTINCT reduser_id) AS DOUBLE) / (SELECT COUNT(DISTINCT reduser_id) FROM events) * 100, 2) AS activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 5,
+          "total_users": 297,
+          "activity_rate_pct": 1.68
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 5,
+          "total_users": 297,
+          "activity_rate_pct": 1.68
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 13,
+          "total_users": 297,
+          "activity_rate_pct": 4.38
+        },
+        {
+          "event_date": "2026-03-22",
+          "dau": 14,
+          "total_users": 297,
+          "activity_rate_pct": 4.71
+        },
+        {
+          "event_date": "2026-03-23",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 52,
+          "total_users": 297,
+          "activity_rate_pct": 17.51
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 35,
+          "total_users": 297,
+          "activity_rate_pct": 11.78
+        },
+        {
+          "event_date": "2026-03-26",
+          "dau": 29,
+          "total_users": 297,
+          "activity_rate_pct": 9.76
+        },
+        {
+          "event_date": "2026-03-27",
+          "dau": 24,
+          "total_users": 297,
+          "activity_rate_pct": 8.08
+        },
+        {
+          "event_date": "2026-03-28",
+          "dau": 22,
+          "total_users": 297,
+          "activity_rate_pct": 7.41
+        },
+        {
+          "event_date": "2026-03-29",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 15,
+          "total_users": 297,
+          "activity_rate_pct": 5.05
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 15,
+          "total_users": 297,
+          "activity_rate_pct": 5.05
+        },
+        {
+          "event_date": "2026-04-01",
+          "dau": 17,
+          "total_users": 297,
+          "activity_rate_pct": 5.72
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 21,
+          "total_users": 297,
+          "activity_rate_pct": 7.07
+        },
+        {
+          "event_date": "2026-04-03",
+          "dau": 17,
+          "total_users": 297,
+          "activity_rate_pct": 5.72
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-04-05",
+          "dau": 22,
+          "total_users": 297,
+          "activity_rate_pct": 7.41
+        },
+        {
+          "event_date": "2026-04-06",
+          "dau": 14,
+          "total_users": 297,
+          "activity_rate_pct": 4.71
+        },
+        {
+          "event_date": "2026-04-07",
+          "dau": 20,
+          "total_users": 297,
+          "activity_rate_pct": 6.73
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 18,
+          "total_users": 297,
+          "activity_rate_pct": 6.06
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 19,
+          "total_users": 297,
+          "activity_rate_pct": 6.4
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-04-11",
+          "dau": 22,
+          "total_users": 297,
+          "activity_rate_pct": 7.41
+        },
+        {
+          "event_date": "2026-04-12",
+          "dau": 18,
+          "total_users": 297,
+          "activity_rate_pct": 6.06
+        }
+      ],
+      "summary": "展示每日活跃用户占全量用户的比例变化趋势，反映用户活跃度波动。",
+      "audit": {
+        "question": "daily activity rate trend, numerator is daily DAU, denominator is total unique users in dataset",
+        "generated_at": "2026-04-26T15:26:37.512057",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) AS dau, (SELECT COUNT(DISTINCT reduser_id) FROM events) AS total_users, ROUND(CAST(COUNT(DISTINCT reduser_id) AS DOUBLE) / (SELECT COUNT(DISTINCT reduser_id) FROM events) * 100, 2) AS activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "活跃率 = 每日DAU ÷ 全量总用户数 × 100%。先按日期分组计算每日DAU作为分子，再通过子查询获取数据集中所有独立用户总数作为分母，相除得到每日活跃率，保留两位小数。结果按日期排序，便于观察时序变化。",
+        "columns_used": [
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分"
+          },
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          }
+        ],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "展示每日活跃用户占全量用户的比例变化趋势，反映用户活跃度波动。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 5,
+            "total_users": 297,
+            "activity_rate_pct": 1.68
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 5,
+            "total_users": 297,
+            "activity_rate_pct": 1.68
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 13,
+            "total_users": 297,
+            "activity_rate_pct": 4.38
+          }
+        ]
+      },
+      "query": "daily activity rate trend, numerator is daily DAU, denominator is total unique users in dataset",
+      "saved_at": "2026-04-26T15:26:37.532784"
+    },
+    {
+      "id": "8a263676",
+      "name": "S11 Hourly Distribution",
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "事件小时分布图",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "0",
+            "1",
+            "2",
+            "5",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+            "17",
+            "18",
+            "19",
+            "20",
+            "21",
+            "22",
+            "23"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "event_count",
+            "data": [
+              1094,
+              467,
+              1195,
+              7,
+              4,
+              1472,
+              2789,
+              5224,
+              5706,
+              5053,
+              7799,
+              4196,
+              5021,
+              5100,
+              5462,
+              4192,
+              2830,
+              3261,
+              1716,
+              1188,
+              1830
+            ]
+          }
+        ]
+      },
+      "sql": "SELECT event_hour, COUNT(*) as event_count FROM events GROUP BY event_hour ORDER BY event_hour",
+      "data": [
+        {
+          "event_hour": 0,
+          "event_count": 1094
+        },
+        {
+          "event_hour": 1,
+          "event_count": 467
+        },
+        {
+          "event_hour": 2,
+          "event_count": 1195
+        },
+        {
+          "event_hour": 5,
+          "event_count": 7
+        },
+        {
+          "event_hour": 7,
+          "event_count": 4
+        },
+        {
+          "event_hour": 8,
+          "event_count": 1472
+        },
+        {
+          "event_hour": 9,
+          "event_count": 2789
+        },
+        {
+          "event_hour": 10,
+          "event_count": 5224
+        },
+        {
+          "event_hour": 11,
+          "event_count": 5706
+        },
+        {
+          "event_hour": 12,
+          "event_count": 5053
+        },
+        {
+          "event_hour": 13,
+          "event_count": 7799
+        },
+        {
+          "event_hour": 14,
+          "event_count": 4196
+        },
+        {
+          "event_hour": 15,
+          "event_count": 5021
+        },
+        {
+          "event_hour": 16,
+          "event_count": 5100
+        },
+        {
+          "event_hour": 17,
+          "event_count": 5462
+        },
+        {
+          "event_hour": 18,
+          "event_count": 4192
+        },
+        {
+          "event_hour": 19,
+          "event_count": 2830
+        },
+        {
+          "event_hour": 20,
+          "event_count": 3261
+        },
+        {
+          "event_hour": 21,
+          "event_count": 1716
+        },
+        {
+          "event_hour": 22,
+          "event_count": 1188
+        },
+        {
+          "event_hour": 23,
+          "event_count": 1830
+        }
+      ],
+      "summary": "展示了一天内各小时的用户事件数量分布，可快速定位用户活跃高峰时段（如早晚通勤）。",
+      "audit": {
+        "question": "hourly distribution of user events",
+        "generated_at": "2026-04-26T15:27:01.625861",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_hour, COUNT(*) as event_count FROM events GROUP BY event_hour ORDER BY event_hour",
+        "sql_explanation": "将 events 表按 event_hour 分组，统计每个小时的事件总数 event_count，按小时排序输出。使用柱状图直观对比不同时段的事件量，便于发现一天中用户使用最集中的小时区间。",
+        "columns_used": [
+          {
+            "column": "event_hour",
+            "business_name": "小时",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的小时部分"
+          }
+        ],
+        "metrics_involved": [],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "展示了一天内各小时的用户事件数量分布，可快速定位用户活跃高峰时段（如早晚通勤）。",
+        "sample_data": [
+          {
+            "event_hour": 0,
+            "event_count": 1094
+          },
+          {
+            "event_hour": 1,
+            "event_count": 467
+          },
+          {
+            "event_hour": 2,
+            "event_count": 1195
+          }
+        ]
+      },
+      "query": "hourly distribution of user events",
+      "saved_at": "2026-04-26T15:27:01.638595"
+    },
+    {
+      "id": "2df9e08e",
+      "name": "S12 Weekday Weekend Comparison",
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "工作日与周末用户行为对比",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "周末",
+            "工作日"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "event_count",
+            "data": [
+              16315,
+              49291
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "user_count",
+            "data": [
+              119,
+              223
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "navigation_events",
+            "data": [
+              9,
+              201
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "navigation_rate_pct",
+            "data": [
+              0.06,
+              0.41
+            ]
+          }
+        ]
+      },
+      "sql": "SELECT CASE WHEN is_weekend = 1 THEN '周末' ELSE '工作日' END as day_type, COUNT(*) as event_count, COUNT(DISTINCT reduser_id) as user_count, COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click') as navigation_events, ROUND(CAST(COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click') AS DOUBLE) / COUNT(*) * 100, 2) as navigation_rate_pct FROM events GROUP BY is_weekend ORDER BY is_weekend DESC",
+      "data": [
+        {
+          "day_type": "周末",
+          "event_count": 16315,
+          "user_count": 119,
+          "navigation_events": 9,
+          "navigation_rate_pct": 0.06
+        },
+        {
+          "day_type": "工作日",
+          "event_count": 49291,
+          "user_count": 223,
+          "navigation_events": 201,
+          "navigation_rate_pct": 0.41
+        }
+      ],
+      "summary": "对比工作日与周末的事件总量、独立用户数及导航按钮点击事件占比（导航率），揭示用户在休息日与工作日的活跃度与导航意图差异。",
+      "audit": {
+        "question": "compare user behavior between weekday and weekend, including event count, user count, navigation rate",
+        "generated_at": "2026-04-26T15:27:28.623138",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT CASE WHEN is_weekend = 1 THEN '周末' ELSE '工作日' END as day_type, COUNT(*) as event_count, COUNT(DISTINCT reduser_id) as user_count, COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click') as navigation_events, ROUND(CAST(COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click') AS DOUBLE) / COUNT(*) * 100, 2) as navigation_rate_pct FROM events GROUP BY is_weekend ORDER BY is_weekend DESC",
+        "sql_explanation": "1. 按is_weekend字段区分周末与工作日；2. 统计各时段事件总数(COUNT(*))、独立用户数(COUNT(DISTINCT reduser_id))；3. 过滤event_name包含'navigation_button_click'的事件数作为导航事件；4. 计算导航率 = 导航事件数 / 总事件数 × 100%；5. 最终输出两组对比数据。",
+        "columns_used": [
+          {
+            "column": "is_weekend",
+            "business_name": "是否周末",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "判断 event_weekday 是否为周末(5,6)"
+          },
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation_button_click') as navigation_events, ROUND(CAST(COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click') AS DOUBLE) / COUNT(*) * 100, 2) as navigation_rate_pct FROM events"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation_button_click」) as navigation_events, ROUND(CAST(COUNT(*) FILTER (WHERE 事件名称匹配「%navigation_button_click」) AS DOUBLE) / COUNT(*) * 100, 2) as navigation_rate_pct FROM events"
+        ],
+        "calculation_logic": "对比工作日与周末的事件总量、独立用户数及导航按钮点击事件占比（导航率），揭示用户在休息日与工作日的活跃度与导航意图差异。",
+        "sample_data": [
+          {
+            "day_type": "周末",
+            "event_count": 16315,
+            "user_count": 119,
+            "navigation_events": 9,
+            "navigation_rate_pct": 0.06
+          },
+          {
+            "day_type": "工作日",
+            "event_count": 49291,
+            "user_count": 223,
+            "navigation_events": 201,
+            "navigation_rate_pct": 0.41
+          }
+        ]
+      },
+      "query": "compare user behavior between weekday and weekend, including event count, user count, navigation rate",
+      "saved_at": "2026-04-26T15:27:28.638077"
+    }
+  ],
+  "created_at": "2026-04-26T15:20:03.726365",
+  "updated_at": "2026-04-26T15:27:28.638083"
+}

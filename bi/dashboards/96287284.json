@@ -6060,8 +6060,233 @@
       "reasoning": "We need to produce a valid JSON response with keys: sql, chart_type, title, summary, explanation. The user asks: \"每天的日活趋势\" which is exactly the first example: daily DAU trend. The example query is SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events GROUP BY event_date ORDER BY event_date. Chart: line. Title: \"日活跃用户(DAU)趋势\"。 Summary: 描述每天活跃用户数变化。 Explanation: 计算逻辑。 We'll provide that. Ensure no markdown fences.",
       "id": "a0d378b6",
       "saved_at": "2026-04-26T14:32:33.480380"
+    },
+    {
+      "type": "result",
+      "sql": "SELECT event_hour, COUNT(DISTINCT reduser_id) AS hourly_active_users FROM events GROUP BY event_hour ORDER BY event_hour",
+      "data": [
+        {
+          "event_hour": 0,
+          "hourly_active_users": 4
+        },
+        {
+          "event_hour": 1,
+          "hourly_active_users": 1
+        },
+        {
+          "event_hour": 2,
+          "hourly_active_users": 2
+        },
+        {
+          "event_hour": 5,
+          "hourly_active_users": 0
+        },
+        {
+          "event_hour": 7,
+          "hourly_active_users": 1
+        },
+        {
+          "event_hour": 8,
+          "hourly_active_users": 25
+        },
+        {
+          "event_hour": 9,
+          "hourly_active_users": 31
+        },
+        {
+          "event_hour": 10,
+          "hourly_active_users": 38
+        },
+        {
+          "event_hour": 11,
+          "hourly_active_users": 37
+        },
+        {
+          "event_hour": 12,
+          "hourly_active_users": 50
+        },
+        {
+          "event_hour": 13,
+          "hourly_active_users": 43
+        },
+        {
+          "event_hour": 14,
+          "hourly_active_users": 40
+        },
+        {
+          "event_hour": 15,
+          "hourly_active_users": 42
+        },
+        {
+          "event_hour": 16,
+          "hourly_active_users": 55
+        },
+        {
+          "event_hour": 17,
+          "hourly_active_users": 71
+        },
+        {
+          "event_hour": 18,
+          "hourly_active_users": 56
+        },
+        {
+          "event_hour": 19,
+          "hourly_active_users": 44
+        },
+        {
+          "event_hour": 20,
+          "hourly_active_users": 36
+        },
+        {
+          "event_hour": 21,
+          "hourly_active_users": 33
+        },
+        {
+          "event_hour": 22,
+          "hourly_active_users": 19
+        },
+        {
+          "event_hour": 23,
+          "hourly_active_users": 8
+        }
+      ],
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "每小时用户活跃分布",
+          "left": "center",
+          "top": 10,
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "legend": {
+          "top": 35,
+          "left": "center",
+          "itemWidth": 15,
+          "itemHeight": 10
+        },
+        "grid": {
+          "top": 60,
+          "bottom": 30,
+          "left": 50,
+          "right": 30
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "0",
+            "1",
+            "2",
+            "5",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+            "17",
+            "18",
+            "19",
+            "20",
+            "21",
+            "22",
+            "23"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "hourly_active_users",
+            "data": [
+              4,
+              1,
+              2,
+              0,
+              1,
+              25,
+              31,
+              38,
+              37,
+              50,
+              43,
+              40,
+              42,
+              55,
+              71,
+              56,
+              44,
+              36,
+              33,
+              19,
+              8
+            ]
+          }
+        ]
+      },
+      "summary": "该图展示了全天24小时各时段活跃用户的分布情况，可直观识别用户使用高峰与低谷时段。",
+      "audit": {
+        "question": "每小时用户活跃分布，具体是：hourly_active_users",
+        "generated_at": "2026-04-26T14:57:14.067327",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_hour, COUNT(DISTINCT reduser_id) AS hourly_active_users FROM events GROUP BY event_hour ORDER BY event_hour",
+        "sql_explanation": "以event_hour（0~23）为分组维度，对每个小时内的reduser_id去重计数，得到该时段的活跃用户数（hourly_active_users），最后按小时排序，用柱状图呈现分布。",
+        "columns_used": [
+          {
+            "column": "event_hour",
+            "business_name": "小时",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的小时部分"
+          },
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension"
+          }
+        ],
+        "metrics_involved": [],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "该图展示了全天24小时各时段活跃用户的分布情况，可直观识别用户使用高峰与低谷时段。",
+        "sample_data": [
+          {
+            "event_hour": 0,
+            "hourly_active_users": 4
+          },
+          {
+            "event_hour": 1,
+            "hourly_active_users": 1
+          },
+          {
+            "event_hour": 2,
+            "hourly_active_users": 2
+          }
+        ]
+      },
+      "reasoning": "We need to produce a JSON response with SQL, chart_type, title, summary, explanation. The user asks for: \"每小时用户活跃分布，具体是：hourly_active_users\". This is similar to example query 8. So we'll count distinct users per hour (event_hour). The chart type is bar. Title: \"每小时用户活跃分布分析\" or similar. Summary: brief. Explanation: step-by-step.\n\nThe metric is hourly_active_users = COUNT(DISTINCT reduser_id) GROUP BY event_hour ORDER BY event_hour.\n\nWe need to ensure SQL runs correctly. In example, they used SELECT event_hour, COUNT(DISTINCT reduser_id) as users FROM events GROUP BY event_hour ORDER BY event_hour; That's fine.\n\nSince the user said \"每小时用户活跃分布，具体是：hourly_active_users\", we'll directly use that.\n\nNow, for JSON output, ensure proper escaping. For example, double quotes inside strings need escaping. But the SQL will contain single quotes for strings, so no problem. Use double quotes for JSON keys and string values. So I'll output:\n\n{\n  \"sql\": \"SELECT event_hour, COUNT(DISTINCT reduser_id) AS hourly_active_users FROM events GROUP BY event_hour ORDER BY event_hour\",\n  \"chart_type\": \"bar\",\n  \"title\": \"每小时用户活跃分布\",\n  \"summary\": \"展示了一天中各小时的活跃用户数分布，峰值出现在XX点，谷值在XX点。\",\n  \"explanation\": \"统计每个小时（0-23点）有事件记录的唯一用户数（reduser_id去重），按小时排序，以柱状图呈现分布。\"\n}\n\nBut we need to be more precise: summary should mention actual peak/valley? But since we don't have the data, we can't know. So I'll keep it generic: \"该图展示了一天24小时中每个小时段活跃用户数的分布情况。\" That's fine. The explanation: step-by-step, \"使用event_hour分组，计算每个小时不重复的reduser_id数量，得出每小时活跃用户数。\"\n\nAlso, check chart_type: \"bar\" is appropriate.\n\nNow, produce the JSON. No markdown fences. So just raw JSON.",
+      "id": "8b2168d2",
+      "saved_at": "2026-04-26T14:57:14.076235"
     }
   ],
   "created_at": "2026-04-26T00:55:01.649643",
-  "updated_at": "2026-04-26T14:32:58.076878"
+  "updated_at": "2026-04-26T14:57:14.076246"
 }
