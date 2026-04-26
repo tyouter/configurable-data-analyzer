@@ -126,36 +126,42 @@ Only JSON, no markdown."""
 
 CHART_TEMPLATES = {
     "line": lambda title, data: {
-        "title": {"text": title, "left": "center", "textStyle": {"fontSize": 14}},
+        "title": {"text": title, "left": "center", "top": 10, "textStyle": {"fontSize": 14}},
         "tooltip": {"trigger": "axis"},
+        "legend": {"top": 35, "left": "center", "itemWidth": 15, "itemHeight": 10},
+        "grid": {"top": 60, "bottom": 30, "left": 50, "right": 30},
         "xAxis": {"type": "category", "data": []},
         "yAxis": {"type": "value"},
         "series": [],
     },
     "bar": lambda title, data: {
-        "title": {"text": title, "left": "center", "textStyle": {"fontSize": 14}},
+        "title": {"text": title, "left": "center", "top": 10, "textStyle": {"fontSize": 14}},
         "tooltip": {"trigger": "axis"},
+        "legend": {"top": 35, "left": "center", "itemWidth": 15, "itemHeight": 10},
+        "grid": {"top": 60, "bottom": 30, "left": 50, "right": 30},
         "xAxis": {"type": "category", "data": []},
         "yAxis": {"type": "value"},
         "series": [],
     },
     "pie": lambda title, data: {
-        "title": {"text": title, "left": "center", "textStyle": {"fontSize": 14}},
+        "title": {"text": title, "left": "center", "top": 10, "textStyle": {"fontSize": 14}},
         "tooltip": {"trigger": "item"},
-        "legend": {"orient": "vertical", "left": "left", "top": "middle"},
-        "series": [{"type": "pie", "radius": "50%", "center": ["60%", "50%"], "data": []}],
+        "legend": {"orient": "vertical", "left": "left", "top": 50},
+        "series": [{"type": "pie", "radius": "45%", "center": ["55%", "55%"], "data": []}],
     },
     "funnel": lambda title, data: {
-        "title": {"text": title, "left": "center", "textStyle": {"fontSize": 14}},
+        "title": {"text": title, "left": "center", "top": 10, "textStyle": {"fontSize": 14}},
         "tooltip": {"trigger": "item"},
-        "series": [{"type": "funnel", "left": "10%", "width": "80%", "sort": "none", "data": []}],
+        "series": [{"type": "funnel", "left": "10%", "top": 40, "width": "80%", "sort": "none", "data": []}],
     },
     "table": lambda title, data: {
-        "title": {"text": title, "left": "center", "textStyle": {"fontSize": 14}},
+        "title": {"text": title, "left": "center", "top": 10, "textStyle": {"fontSize": 14}},
     },
     "scatter": lambda title, data: {
-        "title": {"text": title, "left": "center", "textStyle": {"fontSize": 14}},
+        "title": {"text": title, "left": "center", "top": 10, "textStyle": {"fontSize": 14}},
         "tooltip": {"trigger": "item"},
+        "legend": {"top": 35, "left": "center", "itemWidth": 15, "itemHeight": 10},
+        "grid": {"top": 60, "bottom": 30, "left": 50, "right": 30},
         "xAxis": {"type": "value"},
         "yAxis": {"type": "value"},
         "series": [{"type": "scatter", "data": []}],
@@ -446,8 +452,7 @@ class Agent:
                 if chart_type == "line":
                     series["smooth"] = True
                 option["series"].append(series)
-            if len(y_keys) > 1:
-                option["legend"] = {"top": 30}
+            # Legend already set in template at top:35, no need to override
 
         elif chart_type == "pie":
             name_key = keys[0]
