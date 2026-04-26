@@ -714,26 +714,51 @@ class Agent:
 
         self.conversation_history.append({"role": "user", "content": question})
 
-        # Step 1: Check clarification (non-streaming for now)
+        # Step 1: Stream clarification check - show reasoning immediately
         if not skip_clarification:
             clarification_prompt = self._build_clarification_prompt(question)
+            clarification_reasoning = ""
+            clarification_content = ""
+            needs_clarification = False
+            clarification_data = None
+
             try:
-                clarification_result = self._call_deepseek(clarification_prompt)
-                if isinstance(clarification_result, dict) and clarification_result.get("action") == "clarify":
-                    reasoning = clarification_result.get("_reasoning_content", "")
+                for chunk in self._call_deepseek_stream(clarification_prompt):
+                    if chunk["type"] == "reasoning":
+                        clarification_reasoning += chunk["text"]
+                        # Immediately yield reasoning so user sees progress
+                        yield {"type": "reasoning", "text": chunk["text"]}
+                    elif chunk["type"] == "content":
+                        clarification_content += chunk["text"]
+                    elif chunk["type"] == "done":
+                        # Parse clarification result
+                        content = clarification_content.strip()
+                        if content.startswith("```"):
+                            content = re.sub(r"^```(?:json)?\s*\n?", "", content)
+                            content = re.sub(r"\n?```\s*$", "", content)
+                        try:
+                            clarification_data = json.loads(content)
+                            if isinstance(clarification_data, dict) and clarification_data.get("action") == "clarify":
+                                needs_clarification = True
+                        except:
+                            pass
+
+                # If needs clarification, return with options
+                if needs_clarification:
                     self.conversation_history.append({
                         "role": "assistant",
-                        "content": clarification_result.get("question", ""),
+                        "content": clarification_data.get("question", ""),
                         "type": "clarification",
                     })
                     yield {
                         "type": "clarification",
-                        "message": clarification_result.get("question", "请问您能提供更多信息吗？"),
-                        "options": clarification_result.get("options", []),
-                        "reasoning": reasoning,
+                        "message": clarification_data.get("question", "请问您能提供更多信息吗？"),
+                        "options": clarification_data.get("options", []),
+                        "reasoning": clarification_reasoning,
                         "original_question": question,
                     }
                     return  # Stop here, wait for user clarification
+
             except Exception as e:
                 print(f"[Agent] Clarification check failed: {e}")
                 pass
