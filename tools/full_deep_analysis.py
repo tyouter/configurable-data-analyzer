@@ -707,21 +707,29 @@ def analyze_app_familiarity(df):
 
     feature_discovery_rates = {}
     key_features = {
-        'AI旅行指南': ['ai_travel_guide_button_click'],
-        'POI导航': ['navigation_button_click', 'navigation_popup_confirm_click'],
-        '视频播放': ['rednote_video_post_is_play'],
-        '内容互动': ['post_like_click', 'save_button_click', 'follow_button_click'],
-        '搜索功能': ['search_homepage'],
-        '个人中心': ['profile_page'],
-        '分享功能': ['share_icon_click'],
-        '路书生成': ['generated_travel_guide_button_click'],
+        'AI旅行指南': ['ai_travel_guide', 'trival_guide', 'ai_guide'],
+        'POI导航': ['poi_detail_page_navigation', 'poi_card_click', 'navigation_popup_confirm'],
+        '视频播放': ['video_play', 'video_fullscreen', '_video_'],
+        '内容互动': ['like_tab', 'save_tab', 'follow_button', 'post_like', 'save_button'],
+        '搜索功能': ['search_homepage', 'search_results', 'search_history'],
+        '个人中心': ['profile_page_', 'navigation_bar_profile'],
+        '分享功能': ['share_icon', 'share_'],
+        '路书生成': ['travel_guide_tab', 'generated_travel_guide'],
     }
     total_users = len(user_familiarity)
     for fname, patterns in key_features.items():
         count = 0
-        for uinfo in user_familiarity.values():
-            pass
+        for uid in user_familiarity.keys():
+            try:
+                udata = df[df['reduser_id'] == uid]
+                user_events = [evt.lower() for evt in udata['span_nm'].dropna().unique()]
+                if any(any(p.lower() in evt for evt in user_events) for p in patterns):
+                    count += 1
+            except Exception as e:
+                pass
         feature_discovery_rates[fname] = round(count / max(total_users, 1) * 100, 1)
+
+    print(f"  功能发现率: {feature_discovery_rates}")
 
     result = {
         'familiarity_level_distribution': dict(levels),

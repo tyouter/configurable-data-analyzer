@@ -6,69 +6,220 @@
 <title>Rednote BI</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <style>
+  /* ═══ Ferrari Design System ═══ */
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #242734;
-    --border: #2e3144;
-    --text: #e4e6f0;
-    --text2: #9ca0b0;
-    --accent: #6c5ce7;
-    --accent2: #a29bfe;
-    --green: #00b894;
-    --red: #e17055;
-    --blue: #0984e3;
-    --orange: #fdcb6e;
+    --bg: #000000;
+    --surface: #303030;
+    --surface2: #1a1a1a;
+    --border: #444444;
+    --text: #FFFFFF;
+    --text2: #8F8F8F;
+    --accent: #DA291C;
+    --accent-hover: #B01E0A;
+    --green: #00C9A7;
+    --blue: #4C98B9;
+    --orange: #F6E500;
+    --near-black: #181818;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
 
-  /* Header */
-  .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
-  .header h1 { font-size: 18px; font-weight: 600; }
+  body {
+    font-family: 'FerrariSans', Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
   .header h1 span { color: var(--accent); }
-  .header .meta { font-size: 13px; color: var(--text2); }
+  .header .meta {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
 
-  /* Main layout */
+  /* ── Main layout ── */
   .main { display: flex; flex: 1; overflow: hidden; }
 
-  /* Chat panel */
-  .chat-panel { width: 380px; min-width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--surface); }
-  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; }
-  .chat-msg { margin-bottom: 16px; }
-  .chat-msg .role { font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
-  .chat-msg .role.user { color: var(--accent); }
+  /* ── Chat panel — dark cinematic section ── */
+  .chat-panel {
+    width: 380px;
+    min-width: 320px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 20px 16px; }
+  .chat-msg { margin-bottom: 20px; }
+  .chat-msg .role {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .chat-msg .role.user { color: var(--text); }
   .chat-msg .role.ai { color: var(--green); }
   .chat-msg .content { font-size: 14px; line-height: 1.5; color: var(--text); }
-  .chat-msg pre { background: var(--surface2); padding: 8px 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; margin: 8px 0; color: var(--text2); }
-  .chat-msg .pin-btn { display: inline-block; margin-top: 8px; padding: 4px 12px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; }
-  .chat-msg .pin-btn:hover { background: var(--accent2); }
+  .chat-msg pre {
+    background: var(--surface);
+    padding: 10px 14px;
+    border-radius: 2px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin: 10px 0;
+    color: var(--text2);
+    font-family: 'Courier New', monospace;
+  }
+  .chat-msg .pin-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 12px 10px;
+    background: var(--text);
+    color: var(--bg);
+    border: 1px solid var(--text);
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .chat-msg .pin-btn:hover { background: var(--accent-hover); color: var(--text); border-color: var(--accent-hover); }
 
-  /* Quick metrics */
-  .quick-metrics { padding: 12px 16px; border-top: 1px solid var(--border); }
-  .quick-metrics label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 6px; }
+  /* ── Clarification options ── */
+  .clarification-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .clarify-btn {
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .clarify-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .clarify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Quick metrics ── */
+  .quick-metrics { padding: 14px 16px; border-top: 1px solid var(--border); }
+  .quick-metrics label {
+    font-size: 11px;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
   .quick-metrics .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-  .quick-metrics .tag { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; font-size: 12px; cursor: pointer; color: var(--text2); transition: all 0.2s; }
-  .quick-metrics .tag:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,92,231,0.1); }
+  .quick-metrics .tag {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .quick-metrics .tag:hover { border-color: var(--text); color: var(--text); }
 
-  /* Input area */
-  .chat-input { display: flex; padding: 12px 16px; border-top: 1px solid var(--border); gap: 8px; }
-  .chat-input input { flex: 1; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
-  .chat-input input:focus { border-color: var(--accent); }
-  .chat-input button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; }
-  .chat-input button:hover { background: var(--accent2); }
-  .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* ── Input area ── */
+  .chat-input { display: flex; padding: 14px 16px; border-top: 1px solid var(--border); gap: 8px; }
+  .chat-input input {
+    flex: 1;
+    padding: 12px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: Arial, Helvetica, sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .chat-input input::placeholder { color: #666666; }
+  .chat-input input:focus { border-color: var(--text); }
+  .chat-input button {
+    padding: 12px 20px;
+    background: var(--accent);
+    color: var(--text);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    transition: background 0.15s;
+  }
+  .chat-input button:hover { background: var(--accent-hover); }
+  .chat-input button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Dashboard area */
+  /* ── Dashboard area — light editorial section ── */
   .dashboard-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .dashboard-tabs { display: flex; align-items: center; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); gap: 8px; overflow-x: auto; }
+  .dashboard-tabs {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    overflow-x: auto;
+  }
   #dashTabs { display: flex; gap: 8px; }
-  .dashboard-tabs .tab { padding: 6px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text2); }
-  .dashboard-tabs .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .dashboard-tabs .tab-new { padding: 6px 10px; background: transparent; border: 1px dashed var(--border); border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text2); }
-  .dashboard-tabs .tab-new:hover { border-color: var(--accent); color: var(--accent); }
+  .dashboard-tabs .tab {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .dashboard-tabs .tab:hover { border-color: var(--text); color: var(--text); }
+  .dashboard-tabs .tab.active {
+    background: var(--accent);
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .dashboard-tabs .tab-new {
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 2px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .dashboard-tabs .tab-new:hover { border-color: var(--text); color: var(--text); }
 
-  /* Chart grid */
+  /* ── Chart grid ── */
   .chart-grid {
     flex: 1;
     overflow-y: auto;
@@ -78,17 +229,18 @@
     grid-auto-rows: auto;
     gap: 16px;
     align-content: start;
+    background: var(--surface2);
   }
   .chart-grid.empty { display: flex; align-items: center; justify-content: center; }
   .empty-state { text-align: center; color: var(--text2); }
   .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
-  .empty-state p { font-size: 14px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
 
-  /* Chart card */
+  /* ── Chart card ── */
   .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 2px;
     overflow: hidden;
     position: relative;
     height: 400px;
@@ -102,90 +254,212 @@
     height: 420px;
     min-height: 420px;
   }
-  .chart-card .card-footer { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); }
+  .chart-card .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+  }
   .chart-card .card-footer .summary { font-size: 12px; color: var(--text2); flex: 1; }
   .chart-card .card-footer .actions { display: flex; gap: 6px; }
-  .chart-card .card-footer .actions button { padding: 4px 10px; font-size: 11px; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); border-radius: 4px; cursor: pointer; }
-  .chart-card .card-footer .actions button:hover { border-color: var(--accent); color: var(--accent); }
-  .chart-card .card-footer .actions button.danger:hover { border-color: var(--red); color: var(--red); }
+  .chart-card .card-footer .actions button {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .chart-card .card-footer .actions button:hover { border-color: var(--text); color: var(--text); }
+  .chart-card .card-footer .actions button.danger:hover { border-color: var(--accent); color: var(--accent); }
   .chart-card .table-container { padding: 12px; flex: 1; min-height: 0; overflow: auto; }
   .chart-card .table-container table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .chart-card .table-container th { text-align: left; padding: 6px 10px; background: var(--surface2); color: var(--text2); font-weight: 500; position: sticky; top: 0; }
-  .chart-card .table-container td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .chart-card .table-container th {
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--surface2);
+    color: var(--text2);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .chart-card .table-container td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
 
-  /* Audit modal */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+  /* ── Audit modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: hsla(0, 0%, 7%, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
   .modal-overlay.show { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 640px; max-height: 80vh; overflow-y: auto; }
-  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-  .modal-header h2 { font-size: 16px; }
-  .modal-header button { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 640px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 {
+    font-size: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .modal-header button {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .modal-header button:hover { color: var(--text); }
   .modal-body { padding: 20px; }
-  .modal-body .audit-section { margin-bottom: 20px; }
-  .modal-body .audit-section h3 { font-size: 13px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-  .modal-body .audit-section .info-grid { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; font-size: 13px; }
+  .modal-body .audit-section { margin-bottom: 24px; }
+  .modal-body .audit-section h3 {
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 400;
+  }
+  .modal-body .audit-section .info-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 6px 16px;
+    font-size: 13px;
+  }
   .modal-body .audit-section .info-grid .label { color: var(--text2); }
-  .modal-body .audit-section pre { background: var(--surface2); padding: 10px 14px; border-radius: 6px; font-size: 12px; overflow-x: auto; color: var(--green); white-space: pre-wrap; }
+  .modal-body .audit-section pre {
+    background: var(--surface2);
+    padding: 12px 14px;
+    border-radius: 2px;
+    font-size: 12px;
+    overflow-x: auto;
+    color: var(--green);
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+  }
   .modal-body .audit-section table { width: 100%; font-size: 12px; border-collapse: collapse; }
-  .modal-body .audit-section th { text-align: left; padding: 4px 8px; background: var(--surface2); color: var(--text2); }
-  .modal-body .audit-section td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+  .modal-body .audit-section th {
+    text-align: left;
+    padding: 6px 8px;
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 400;
+  }
+  .modal-body .audit-section td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
 
-  /* Context menu */
-  .context-menu { display: none; position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; z-index: 999; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  /* ── Context menu ── */
+  .context-menu {
+    display: none;
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    z-index: 999;
+    overflow: hidden;
+  }
   .context-menu.show { display: block; }
-  .context-menu .menu-item { padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text); }
+  .context-menu .menu-item {
+    padding: 10px 18px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.1s;
+  }
   .context-menu .menu-item:hover { background: var(--surface2); color: var(--accent); }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: #444444; border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
 
-  /* Loading spinner */
-  .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top: 2px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  /* ── Loading spinner ── */
+  .loading {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ECharts dark theme overrides ── */
+  /* Ensure chart text is readable on dark surface */
 </style>
 </head>
 <body>
 
+<!-- Header — Dark Surface bar -->
 <div class="header">
   <h1><span>Rednote</span> BI</h1>
   <div class="meta" id="headerMeta">Loading...</div>
 </div>
 
 <div class="main">
-  <!-- Chat Panel -->
+  <!-- Chat Panel — Absolute Black cinematic section -->
   <div class="chat-panel">
     <div class="chat-messages" id="chatMessages">
       <div class="chat-msg">
-        <div class="role ai">AI</div>
-        <div class="content">欢迎使用 Rednote BI！你可以用自然语言提问，比如「每天的日活趋势」「各页面访问占比」</div>
+        <div class="role ai">AI ANALYST</div>
+        <div class="content">欢迎使用 Rednote BI。你可以用自然语言提问，例如「每天的日活趋势」「各页面访问占比」「导航漏斗转化」</div>
       </div>
     </div>
     <div class="quick-metrics">
-      <label>快捷指标</label>
+      <label>Quick Metrics</label>
       <div class="tags" id="quickTags">
-        <span class="tag" data-q="每天的日活趋势">DAU趋势</span>
-        <span class="tag" data-q="各页面模块的事件占比">页面占比</span>
-        <span class="tag" data-q="每小时用户活跃分布">时段分布</span>
-        <span class="tag" data-q="导航漏斗：浏览POI → 点击导航 → 确认导航">导航漏斗</span>
-        <span class="tag" data-q="Top 10 热门事件">热门事件</span>
-        <span class="tag" data-q="搜索关键词相关的用户行为">搜索行为</span>
+        <span class="tag" data-q="每天的日活趋势">DAU</span>
+        <span class="tag" data-q="各页面模块的事件占比">Pages</span>
+        <span class="tag" data-q="每小时用户活跃分布">Hourly</span>
+        <span class="tag" data-q="导航漏斗：浏览POI → 点击导航 → 确认导航">Funnel</span>
+        <span class="tag" data-q="Top 10 热门事件">Top Events</span>
+        <span class="tag" data-q="搜索关键词相关的用户行为">Search</span>
       </div>
     </div>
     <div class="chat-input">
       <input type="text" id="queryInput" placeholder="输入你的问题..." autofocus />
-      <button id="sendBtn" onclick="sendQuery()">发送</button>
+      <button id="sendBtn" onclick="sendQuery()">SEND</button>
     </div>
   </div>
 
-  <!-- Dashboard Area -->
+  <!-- Dashboard Area — Dark Surface editorial section -->
   <div class="dashboard-area">
     <div class="dashboard-tabs">
-      <div class="tab active" data-dash="temp" onclick="switchTab('temp')">临时结果</div>
+      <div class="tab active" data-dash="temp" onclick="switchTab('temp')">TEMP</div>
       <div id="dashTabs"></div>
-      <div class="tab-new" onclick="createDashboard()">+ 新建 Dashboard</div>
+      <div class="tab-new" onclick="createDashboard()">+ NEW</div>
     </div>
     <div class="chart-grid empty" id="chartGrid">
       <div class="empty-state">
@@ -200,7 +474,7 @@
 <div class="modal-overlay" id="auditModal">
   <div class="modal">
     <div class="modal-header">
-      <h2>图表审计</h2>
+      <h2>Chart Audit</h2>
       <button onclick="closeAudit()">&times;</button>
     </div>
     <div class="modal-body" id="auditBody"></div>
@@ -220,7 +494,7 @@ let dashboards = {};
 let contextAudit = null;
 let contextCard = null;
 let chartInstances = {};
-let tempDashboardId = null; // server-side id for temp dashboard
+let tempDashboardId = null;
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -244,9 +518,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const d = await r.json();
     const m = d.meta;
     document.getElementById('headerMeta').textContent =
-      `${m.total_rows?.toLocaleString()} 事件 · ${m.total_users?.toLocaleString()} 用户 · ${m.event_types} 事件类型 · ${m.date_range?.[0]} ~ ${m.date_range?.[1]}`;
+      `${m.total_rows?.toLocaleString()} EVENTS · ${m.total_users?.toLocaleString()} USERS · ${m.event_types} EVENT TYPES · ${m.date_range?.[0]} ~ ${m.date_range?.[1]}`;
   } catch(e) {
-    document.getElementById('headerMeta').textContent = 'Connected';
+    document.getElementById('headerMeta').textContent = 'CONNECTED';
   }
 });
 
@@ -270,7 +544,10 @@ async function sendQuery() {
     });
     const result = await r.json();
 
-    if (result.error) {
+    // Handle clarification request
+    if (result.need_clarification) {
+      addClarificationMsg(result);
+    } else if (result.error) {
       addChatMsg('ai', `查询失败: ${result.error}`);
     } else {
       addChatMsg('ai', result.summary || '查询完成', result.sql, result);
@@ -280,20 +557,88 @@ async function sendQuery() {
   }
 
   btn.disabled = false;
-  btn.textContent = '发送';
+  btn.textContent = 'SEND';
+}
+
+// Add clarification message with clickable options
+function addClarificationMsg(clarification) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  let html = `<div class="role ai">AI ANALYST</div>`;
+  html += `<div class="content">${escapeHtml(clarification.message)}</div>`;
+  html += `<div class="clarification-options">`;
+  clarification.options.forEach(opt => {
+    const data = escapeAttr(JSON.stringify({
+      value: opt.value,
+      label: opt.label,
+      original_question: clarification.original_question
+    }));
+    html += `<button class="clarify-btn" onclick="handleClarification(this)" data-info='${data}'>${escapeHtml(opt.label)}</button>`;
+  });
+  html += `</div>`;
+  div.innerHTML = html;
+  document.getElementById('chatMessages').appendChild(div);
+  div.scrollIntoView({behavior: 'smooth'});
+}
+
+// Handle user's clarification choice - supports multi-turn clarification
+async function handleClarification(btn) {
+  const info = JSON.parse(btn.dataset.info);
+
+  // Build refined question based on user's choice
+  let refinedQuestion;
+  if (info.value === 'ALL' || info.value === '全部') {
+    refinedQuestion = info.original_question;
+  } else {
+    refinedQuestion = `${info.original_question}，具体是：${info.value}`;
+  }
+
+  // Disable all clarification buttons in this group
+  btn.parentElement.querySelectorAll('.clarify-btn').forEach(b => b.disabled = true);
+  btn.style.background = 'var(--accent)';
+  btn.style.color = '#fff';
+
+  // Show user's choice
+  addChatMsg('user', `选择：${btn.textContent}`);
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<span class="loading"></span>';
+
+  try {
+    const r = await fetch('/api/query', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question: refinedQuestion})
+    });
+    const result = await r.json();
+
+    // Handle potential multi-turn clarification
+    if (result.need_clarification) {
+      addClarificationMsg(result);
+    } else if (result.error) {
+      addChatMsg('ai', `查询失败: ${result.error}`);
+    } else {
+      addChatMsg('ai', result.summary || '查询完成', result.sql, result);
+    }
+  } catch(e) {
+    addChatMsg('ai', `请求失败: ${e.message}`);
+  }
+
+  sendBtn.disabled = false;
+  sendBtn.textContent = 'SEND';
 }
 
 function addChatMsg(role, text, sql, result) {
   const div = document.createElement('div');
   div.className = 'chat-msg';
-  let html = `<div class="role ${role}">${role === 'user' ? '你' : 'AI'}</div>`;
+  let html = `<div class="role ${role}">${role === 'user' ? 'YOU' : 'AI ANALYST'}</div>`;
   html += `<div class="content">${escapeHtml(text)}</div>`;
   if (sql) {
     html += `<pre>${escapeHtml(sql)}</pre>`;
   }
   if (result && result.chart_option) {
     const btnId = 'pin-' + Date.now();
-    html += `<button class="pin-btn" id="${btnId}" onclick="pinChart(this)" data-result='${escapeAttr(JSON.stringify(result))}'>Pin 到 Dashboard</button>`;
+    html += `<button class="pin-btn" id="${btnId}" onclick="pinChart(this)" data-result='${escapeAttr(JSON.stringify(result))}'>PIN TO DASHBOARD</button>`;
   }
   div.innerHTML = html;
   document.getElementById('chatMessages').appendChild(div);
@@ -302,7 +647,6 @@ function addChatMsg(role, text, sql, result) {
   // Auto-persist and render in temp area
   if (result && result.chart_option) {
     persistChart(TEMP_DASHBOARD, result, (savedData) => {
-      // After persist, re-render temp to pick up the chartId
       if (currentTab === 'temp') {
         const cards = document.querySelectorAll('#chartGrid .chart-card');
         if (cards.length > 0) cards[0].__chartId = savedData.chart_id;
@@ -325,7 +669,6 @@ function renderChart(result, tabId, chartId) {
   const grid = document.getElementById('chartGrid');
   if (currentTab !== tabId) return;
 
-  // Remove empty state
   grid.classList.remove('empty');
   const emptyEl = grid.querySelector('.empty-state');
   if (emptyEl) emptyEl.remove();
@@ -342,20 +685,19 @@ function renderChart(result, tabId, chartId) {
     <div class="card-footer">
       <div class="summary">${escapeHtml(result.summary || '')}</div>
       <div class="actions">
-        <button onclick="showAuditFromCard(this)">审计</button>
-        <button onclick="pinFromCard(this)">Pin</button>
-        <button class="danger" onclick="removeCard(this)">删除</button>
+        <button onclick="showAuditFromCard(this)">AUDIT</button>
+        <button onclick="pinFromCard(this)">PIN</button>
+        <button class="danger" onclick="removeCard(this)">DEL</button>
       </div>
     </div>
   `;
 
   grid.prepend(card);
 
-  // Store full chart data on the card for pin/delete
   card.__chartData = result;
   card.__chartId = chartId || null;
 
-  // Bind context menu
+  // Context menu
   card.addEventListener('contextmenu', e => {
     e.preventDefault();
     contextAudit = card.__chartData?.audit || null;
@@ -366,7 +708,7 @@ function renderChart(result, tabId, chartId) {
     menu.classList.add('show');
   });
 
-  // Init ECharts — wait for DOM layout to complete
+  // Init ECharts
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       const dom = document.getElementById(containerId);
@@ -415,8 +757,8 @@ function renderTable(result, tabId, chartId) {
     <div class="card-footer">
       <div class="summary">${escapeHtml(result.summary || '')}</div>
       <div class="actions">
-        <button onclick="showAuditFromCard(this)">审计</button>
-        <button class="danger" onclick="removeCard(this)">删除</button>
+        <button onclick="showAuditFromCard(this)">AUDIT</button>
+        <button class="danger" onclick="removeCard(this)">DEL</button>
       </div>
     </div>
   `;
@@ -463,7 +805,7 @@ function pinChart(btn) {
   const name = prompt('保存到 Dashboard (输入名称):', '默认');
   if (!name) return;
   persistChart(name, result);
-  btn.textContent = '已保存 ✓';
+  btn.textContent = 'SAVED';
   btn.disabled = true;
 }
 
@@ -482,7 +824,6 @@ function removeCard(btn) {
   const chartId = card.__chartId;
   const dashId = (currentTab === 'temp') ? tempDashboardId : currentTab;
   card.remove();
-  // Delete from server
   if (dashId && chartId) {
     fetch(`/api/dashboards/${dashId}/charts/${chartId}`, {method: 'DELETE'}).catch(() => {});
     loadDashboards();
@@ -498,15 +839,14 @@ async function loadDashboards() {
     tabsEl.innerHTML = '';
     data.forEach(d => {
       dashboards[d.id] = d;
-      // Track temp dashboard id
       if (d.name === TEMP_DASHBOARD) {
         tempDashboardId = d.id;
-        return; // Don't show __temp__ as a tab
+        return;
       }
       const tab = document.createElement('div');
       tab.className = 'tab' + (currentTab === d.id ? ' active' : '');
       tab.dataset.dash = d.id;
-      tab.textContent = `${d.name} (${d.charts?.length || 0})`;
+      tab.textContent = `${d.name.toUpperCase()} (${d.charts?.length || 0})`;
       tab.onclick = () => switchTab(d.id);
       tabsEl.appendChild(tab);
     });
@@ -565,7 +905,6 @@ function createDashboard() {
     body: JSON.stringify({dashboard_name: name, chart: {summary: 'empty'}})
   }).then(r => r.json()).then(data => {
     loadDashboards();
-    // Switch to new tab
     setTimeout(() => switchTab(data.dashboard_id), 500);
   });
 }
@@ -585,7 +924,7 @@ function showAuditFromContext() {
   let html = '';
 
   // Data source
-  html += `<div class="audit-section"><h3>数据来源</h3><div class="info-grid">`;
+  html += `<div class="audit-section"><h3>Data Source</h3><div class="info-grid">`;
   html += `<span class="label">文件</span><span>${a.data_source?.file || '-'}</span>`;
   html += `<span class="label">表</span><span>${a.data_source?.table || '-'}</span>`;
   html += `<span class="label">扫描行数</span><span>${a.data_source?.total_rows_scanned?.toLocaleString() || '-'}</span>`;
@@ -593,15 +932,15 @@ function showAuditFromContext() {
   html += `</div></div>`;
 
   // SQL + Chinese explanation
-  html += `<div class="audit-section"><h3>计算逻辑</h3>`;
+  html += `<div class="audit-section"><h3>Calculation Logic</h3>`;
   if (a.calculation_logic) html += `<p style="font-size:13px;margin-bottom:8px;color:var(--text)">${escapeHtml(a.calculation_logic)}</p>`;
   if (a.sql_explanation) html += `<p style="font-size:13px;margin-bottom:8px;color:var(--blue)">说明：${escapeHtml(a.sql_explanation)}</p>`;
   html += `<details style="margin-top:6px"><summary style="cursor:pointer;color:var(--text2);font-size:12px">查看原始 SQL</summary>`;
   html += `<pre style="margin-top:6px">${escapeHtml(a.sql || '')}</pre></details></div>`;
 
-  // Columns used — show raw Excel column names and sample values
+  // Columns used
   if (a.columns_used?.length) {
-    html += `<div class="audit-section"><h3>使用字段</h3><table><tr><th>原始表头</th><th>业务含义</th><th>角色</th><th>示例值</th></tr>`;
+    html += `<div class="audit-section"><h3>Fields Used</h3><table><tr><th>Raw Column</th><th>Meaning</th><th>Role</th><th>Sample</th></tr>`;
     a.columns_used.forEach(c => {
       const rawCol = c.raw_column ? `<code>${escapeHtml(c.raw_column)}</code>` : `<code>${escapeHtml(c.column)}</code>`;
       const logic = c.raw_logic ? `<br><span style="color:var(--orange);font-size:11px">${escapeHtml(c.raw_logic)}</span>` : '';
@@ -613,16 +952,16 @@ function showAuditFromContext() {
 
   // Metrics
   if (a.metrics_involved?.length) {
-    html += `<div class="audit-section"><h3>关联指标</h3><table><tr><th>指标</th><th>名称</th><th>计算方式</th></tr>`;
+    html += `<div class="audit-section"><h3>Metrics</h3><table><tr><th>Metric</th><th>Name</th><th>Formula</th></tr>`;
     a.metrics_involved.forEach(m => {
       html += `<tr><td>${escapeHtml(m.metric)}</td><td>${escapeHtml(m.business_name)}</td><td>${escapeHtml(m.formula_human || m.formula || '')}</td></tr>`;
     });
     html += `</table></div>`;
   }
 
-  // Filters — show Chinese first, raw SQL collapsed
+  // Filters
   if (a.filters_applied?.length || a.filters_human?.length) {
-    html += `<div class="audit-section"><h3>筛选条件</h3>`;
+    html += `<div class="audit-section"><h3>Filters</h3>`;
     if (a.filters_human?.length) {
       html += `<p style="font-size:13px;color:var(--text)">${a.filters_human.map(f => escapeHtml(f)).join('；')}</p>`;
     }
@@ -636,7 +975,7 @@ function showAuditFromContext() {
   // Sample data
   if (a.sample_data?.length) {
     const keys = Object.keys(a.sample_data[0]);
-    html += `<div class="audit-section"><h3>样本数据</h3><table><tr>`;
+    html += `<div class="audit-section"><h3>Sample Data</h3><table><tr>`;
     keys.forEach(k => html += `<th>${escapeHtml(k)}</th>`);
     html += `</tr>`;
     a.sample_data.forEach(row => {

@@ -330,3 +330,6 @@ example_queries:
   - question: "笔记点赞和收藏的每日趋势"
     sql: "SELECT event_date, COUNT(*) FILTER(WHERE event_name LIKE '%post_like_click') as likes, COUNT(*) FILTER(WHERE event_name LIKE '%save_button_click') as saves FROM events GROUP BY event_date ORDER BY event_date"
     chart_type: "line"
+  - question: "导航点击的上一个页面来源占比"
+    sql: "SELECT page as source_page, COUNT(*) as cnt FROM events WHERE event_name LIKE '%navigation_button_click' GROUP BY page ORDER BY cnt DESC"
+    chart_type: "pie"

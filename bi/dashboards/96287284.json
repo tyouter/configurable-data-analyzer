@@ -1,0 +1,3302 @@
+{
+  "id": "96287284",
+  "name": "__temp__",
+  "charts": [
+    {
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 5
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 5
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 13
+        },
+        {
+          "event_date": "2026-03-22",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-03-23",
+          "dau": 23
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 52
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 35
+        },
+        {
+          "event_date": "2026-03-26",
+          "dau": 29
+        },
+        {
+          "event_date": "2026-03-27",
+          "dau": 24
+        },
+        {
+          "event_date": "2026-03-28",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-03-29",
+          "dau": 23
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 15
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 15
+        },
+        {
+          "event_date": "2026-04-01",
+          "dau": 17
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 21
+        },
+        {
+          "event_date": "2026-04-03",
+          "dau": 17
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 23
+        },
+        {
+          "event_date": "2026-04-05",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-04-06",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-04-07",
+          "dau": 20
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 18
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 19
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 23
+        },
+        {
+          "event_date": "2026-04-11",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-04-12",
+          "dau": 18
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "每天的日活趋势",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              5,
+              5,
+              13,
+              14,
+              23,
+              52,
+              35,
+              29,
+              24,
+              22,
+              23,
+              15,
+              15,
+              17,
+              21,
+              17,
+              23,
+              22,
+              14,
+              20,
+              18,
+              19,
+              23,
+              22,
+              18
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "summary": "统计每天的去重用户数量，以观察平台日活跃用户（DAU）随时间的变化趋势。",
+      "audit": {
+        "question": "每天的日活趋势",
+        "generated_at": "2026-04-26T01:38:43.151904",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65722
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "按照事件发生的日期进行分组，计算每天不同用户ID的数量，最后按日期排序展示结果。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "9506003736",
+              "5300277225",
+              "108561411"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          }
+        ],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "统计每天的去重用户数量，以观察平台日活跃用户（DAU）随时间的变化趋势。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 5
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 5
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 13
+          }
+        ]
+      },
+      "error": null,
+      "id": "819d0b41",
+      "saved_at": "2026-04-26T01:38:43.159398"
+    },
+    {
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'porsche' GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 5
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 4
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 13
+        },
+        {
+          "event_date": "2026-03-22",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-03-23",
+          "dau": 23
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 52
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 34
+        },
+        {
+          "event_date": "2026-03-26",
+          "dau": 27
+        },
+        {
+          "event_date": "2026-03-27",
+          "dau": 24
+        },
+        {
+          "event_date": "2026-03-28",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-03-29",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 15
+        },
+        {
+          "event_date": "2026-04-01",
+          "dau": 17
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 21
+        },
+        {
+          "event_date": "2026-04-03",
+          "dau": 17
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-04-05",
+          "dau": 20
+        },
+        {
+          "event_date": "2026-04-06",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-04-07",
+          "dau": 20
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 18
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 19
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 21
+        },
+        {
+          "event_date": "2026-04-11",
+          "dau": 21
+        },
+        {
+          "event_date": "2026-04-12",
+          "dau": 18
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "Porsche+页面DAU趋势",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              5,
+              4,
+              13,
+              14,
+              23,
+              52,
+              34,
+              27,
+              24,
+              22,
+              22,
+              14,
+              15,
+              17,
+              21,
+              17,
+              22,
+              20,
+              14,
+              20,
+              18,
+              19,
+              21,
+              21,
+              18
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "summary": "统计了每天访问Porsche页面的日活跃用户数变化趋势。",
+      "audit": {
+        "question": "Porsche+页面DAU趋势",
+        "generated_at": "2026-04-26T01:38:51.645995",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65722
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'porsche' GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "筛选出Porsche页面的相关事件，按日期分组，统计每天不同的用户ID数量，并按日期排序。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "9506003736",
+              "5300277225",
+              "108561411"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          },
+          {
+            "column": "page_root",
+            "business_name": "页面模块",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的第1段",
+            "sample_values": [
+              "porsche"
+            ]
+          },
+          {
+            "column": "page",
+            "business_name": "页面",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的前2段",
+            "sample_values": [
+              "porsche_page"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          }
+        ],
+        "filters_applied": [
+          "page_root = 'porsche'"
+        ],
+        "filters_human": [
+          "页面模块为「porsche」"
+        ],
+        "calculation_logic": "统计了每天访问Porsche页面的日活跃用户数变化趋势。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 5
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 4
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 13
+          }
+        ]
+      },
+      "error": null,
+      "id": "52c88ae1",
+      "saved_at": "2026-04-26T01:38:51.653598"
+    },
+    {
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE rednote_poi_map_fullscreen = '1' GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-03-23",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 3
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-26",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 3
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 3
+        },
+        {
+          "event_date": "2026-04-05",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-07",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 4
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 5
+        },
+        {
+          "event_date": "2026-04-11",
+          "dau": 1
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "地图全屏DAU趋势",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-02",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              1,
+              2,
+              1,
+              2,
+              3,
+              2,
+              2,
+              2,
+              1,
+              3,
+              3,
+              1,
+              1,
+              1,
+              4,
+              5,
+              1
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "summary": "展示了每天使用小红书同城地图全屏功能的日活跃用户数变化趋势。",
+      "audit": {
+        "question": "地图全屏DAU趋势",
+        "generated_at": "2026-04-26T01:39:10.357454",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65722
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE rednote_poi_map_fullscreen = '1' GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "筛选出地图全屏状态为1（即全屏）的所有事件记录，按日期进行分组，统计每天的唯一用户ID数量，最后按日期排序，从而得到每日全屏地图的活跃用户趋势。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "1117450509",
+              "260980579",
+              "95072171697"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          },
+          {
+            "column": "rednote_poi_map_fullscreen",
+            "business_name": "地图是否全屏",
+            "role": "dimension",
+            "sample_values": [
+              "1.0"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          },
+          {
+            "metric": "poi_views",
+            "business_name": "POI浏览次数",
+            "formula_human": "COUNT(*) FILTER (WHERE page_root = 'poi_detail')"
+          }
+        ],
+        "filters_applied": [
+          "rednote_poi_map_fullscreen = '1'"
+        ],
+        "filters_human": [
+          "rednote_poi_map_fullscreen = '1'"
+        ],
+        "calculation_logic": "展示了每天使用小红书同城地图全屏功能的日活跃用户数变化趋势。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 1
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 2
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 1
+          }
+        ]
+      },
+      "error": null,
+      "id": "0a2192b1",
+      "saved_at": "2026-04-26T01:39:10.366161"
+    },
+    {
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'discovery' GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 5
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 4
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 13
+        },
+        {
+          "event_date": "2026-03-22",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-03-23",
+          "dau": 23
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 52
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 34
+        },
+        {
+          "event_date": "2026-03-26",
+          "dau": 29
+        },
+        {
+          "event_date": "2026-03-27",
+          "dau": 24
+        },
+        {
+          "event_date": "2026-03-28",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-03-29",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 15
+        },
+        {
+          "event_date": "2026-04-01",
+          "dau": 17
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 21
+        },
+        {
+          "event_date": "2026-04-03",
+          "dau": 17
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-04-05",
+          "dau": 20
+        },
+        {
+          "event_date": "2026-04-06",
+          "dau": 14
+        },
+        {
+          "event_date": "2026-04-07",
+          "dau": 20
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 18
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 19
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 22
+        },
+        {
+          "event_date": "2026-04-11",
+          "dau": 21
+        },
+        {
+          "event_date": "2026-04-12",
+          "dau": 18
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "发现页DAU趋势",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              5,
+              4,
+              13,
+              14,
+              23,
+              52,
+              34,
+              29,
+              24,
+              22,
+              22,
+              14,
+              15,
+              17,
+              21,
+              17,
+              22,
+              20,
+              14,
+              20,
+              18,
+              19,
+              22,
+              21,
+              18
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "summary": "该查询统计了发现页每天的日活用户数（DAU），用于展示用户在发现页的活跃趋势。",
+      "audit": {
+        "question": "发现页DAU趋势",
+        "generated_at": "2026-04-26T01:39:25.966392",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65722
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE page_root = 'discovery' GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "筛选页面根目录为‘发现页’（discovery）的事件数据，按日期进行分组，并统计每天的唯一用户ID数量，最后按日期升序排列。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "9506003736",
+              "5300277225",
+              "108561411"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          },
+          {
+            "column": "page_root",
+            "business_name": "页面模块",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的第1段",
+            "sample_values": [
+              "discovery"
+            ]
+          },
+          {
+            "column": "page",
+            "business_name": "页面",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的前2段",
+            "sample_values": [
+              "discovery_page"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          }
+        ],
+        "filters_applied": [
+          "page_root = 'discovery'"
+        ],
+        "filters_human": [
+          "页面模块为「discovery」"
+        ],
+        "calculation_logic": "该查询统计了发现页每天的日活用户数（DAU），用于展示用户在发现页的活跃趋势。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 5
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 4
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 13
+          }
+        ]
+      },
+      "error": null,
+      "id": "a872c4e8",
+      "saved_at": "2026-04-26T01:39:25.972729"
+    },
+    {
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE event_name LIKE '%navigation_popup_confirm_click' GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 6
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 3
+        },
+        {
+          "event_date": "2026-03-27",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-01",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 1
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 2
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 5
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 3
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "导航确认DAU趋势",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-27",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-04",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              1,
+              2,
+              1,
+              6,
+              3,
+              1,
+              2,
+              1,
+              1,
+              2,
+              1,
+              2,
+              5,
+              3
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "summary": "统计每天触发“导航确认”事件的去重用户数，用于分析用户确认导航的活跃度趋势。",
+      "audit": {
+        "question": "导航确认DAU趋势",
+        "generated_at": "2026-04-26T01:39:56.392348",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65722
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau FROM events WHERE event_name LIKE '%navigation_popup_confirm_click' GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "筛选出所有事件名称包含‘navigation_popup_confirm_click’的记录，按日期分组，统计每天不同的用户ID数量，最后按日期排序。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "1188002672",
+              "1117450509",
+              "2766496379"
+            ]
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "sample_values": [
+              "poi_detail_page_navigation_popup_confirm_click",
+              "trival_guide_page_detail_tab_poi_navigation_popup_confirm_click"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          },
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation_popup_confirm_click'"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation_popup_confirm_click」"
+        ],
+        "calculation_logic": "统计每天触发“导航确认”事件的去重用户数，用于分析用户确认导航的活跃度趋势。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 1
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 2
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 1
+          }
+        ]
+      },
+      "error": null,
+      "id": "3b50ec75",
+      "saved_at": "2026-04-26T01:39:56.401214"
+    },
+    {
+      "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau, (SELECT COUNT(DISTINCT reduser_id) FROM events) as total_users, ROUND(CAST(COUNT(DISTINCT reduser_id) AS FLOAT) / (SELECT COUNT(DISTINCT reduser_id) FROM events) * 100, 2) as activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "dau": 5,
+          "total_users": 297,
+          "activity_rate_pct": 1.6799999475479126
+        },
+        {
+          "event_date": "2026-03-20",
+          "dau": 5,
+          "total_users": 297,
+          "activity_rate_pct": 1.6799999475479126
+        },
+        {
+          "event_date": "2026-03-21",
+          "dau": 13,
+          "total_users": 297,
+          "activity_rate_pct": 4.380000114440918
+        },
+        {
+          "event_date": "2026-03-22",
+          "dau": 14,
+          "total_users": 297,
+          "activity_rate_pct": 4.710000038146973
+        },
+        {
+          "event_date": "2026-03-23",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.739999771118164
+        },
+        {
+          "event_date": "2026-03-24",
+          "dau": 52,
+          "total_users": 297,
+          "activity_rate_pct": 17.510000228881836
+        },
+        {
+          "event_date": "2026-03-25",
+          "dau": 35,
+          "total_users": 297,
+          "activity_rate_pct": 11.779999732971191
+        },
+        {
+          "event_date": "2026-03-26",
+          "dau": 29,
+          "total_users": 297,
+          "activity_rate_pct": 9.760000228881836
+        },
+        {
+          "event_date": "2026-03-27",
+          "dau": 24,
+          "total_users": 297,
+          "activity_rate_pct": 8.079999923706055
+        },
+        {
+          "event_date": "2026-03-28",
+          "dau": 22,
+          "total_users": 297,
+          "activity_rate_pct": 7.409999847412109
+        },
+        {
+          "event_date": "2026-03-29",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.739999771118164
+        },
+        {
+          "event_date": "2026-03-30",
+          "dau": 15,
+          "total_users": 297,
+          "activity_rate_pct": 5.050000190734863
+        },
+        {
+          "event_date": "2026-03-31",
+          "dau": 15,
+          "total_users": 297,
+          "activity_rate_pct": 5.050000190734863
+        },
+        {
+          "event_date": "2026-04-01",
+          "dau": 17,
+          "total_users": 297,
+          "activity_rate_pct": 5.71999979019165
+        },
+        {
+          "event_date": "2026-04-02",
+          "dau": 21,
+          "total_users": 297,
+          "activity_rate_pct": 7.070000171661377
+        },
+        {
+          "event_date": "2026-04-03",
+          "dau": 17,
+          "total_users": 297,
+          "activity_rate_pct": 5.71999979019165
+        },
+        {
+          "event_date": "2026-04-04",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.739999771118164
+        },
+        {
+          "event_date": "2026-04-05",
+          "dau": 22,
+          "total_users": 297,
+          "activity_rate_pct": 7.409999847412109
+        },
+        {
+          "event_date": "2026-04-06",
+          "dau": 14,
+          "total_users": 297,
+          "activity_rate_pct": 4.710000038146973
+        },
+        {
+          "event_date": "2026-04-07",
+          "dau": 20,
+          "total_users": 297,
+          "activity_rate_pct": 6.730000019073486
+        },
+        {
+          "event_date": "2026-04-08",
+          "dau": 18,
+          "total_users": 297,
+          "activity_rate_pct": 6.059999942779541
+        },
+        {
+          "event_date": "2026-04-09",
+          "dau": 19,
+          "total_users": 297,
+          "activity_rate_pct": 6.400000095367432
+        },
+        {
+          "event_date": "2026-04-10",
+          "dau": 23,
+          "total_users": 297,
+          "activity_rate_pct": 7.739999771118164
+        },
+        {
+          "event_date": "2026-04-11",
+          "dau": 22,
+          "total_users": 297,
+          "activity_rate_pct": 7.409999847412109
+        },
+        {
+          "event_date": "2026-04-12",
+          "dau": 18,
+          "total_users": 297,
+          "activity_rate_pct": 6.059999942779541
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "用户活跃情况怎么样",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "dau",
+            "data": [
+              5,
+              5,
+              13,
+              14,
+              23,
+              52,
+              35,
+              29,
+              24,
+              22,
+              23,
+              15,
+              15,
+              17,
+              21,
+              17,
+              23,
+              22,
+              14,
+              20,
+              18,
+              19,
+              23,
+              22,
+              18
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "total_users",
+            "data": [
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "activity_rate_pct",
+            "data": [
+              1.6799999475479126,
+              1.6799999475479126,
+              4.380000114440918,
+              4.710000038146973,
+              7.739999771118164,
+              17.510000228881836,
+              11.779999732971191,
+              9.760000228881836,
+              8.079999923706055,
+              7.409999847412109,
+              7.739999771118164,
+              5.050000190734863,
+              5.050000190734863,
+              5.71999979019165,
+              7.070000171661377,
+              5.71999979019165,
+              7.739999771118164,
+              7.409999847412109,
+              4.710000038146973,
+              6.730000019073486,
+              6.059999942779541,
+              6.400000095367432,
+              7.739999771118164,
+              7.409999847412109,
+              6.059999942779541
+            ],
+            "smooth": true
+          }
+        ],
+        "legend": {
+          "top": 30
+        }
+      },
+      "summary": "展示了2026-03-19至2026-04-12期间每日的用户活跃度，包括日活(DAU)数值及占总用户群的比例。",
+      "audit": {
+        "question": "用户活跃情况怎么样",
+        "generated_at": "2026-04-26T01:57:15.947568",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_date, COUNT(DISTINCT reduser_id) as dau, (SELECT COUNT(DISTINCT reduser_id) FROM events) as total_users, ROUND(CAST(COUNT(DISTINCT reduser_id) AS FLOAT) / (SELECT COUNT(DISTINCT reduser_id) FROM events) * 100, 2) as activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "采用【活跃率】公式：活跃率 = 当日DAU / 全量总用户数 × 100%。1. 分子：按日期分组统计当天的活跃用户数；2. 分母：计算整个时间窗口内的全量去重用户总数；3. 计算两者比值并转化为百分比，用于衡量整体用户群的活跃健康度。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "9506003736",
+              "5300277225",
+              "108561411"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          }
+        ],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "展示了2026-03-19至2026-04-12期间每日的用户活跃度，包括日活(DAU)数值及占总用户群的比例。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "dau": 5,
+            "total_users": 297,
+            "activity_rate_pct": 1.6799999475479126
+          },
+          {
+            "event_date": "2026-03-20",
+            "dau": 5,
+            "total_users": 297,
+            "activity_rate_pct": 1.6799999475479126
+          },
+          {
+            "event_date": "2026-03-21",
+            "dau": 13,
+            "total_users": 297,
+            "activity_rate_pct": 4.380000114440918
+          }
+        ]
+      },
+      "error": null,
+      "id": "5659e6e9",
+      "saved_at": "2026-04-26T01:57:15.956338"
+    },
+    {
+      "sql": "SELECT event_date, ROUND(CAST(COUNT(DISTINCT reduser_id) AS NUMERIC) * 100.0 / (SELECT COUNT(DISTINCT reduser_id) FROM events), 2) as activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date",
+      "data": [
+        {
+          "event_date": "2026-03-19",
+          "activity_rate_pct": 1.68
+        },
+        {
+          "event_date": "2026-03-20",
+          "activity_rate_pct": 1.68
+        },
+        {
+          "event_date": "2026-03-21",
+          "activity_rate_pct": 4.38
+        },
+        {
+          "event_date": "2026-03-22",
+          "activity_rate_pct": 4.71
+        },
+        {
+          "event_date": "2026-03-23",
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-03-24",
+          "activity_rate_pct": 17.51
+        },
+        {
+          "event_date": "2026-03-25",
+          "activity_rate_pct": 11.78
+        },
+        {
+          "event_date": "2026-03-26",
+          "activity_rate_pct": 9.76
+        },
+        {
+          "event_date": "2026-03-27",
+          "activity_rate_pct": 8.08
+        },
+        {
+          "event_date": "2026-03-28",
+          "activity_rate_pct": 7.41
+        },
+        {
+          "event_date": "2026-03-29",
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-03-30",
+          "activity_rate_pct": 5.05
+        },
+        {
+          "event_date": "2026-03-31",
+          "activity_rate_pct": 5.05
+        },
+        {
+          "event_date": "2026-04-01",
+          "activity_rate_pct": 5.72
+        },
+        {
+          "event_date": "2026-04-02",
+          "activity_rate_pct": 7.07
+        },
+        {
+          "event_date": "2026-04-03",
+          "activity_rate_pct": 5.72
+        },
+        {
+          "event_date": "2026-04-04",
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-04-05",
+          "activity_rate_pct": 7.41
+        },
+        {
+          "event_date": "2026-04-06",
+          "activity_rate_pct": 4.71
+        },
+        {
+          "event_date": "2026-04-07",
+          "activity_rate_pct": 6.73
+        },
+        {
+          "event_date": "2026-04-08",
+          "activity_rate_pct": 6.06
+        },
+        {
+          "event_date": "2026-04-09",
+          "activity_rate_pct": 6.4
+        },
+        {
+          "event_date": "2026-04-10",
+          "activity_rate_pct": 7.74
+        },
+        {
+          "event_date": "2026-04-11",
+          "activity_rate_pct": 7.41
+        },
+        {
+          "event_date": "2026-04-12",
+          "activity_rate_pct": 6.06
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "只展示用户活跃率（百分比），而不需要展示总用户数和活跃用户数",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "activity_rate_pct",
+            "data": [
+              1.68,
+              1.68,
+              4.38,
+              4.71,
+              7.74,
+              17.51,
+              11.78,
+              9.76,
+              8.08,
+              7.41,
+              7.74,
+              5.05,
+              5.05,
+              5.72,
+              7.07,
+              5.72,
+              7.74,
+              7.41,
+              4.71,
+              6.73,
+              6.06,
+              6.4,
+              7.74,
+              7.41,
+              6.06
+            ],
+            "smooth": true
+          }
+        ]
+      },
+      "summary": "计算了从3月19日到4月12日每一天的活跃用户百分比。",
+      "audit": {
+        "question": "只展示用户活跃率（百分比），而不需要展示总用户数和活跃用户数",
+        "generated_at": "2026-04-26T01:58:17.071618",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_date, ROUND(CAST(COUNT(DISTINCT reduser_id) AS NUMERIC) * 100.0 / (SELECT COUNT(DISTINCT reduser_id) FROM events), 2) as activity_rate_pct FROM events GROUP BY event_date ORDER BY event_date",
+        "sql_explanation": "采用【活跃率 = 活跃用户数 / 全量总用户数】的计算逻辑。分子为当日去重用户数（DAU），分母为全时间段去重总用户数（297人）。将结果乘以100并保留两位小数，仅展示百分比趋势。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "9506003736",
+              "5300277225",
+              "108561411"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-19",
+              "2026-03-20",
+              "2026-03-21"
+            ]
+          }
+        ],
+        "metrics_involved": [],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "计算了从3月19日到4月12日每一天的活跃用户百分比。",
+        "sample_data": [
+          {
+            "event_date": "2026-03-19",
+            "activity_rate_pct": 1.68
+          },
+          {
+            "event_date": "2026-03-20",
+            "activity_rate_pct": 1.68
+          },
+          {
+            "event_date": "2026-03-21",
+            "activity_rate_pct": 4.38
+          }
+        ]
+      },
+      "error": null,
+      "id": "e527b6d6",
+      "saved_at": "2026-04-26T01:58:17.079157"
+    },
+    {
+      "sql": "WITH weekly_stats AS ( SELECT event_weekday, COUNT(DISTINCT reduser_id) as dau FROM events GROUP BY event_weekday ), total_users AS ( SELECT COUNT(DISTINCT reduser_id) as total FROM events ) SELECT s.event_weekday, s.dau, t.total, ROUND(CAST(s.dau AS DOUBLE) * 100.0 / t.total, 2) as activity_rate_pct FROM weekly_stats s CROSS JOIN total_users t ORDER BY s.event_weekday",
+      "data": [
+        {
+          "event_weekday": 0,
+          "dau": 50,
+          "total": 297,
+          "activity_rate_pct": 16.84
+        },
+        {
+          "event_weekday": 1,
+          "dau": 84,
+          "total": 297,
+          "activity_rate_pct": 28.28
+        },
+        {
+          "event_weekday": 2,
+          "dau": 65,
+          "total": 297,
+          "activity_rate_pct": 21.89
+        },
+        {
+          "event_weekday": 3,
+          "dau": 67,
+          "total": 297,
+          "activity_rate_pct": 22.56
+        },
+        {
+          "event_weekday": 4,
+          "dau": 63,
+          "total": 297,
+          "activity_rate_pct": 21.21
+        },
+        {
+          "event_weekday": 5,
+          "dau": 74,
+          "total": 297,
+          "activity_rate_pct": 24.92
+        },
+        {
+          "event_weekday": 6,
+          "dau": 68,
+          "total": 297,
+          "activity_rate_pct": 22.9
+        }
+      ],
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "用户周活跃率",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "dau",
+            "data": [
+              50,
+              84,
+              65,
+              67,
+              63,
+              74,
+              68
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "total",
+            "data": [
+              297,
+              297,
+              297,
+              297,
+              297,
+              297,
+              297
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "activity_rate_pct",
+            "data": [
+              16.84,
+              28.28,
+              21.89,
+              22.56,
+              21.21,
+              24.92,
+              22.9
+            ]
+          }
+        ],
+        "legend": {
+          "top": 30
+        }
+      },
+      "summary": "分析一周7天中每一天的活跃用户数占全平台总用户数的比例。",
+      "audit": {
+        "question": "用户周活跃率",
+        "generated_at": "2026-04-26T01:58:38.691623",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH weekly_stats AS ( SELECT event_weekday, COUNT(DISTINCT reduser_id) as dau FROM events GROUP BY event_weekday ), total_users AS ( SELECT COUNT(DISTINCT reduser_id) as total FROM events ) SELECT s.event_weekday, s.dau, t.total, ROUND(CAST(s.dau AS DOUBLE) * 100.0 / t.total, 2) as activity_rate_pct FROM weekly_stats s CROSS JOIN total_users t ORDER BY s.event_weekday",
+        "sql_explanation": "1. 统计指标：周活跃率 (Weekly Activity Rate)。\n2. 计算公式：活跃率 = 当天活跃用户数 (DAU) / 全平台累计总用户数 × 100%。\n3. 逻辑说明：首先按星期 (event_weekday, 0=周一...) 分组计算每天的日活人数 (分子)；同时计算整个数据集中的唯一用户总数作为分母；最后将每天的用户数除以总数得到百分比，用于衡量周内不同日期的用户活跃强度。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "9506003736",
+              "5300277225",
+              "108561411"
+            ]
+          },
+          {
+            "column": "event_weekday",
+            "business_name": "星期几",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的星期几(0=周一)",
+            "sample_values": [
+              "0",
+              "1",
+              "2"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "dau",
+            "business_name": "日活用户",
+            "formula_human": "按天去重统计用户数"
+          }
+        ],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "分析一周7天中每一天的活跃用户数占全平台总用户数的比例。",
+        "sample_data": [
+          {
+            "event_weekday": 0,
+            "dau": 50,
+            "total": 297,
+            "activity_rate_pct": 16.84
+          },
+          {
+            "event_weekday": 1,
+            "dau": 84,
+            "total": 297,
+            "activity_rate_pct": 28.28
+          },
+          {
+            "event_weekday": 2,
+            "dau": 65,
+            "total": 297,
+            "activity_rate_pct": 21.89
+          }
+        ]
+      },
+      "error": null,
+      "id": "8eaa97fe",
+      "saved_at": "2026-04-26T01:58:38.698864"
+    },
+    {
+      "sql": "SELECT event_name, COUNT(*) as event_count, ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events), 2) as percentage FROM events GROUP BY event_name ORDER BY event_count DESC LIMIT 10",
+      "data": [
+        {
+          "event_name": "porsche_page_Map_poi_card_cardshow",
+          "event_count": 10884,
+          "percentage": 16.59
+        },
+        {
+          "event_name": "discovery_page_post_card_cardshow",
+          "event_count": 9300,
+          "percentage": 14.18
+        },
+        {
+          "event_name": "discovery_page_pageshow",
+          "event_count": 4999,
+          "percentage": 7.62
+        },
+        {
+          "event_name": "porsche_page_recommend_post_card_cardshow",
+          "event_count": 3788,
+          "percentage": 5.77
+        },
+        {
+          "event_name": "search_results_page_post_card_carshow",
+          "event_count": 3684,
+          "percentage": 5.62
+        },
+        {
+          "event_name": "porsche_page_pageshow",
+          "event_count": 3518,
+          "percentage": 5.36
+        },
+        {
+          "event_name": "post_detail_page_pageshow",
+          "event_count": 3113,
+          "percentage": 4.74
+        },
+        {
+          "event_name": "search_homepage_search_history_query_item_show",
+          "event_count": 2027,
+          "percentage": 3.09
+        },
+        {
+          "event_name": "post_detail_page_back_button_click",
+          "event_count": 1675,
+          "percentage": 2.55
+        },
+        {
+          "event_name": "post_detail_page_body_video_swipe_for_the_next_post",
+          "event_count": 1473,
+          "percentage": 2.25
+        }
+      ],
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "Top 10 热门事件",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "porsche_page_Map_poi_card_cardshow",
+            "discovery_page_post_card_cardshow",
+            "discovery_page_pageshow",
+            "porsche_page_recommend_post_card_cardshow",
+            "search_results_page_post_card_carshow",
+            "porsche_page_pageshow",
+            "post_detail_page_pageshow",
+            "search_homepage_search_history_query_item_show",
+            "post_detail_page_back_button_click",
+            "post_detail_page_body_video_swipe_for_the_next_post"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "event_count",
+            "data": [
+              10884,
+              9300,
+              4999,
+              3788,
+              3684,
+              3518,
+              3113,
+              2027,
+              1675,
+              1473
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "percentage",
+            "data": [
+              16.59,
+              14.18,
+              7.62,
+              5.77,
+              5.62,
+              5.36,
+              4.74,
+              3.09,
+              2.55,
+              2.25
+            ]
+          }
+        ],
+        "legend": {
+          "top": 30
+        }
+      },
+      "summary": "统计发生次数最多的前10个事件，展示其具体次数及在总事件中的占比，帮助识别用户最频繁的操作。",
+      "audit": {
+        "question": "Top 10 热门事件",
+        "generated_at": "2026-04-26T02:10:03.048754",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT event_name, COUNT(*) as event_count, ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events), 2) as percentage FROM events GROUP BY event_name ORDER BY event_count DESC LIMIT 10",
+        "sql_explanation": "【热门事件分析逻辑】\n1. 分组：将数据按 event_name（事件名称）进行分组。\n2. 计数：计算每个事件组内发生的总次数。\n3. 求占比：分子为“当前事件的发生次数”，分母为“全量事件总数”。\n4. 排序与截取：按发生次数降序排列，并只取前10名。\n\n该指标反映了用户在车上使用小红书时最高频的行为（如浏览、点击、导航等），是衡量功能活跃度的核心指标。",
+        "columns_used": [
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "sample_values": [
+              "porsche_page_Map_poi_card_cardshow",
+              "discovery_page_post_card_cardshow",
+              "discovery_page_pageshow"
+            ]
+          }
+        ],
+        "metrics_involved": [],
+        "filters_applied": [],
+        "filters_human": [],
+        "calculation_logic": "统计发生次数最多的前10个事件，展示其具体次数及在总事件中的占比，帮助识别用户最频繁的操作。",
+        "sample_data": [
+          {
+            "event_name": "porsche_page_Map_poi_card_cardshow",
+            "event_count": 10884,
+            "percentage": 16.59
+          },
+          {
+            "event_name": "discovery_page_post_card_cardshow",
+            "event_count": 9300,
+            "percentage": 14.18
+          },
+          {
+            "event_name": "discovery_page_pageshow",
+            "event_count": 4999,
+            "percentage": 7.62
+          }
+        ]
+      },
+      "error": null,
+      "id": "4b9c0a4f",
+      "saved_at": "2026-04-26T02:10:03.065832"
+    },
+    {
+      "sql": "WITH first_nav_day AS (SELECT event_date FROM (SELECT event_date, COUNT(*) as nav_count FROM events WHERE event_name LIKE '%navigation%' GROUP BY event_date ORDER BY nav_count DESC LIMIT 1) t), cohort_users AS (SELECT DISTINCT reduser_id FROM events WHERE event_date = (SELECT event_date FROM first_nav_day)), retention_stats AS (SELECT (SELECT event_date FROM first_nav_day) as start_date, 7 as day_n, COUNT(DISTINCT e.reduser_id) as retained_users, (SELECT COUNT(*) FROM cohort_users) as cohort_size FROM events e JOIN cohort_users c ON e.reduser_id = c.reduser_id WHERE e.event_date = (SELECT event_date + INTERVAL '7' DAY FROM first_nav_day) UNION ALL SELECT (SELECT event_date FROM first_nav_day) as start_date, 14 as day_n, COUNT(DISTINCT e.reduser_id) as retained_users, (SELECT COUNT(*) FROM cohort_users) as cohort_size FROM events e JOIN cohort_users c ON e.reduser_id = c.reduser_id WHERE e.event_date = (SELECT event_date + INTERVAL '14' DAY FROM first_nav_day)) SELECT start_date, day_n, retained_users, cohort_size, ROUND(CAST(retained_users AS FLOAT) / cohort_size * 100, 2) as retention_rate_pct FROM retention_stats",
+      "data": [
+        {
+          "start_date": "2026-03-20",
+          "day_n": 7,
+          "retained_users": 0,
+          "cohort_size": 6,
+          "retention_rate_pct": 0
+        },
+        {
+          "start_date": "2026-03-20",
+          "day_n": 14,
+          "retained_users": 0,
+          "cohort_size": 6,
+          "retention_rate_pct": 0
+        }
+      ],
+      "chart_type": "bar",
+      "chart_option": {
+        "title": {
+          "text": "选取发起导航较多的一天作为first day，关注7/14天留存率。",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-20",
+            "2026-03-20"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "bar",
+            "name": "day_n",
+            "data": [
+              7,
+              14
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "retained_users",
+            "data": [
+              0,
+              0
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "cohort_size",
+            "data": [
+              6,
+              6
+            ]
+          },
+          {
+            "type": "bar",
+            "name": "retention_rate_pct",
+            "data": [
+              0,
+              0
+            ]
+          }
+        ],
+        "legend": {
+          "top": 30
+        }
+      },
+      "summary": "这里显示的是基于导航发起高峰日作为首日（Day 0）的Cohort（同期群）在第7天和第14天的留存率。计算结果能反映出用户在经历完整一周（含周末）和两周（含下一个周末）后的持续活跃程度。",
+      "audit": {
+        "question": "选取发起导航较多的一天作为first day，关注7/14天留存率。",
+        "generated_at": "2026-04-26T02:10:51.992420",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH first_nav_day AS (SELECT event_date FROM (SELECT event_date, COUNT(*) as nav_count FROM events WHERE event_name LIKE '%navigation%' GROUP BY event_date ORDER BY nav_count DESC LIMIT 1) t), cohort_users AS (SELECT DISTINCT reduser_id FROM events WHERE event_date = (SELECT event_date FROM first_nav_day)), retention_stats AS (SELECT (SELECT event_date FROM first_nav_day) as start_date, 7 as day_n, COUNT(DISTINCT e.reduser_id) as retained_users, (SELECT COUNT(*) FROM cohort_users) as cohort_size FROM events e JOIN cohort_users c ON e.reduser_id = c.reduser_id WHERE e.event_date = (SELECT event_date + INTERVAL '7' DAY FROM first_nav_day) UNION ALL SELECT (SELECT event_date FROM first_nav_day) as start_date, 14 as day_n, COUNT(DISTINCT e.reduser_id) as retained_users, (SELECT COUNT(*) FROM cohort_users) as cohort_size FROM events e JOIN cohort_users c ON e.reduser_id = c.reduser_id WHERE e.event_date = (SELECT event_date + INTERVAL '14' DAY FROM first_nav_day)) SELECT start_date, day_n, retained_users, cohort_size, ROUND(CAST(retained_users AS FLOAT) / cohort_size * 100, 2) as retention_rate_pct FROM retention_stats",
+        "sql_explanation": "1. 确定高峰日：首先扫描历史数据，筛选出导航相关事件（event_name包含'navigation'）数量最多的一天作为观察的起始日（First Day）。2. 定义同期群：将在这个高峰日有过活跃行为的唯一用户（reduser_id）定义为本次分析的初始用户集合。3. 计算留存：对于这个初始用户集合，分别计算他们在第7天和第14天仍然有活跃行为（任意事件）的用户数量。4. 计算比率：留存率 = (第N天活跃的初始用户数 / 初始用户总数) * 100%。这个指标用于衡量核心用户在重度使用导航后的中长期粘性。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "154124467",
+              "masonma",
+              "4209823899"
+            ]
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "sample_values": [
+              "navigation_bar_discovery_tab_page_refresh_click",
+              "trival_guide_page_detail_tab_poi_navigation_popup_cancel_click",
+              "poi_detail_page_navigation_popup_cancel_click"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-21",
+              "2026-03-28",
+              "2026-03-19"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation%'"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation%」"
+        ],
+        "calculation_logic": "这里显示的是基于导航发起高峰日作为首日（Day 0）的Cohort（同期群）在第7天和第14天的留存率。计算结果能反映出用户在经历完整一周（含周末）和两周（含下一个周末）后的持续活跃程度。",
+        "sample_data": [
+          {
+            "start_date": "2026-03-20",
+            "day_n": 7,
+            "retained_users": 0,
+            "cohort_size": 6,
+            "retention_rate_pct": 0
+          },
+          {
+            "start_date": "2026-03-20",
+            "day_n": 14,
+            "retained_users": 0,
+            "cohort_size": 6,
+            "retention_rate_pct": 0
+          }
+        ]
+      },
+      "error": null,
+      "id": "7fe2e9e3",
+      "saved_at": "2026-04-26T02:10:52.001683"
+    },
+    {
+      "sql": "WITH user_first_nav AS (SELECT reduser_id, MIN(event_date) as first_nav_date FROM events WHERE event_name LIKE '%navigation%' OR event_name LIKE '%poi_detail%' GROUP BY reduser_id), retained_users AS (SELECT t1.first_nav_date, COUNT(DISTINCT t1.reduser_id) as day0_users, COUNT(DISTINCT CASE WHEN t2.event_date = DATE_ADD(t1.first_nav_date, INTERVAL 3 DAY) THEN t1.reduser_id END) as day3_users FROM user_first_nav t1 JOIN events t2 ON t1.reduser_id = t2.reduser_id GROUP BY t1.first_nav_date) SELECT first_nav_date as cohort_date, day0_users, day3_users, ROUND(CAST(day3_users AS DOUBLE) * 100.0 / NULLIF(day0_users, 0), 2) as day3_retention_pct FROM retained_users WHERE day0_users > 0 ORDER BY first_nav_date",
+      "data": [
+        {
+          "cohort_date": "2026-03-19",
+          "day0_users": 4,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-20",
+          "day0_users": 2,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-21",
+          "day0_users": 8,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-22",
+          "day0_users": 7,
+          "day3_users": 1,
+          "day3_retention_pct": 14.29
+        },
+        {
+          "cohort_date": "2026-03-23",
+          "day0_users": 17,
+          "day3_users": 3,
+          "day3_retention_pct": 17.65
+        },
+        {
+          "cohort_date": "2026-03-24",
+          "day0_users": 39,
+          "day3_users": 2,
+          "day3_retention_pct": 5.13
+        },
+        {
+          "cohort_date": "2026-03-25",
+          "day0_users": 19,
+          "day3_users": 2,
+          "day3_retention_pct": 10.53
+        },
+        {
+          "cohort_date": "2026-03-26",
+          "day0_users": 12,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-27",
+          "day0_users": 6,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-28",
+          "day0_users": 7,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-29",
+          "day0_users": 8,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-30",
+          "day0_users": 6,
+          "day3_users": 1,
+          "day3_retention_pct": 16.67
+        },
+        {
+          "cohort_date": "2026-03-31",
+          "day0_users": 6,
+          "day3_users": 1,
+          "day3_retention_pct": 16.67
+        },
+        {
+          "cohort_date": "2026-04-01",
+          "day0_users": 8,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-02",
+          "day0_users": 6,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-03",
+          "day0_users": 5,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-04",
+          "day0_users": 16,
+          "day3_users": 1,
+          "day3_retention_pct": 6.25
+        },
+        {
+          "cohort_date": "2026-04-05",
+          "day0_users": 6,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-06",
+          "day0_users": 4,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-07",
+          "day0_users": 7,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-08",
+          "day0_users": 8,
+          "day3_users": 1,
+          "day3_retention_pct": 12.5
+        },
+        {
+          "cohort_date": "2026-04-09",
+          "day0_users": 8,
+          "day3_users": 1,
+          "day3_retention_pct": 12.5
+        },
+        {
+          "cohort_date": "2026-04-10",
+          "day0_users": 6,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-11",
+          "day0_users": 7,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-12",
+          "day0_users": 5,
+          "day3_users": 0,
+          "day3_retention_pct": 0
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "导航的3日留存率呢？",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05",
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "day0_users",
+            "data": [
+              4,
+              2,
+              8,
+              7,
+              17,
+              39,
+              19,
+              12,
+              6,
+              7,
+              8,
+              6,
+              6,
+              8,
+              6,
+              5,
+              16,
+              6,
+              4,
+              7,
+              8,
+              8,
+              6,
+              7,
+              5
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "day3_users",
+            "data": [
+              0,
+              0,
+              0,
+              1,
+              3,
+              2,
+              2,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0,
+              0,
+              0
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "day3_retention_pct",
+            "data": [
+              0,
+              0,
+              0,
+              14.29,
+              17.65,
+              5.13,
+              10.53,
+              0,
+              0,
+              0,
+              0,
+              16.67,
+              16.67,
+              0,
+              0,
+              0,
+              6.25,
+              0,
+              0,
+              0,
+              12.5,
+              12.5,
+              0,
+              0,
+              0
+            ],
+            "smooth": true
+          }
+        ],
+        "legend": {
+          "top": 30
+        }
+      },
+      "summary": "计算首批使用导航功能的用户在3天后的留存情况（Day-3 Retention），用于衡量核心导航功能对用户的长期吸引力。",
+      "audit": {
+        "question": "导航的3日留存率呢？",
+        "generated_at": "2026-04-26T02:12:51.467491",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH user_first_nav AS (SELECT reduser_id, MIN(event_date) as first_nav_date FROM events WHERE event_name LIKE '%navigation%' OR event_name LIKE '%poi_detail%' GROUP BY reduser_id), retained_users AS (SELECT t1.first_nav_date, COUNT(DISTINCT t1.reduser_id) as day0_users, COUNT(DISTINCT CASE WHEN t2.event_date = DATE_ADD(t1.first_nav_date, INTERVAL 3 DAY) THEN t1.reduser_id END) as day3_users FROM user_first_nav t1 JOIN events t2 ON t1.reduser_id = t2.reduser_id GROUP BY t1.first_nav_date) SELECT first_nav_date as cohort_date, day0_users, day3_users, ROUND(CAST(day3_users AS DOUBLE) * 100.0 / NULLIF(day0_users, 0), 2) as day3_retention_pct FROM retained_users WHERE day0_users > 0 ORDER BY first_nav_date",
+        "sql_explanation": "1. **首批用户**: 筛选出首次触发导航相关事件（如查看POI或点击导航）的用户及其日期。\n2. **活跃回溯**: 关联这些用户在第3天（首次日期+3天）是否仍有任何活跃行为记录。\n3. **留存率**: 3日留存率 = (第3天活跃用户数 / 首日导航用户数) × 100%。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "1188002672",
+              "534756393",
+              "604757049"
+            ]
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "sample_values": [
+              "navigation_bar_discovery_tab_page_refresh_click",
+              "poi_detail_page_tel_btn_click",
+              "trival_guide_page_detail_tab_poi_navigation_popup_confirm_click"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-04-10",
+              "2026-03-23",
+              "2026-04-02"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          },
+          {
+            "metric": "poi_views",
+            "business_name": "POI浏览次数",
+            "formula_human": "COUNT(*) FILTER (WHERE page_root = 'poi_detail')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation%' OR event_name LIKE '%poi_detail%'"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation%」 ，或 事件名称匹配「%poi_detail%」"
+        ],
+        "calculation_logic": "计算首批使用导航功能的用户在3天后的留存情况（Day-3 Retention），用于衡量核心导航功能对用户的长期吸引力。",
+        "sample_data": [
+          {
+            "cohort_date": "2026-03-19",
+            "day0_users": 4,
+            "day3_users": 0,
+            "day3_retention_pct": 0
+          },
+          {
+            "cohort_date": "2026-03-20",
+            "day0_users": 2,
+            "day3_users": 0,
+            "day3_retention_pct": 0
+          },
+          {
+            "cohort_date": "2026-03-21",
+            "day0_users": 8,
+            "day3_users": 0,
+            "day3_retention_pct": 0
+          }
+        ]
+      },
+      "error": null,
+      "id": "e43d9703",
+      "saved_at": "2026-04-26T02:12:51.480286"
+    },
+    {
+      "sql": "WITH navigation_users AS (SELECT DISTINCT reduser_id, MIN(event_date) as first_nav_date FROM events WHERE event_name LIKE '%navigation%' GROUP BY reduser_id), daily_nav_users AS (SELECT DISTINCT reduser_id, event_date FROM events WHERE event_name LIKE '%navigation%'), retention_data AS (SELECT f.first_nav_date, d.event_date, COUNT(DISTINCT f.reduser_id) as day0_users FROM navigation_users f LEFT JOIN daily_nav_users d ON f.reduser_id = d.reduser_id AND d.event_date >= f.first_nav_date WHERE f.first_nav_date < (SELECT MAX(event_date) FROM events) - INTERVAL '6 days' GROUP BY f.first_nav_date, d.event_date), day_groups AS (SELECT first_nav_date as cohort_date, SUM(CASE WHEN event_date = first_nav_date THEN 1 ELSE 0 END) as day0_cnt, SUM(CASE WHEN event_date = DATE_ADD(first_nav_date, INTERVAL 7 DAY) THEN 1 ELSE 0 END) as day7_cnt FROM retention_data GROUP BY first_nav_date) SELECT cohort_date, day0_cnt, day7_cnt, ROUND(CAST(day7_cnt AS NUMERIC) * 100.0 / NULLIF(day0_cnt, 0), 2) as day7_retention_pct FROM day_groups WHERE day0_cnt > 0 ORDER BY cohort_date",
+      "data": [
+        {
+          "cohort_date": "2026-03-19",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-20",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-21",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-22",
+          "day0_cnt": 1,
+          "day7_cnt": 1,
+          "day7_retention_pct": 100
+        },
+        {
+          "cohort_date": "2026-03-23",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-24",
+          "day0_cnt": 1,
+          "day7_cnt": 1,
+          "day7_retention_pct": 100
+        },
+        {
+          "cohort_date": "2026-03-25",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-26",
+          "day0_cnt": 1,
+          "day7_cnt": 1,
+          "day7_retention_pct": 100
+        },
+        {
+          "cohort_date": "2026-03-27",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-28",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-29",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-30",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-03-31",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-01",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-02",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-03",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        },
+        {
+          "cohort_date": "2026-04-04",
+          "day0_cnt": 1,
+          "day7_cnt": 1,
+          "day7_retention_pct": 100
+        },
+        {
+          "cohort_date": "2026-04-05",
+          "day0_cnt": 1,
+          "day7_cnt": 0,
+          "day7_retention_pct": 0
+        }
+      ],
+      "chart_type": "line",
+      "chart_option": {
+        "title": {
+          "text": "导航的7日留存率呢？",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "axis"
+        },
+        "xAxis": {
+          "type": "category",
+          "data": [
+            "2026-03-19",
+            "2026-03-20",
+            "2026-03-21",
+            "2026-03-22",
+            "2026-03-23",
+            "2026-03-24",
+            "2026-03-25",
+            "2026-03-26",
+            "2026-03-27",
+            "2026-03-28",
+            "2026-03-29",
+            "2026-03-30",
+            "2026-03-31",
+            "2026-04-01",
+            "2026-04-02",
+            "2026-04-03",
+            "2026-04-04",
+            "2026-04-05"
+          ]
+        },
+        "yAxis": {
+          "type": "value"
+        },
+        "series": [
+          {
+            "type": "line",
+            "name": "day0_cnt",
+            "data": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "day7_cnt",
+            "data": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            "smooth": true
+          },
+          {
+            "type": "line",
+            "name": "day7_retention_pct",
+            "data": [
+              0,
+              0,
+              0,
+              100,
+              0,
+              100,
+              0,
+              100,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              100,
+              0
+            ],
+            "smooth": true
+          }
+        ],
+        "legend": {
+          "top": 30
+        }
+      },
+      "summary": "该查询计算了每日首次使用导航功能的用户在7天后的留存率。结果是时间序列数据，展示每日新导航用户的次日（第7日）留存百分比。",
+      "audit": {
+        "question": "导航的7日留存率呢？",
+        "generated_at": "2026-04-26T02:13:35.941102",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "WITH navigation_users AS (SELECT DISTINCT reduser_id, MIN(event_date) as first_nav_date FROM events WHERE event_name LIKE '%navigation%' GROUP BY reduser_id), daily_nav_users AS (SELECT DISTINCT reduser_id, event_date FROM events WHERE event_name LIKE '%navigation%'), retention_data AS (SELECT f.first_nav_date, d.event_date, COUNT(DISTINCT f.reduser_id) as day0_users FROM navigation_users f LEFT JOIN daily_nav_users d ON f.reduser_id = d.reduser_id AND d.event_date >= f.first_nav_date WHERE f.first_nav_date < (SELECT MAX(event_date) FROM events) - INTERVAL '6 days' GROUP BY f.first_nav_date, d.event_date), day_groups AS (SELECT first_nav_date as cohort_date, SUM(CASE WHEN event_date = first_nav_date THEN 1 ELSE 0 END) as day0_cnt, SUM(CASE WHEN event_date = DATE_ADD(first_nav_date, INTERVAL 7 DAY) THEN 1 ELSE 0 END) as day7_cnt FROM retention_data GROUP BY first_nav_date) SELECT cohort_date, day0_cnt, day7_cnt, ROUND(CAST(day7_cnt AS NUMERIC) * 100.0 / NULLIF(day0_cnt, 0), 2) as day7_retention_pct FROM day_groups WHERE day0_cnt > 0 ORDER BY cohort_date",
+        "sql_explanation": "1. **定义导航用户**: 从事件表中筛选出所有与导航相关的行为（如点击导航按钮、确认导航等）的用户。\n2. **确定首次使用日期 (Day 0)**: 找出每个导航用户第一次发生导航行为的日期，作为他们的队列起始日期。\n3. **计算7日留存**: 对于某一天（例如3月19日）的新用户，检查他们在7天后（例如3月26日）是否再次产生了导航行为。\n4. **留存率公式**: 第7日留存率 = (7天后仍然活跃的导航用户数 / 当天新增导航用户总数) × 100%。这反映了导航功能的用户粘性。",
+        "columns_used": [
+          {
+            "column": "reduser_id",
+            "business_name": "用户ID",
+            "role": "dimension",
+            "sample_values": [
+              "154124467",
+              "masonma",
+              "4209823899"
+            ]
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "sample_values": [
+              "trival_guide_page_detail_tab_poi_navigation_popup_confirm_click",
+              "navigation_bar_porsche_tab_page_refresh_click",
+              "poi_detail_page_navigation_popup_cancel_click"
+            ]
+          },
+          {
+            "column": "event_date",
+            "business_name": "日期",
+            "role": "dimension",
+            "raw_column": "start_time_nano",
+            "raw_logic": "取 start_time_nano 的日期部分",
+            "sample_values": [
+              "2026-03-21",
+              "2026-03-28",
+              "2026-03-23"
+            ]
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation%'"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation%」"
+        ],
+        "calculation_logic": "该查询计算了每日首次使用导航功能的用户在7天后的留存率。结果是时间序列数据，展示每日新导航用户的次日（第7日）留存百分比。",
+        "sample_data": [
+          {
+            "cohort_date": "2026-03-19",
+            "day0_cnt": 1,
+            "day7_cnt": 0,
+            "day7_retention_pct": 0
+          },
+          {
+            "cohort_date": "2026-03-20",
+            "day0_cnt": 1,
+            "day7_cnt": 0,
+            "day7_retention_pct": 0
+          },
+          {
+            "cohort_date": "2026-03-21",
+            "day0_cnt": 1,
+            "day7_cnt": 0,
+            "day7_retention_pct": 0
+          }
+        ]
+      },
+      "error": null,
+      "id": "73a46b4e",
+      "saved_at": "2026-04-26T02:13:35.950446"
+    },
+    {
+      "sql": "SELECT referer_page as 上一个页面, COUNT(*) as 点击次数, ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE event_name LIKE '%navigation_button_click'), 2) as 占比_pct FROM events WHERE event_name LIKE '%navigation_button_click' AND referer_page IS NOT NULL GROUP BY referer_page ORDER BY 点击次数 DESC",
+      "data": [],
+      "chart_type": "pie",
+      "chart_option": {
+        "title": {
+          "text": "导航点击的上一个页面来源",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "item"
+        },
+        "legend": {
+          "orient": "vertical",
+          "left": "left",
+          "top": "middle"
+        },
+        "series": [
+          {
+            "type": "pie",
+            "radius": "50%",
+            "data": []
+          }
+        ]
+      },
+      "summary": "统计了触发导航点击事件的用户分别来自哪个页面，并计算了各来源页面的占比。",
+      "audit": {
+        "question": "导航点击的上一个页面来源",
+        "generated_at": "2026-04-26T02:26:04.637977",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT referer_page as 上一个页面, COUNT(*) as 点击次数, ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE event_name LIKE '%navigation_button_click'), 2) as 占比_pct FROM events WHERE event_name LIKE '%navigation_button_click' AND referer_page IS NOT NULL GROUP BY referer_page ORDER BY 点击次数 DESC",
+        "sql_explanation": "业务逻辑是：筛选出所有 '导航按钮点击' (navigation_button_click) 的事件，按照 '来源页面' (referer_page) 进行分组。分子是每个来源页面的导航点击次数，分母是所有来源页面的导航点击总次数，最后计算得出各来源的百分比，用于分析用户是在哪个页面发起的导航需求。",
+        "columns_used": [
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          },
+          {
+            "column": "page",
+            "business_name": "页面",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的前2段"
+          },
+          {
+            "column": "referer_page",
+            "business_name": "笔记来源页面",
+            "role": "dimension"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%navigation_button_click'), 2) as 占比_pct FROM events WHERE event_name LIKE '%navigation_button_click' AND referer_page IS NOT NULL"
+        ],
+        "filters_human": [
+          "事件名称匹配「%navigation_button_click」), 2) as 占比_pct FROM events WHERE 事件名称匹配「%navigation_button_click」 ，且 referer_page IS NOT NULL"
+        ],
+        "calculation_logic": "统计了触发导航点击事件的用户分别来自哪个页面，并计算了各来源页面的占比。",
+        "sample_data": []
+      },
+      "error": null,
+      "id": "499a7035",
+      "saved_at": "2026-04-26T02:26:04.662030"
+    },
+    {
+      "sql": "SELECT COALESCE(referer_page, 'NULL') AS source_page, COUNT(*) AS cnt FROM events WHERE event_name LIKE '%poi_detail%navigation_button_click%' OR (page_root = 'poi_detail' AND action = 'navigation_button_click') GROUP BY COALESCE(referer_page, 'NULL') ORDER BY cnt DESC",
+      "data": [
+        {
+          "source_page": "NULL",
+          "cnt": 139
+        }
+      ],
+      "chart_type": "pie",
+      "chart_option": {
+        "title": {
+          "text": "POI详情页的发起导航按钮点击的页面来源，具体是：all_sources",
+          "left": "center",
+          "textStyle": {
+            "fontSize": 14
+          }
+        },
+        "tooltip": {
+          "trigger": "item"
+        },
+        "legend": {
+          "orient": "vertical",
+          "left": "left",
+          "top": "middle"
+        },
+        "series": [
+          {
+            "type": "pie",
+            "radius": "50%",
+            "center": [
+              "60%",
+              "50%"
+            ],
+            "data": [
+              {
+                "name": "NULL",
+                "value": 139
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "POI详情页发起导航按钮点击的来源分布，主要为来自空值（可能为内部跳转或未知来源）、POI详情页本身或其他页面。",
+      "audit": {
+        "question": "POI详情页的发起导航按钮点击的页面来源，具体是：all_sources",
+        "generated_at": "2026-04-26T11:40:08.030646",
+        "data_source": {
+          "file": "rednote20260319-20260412.xlsx",
+          "table": "events",
+          "date_range": [
+            "2026-03-19",
+            "2026-04-12"
+          ],
+          "total_rows_scanned": 65606
+        },
+        "sql": "SELECT COALESCE(referer_page, 'NULL') AS source_page, COUNT(*) AS cnt FROM events WHERE event_name LIKE '%poi_detail%navigation_button_click%' OR (page_root = 'poi_detail' AND action = 'navigation_button_click') GROUP BY COALESCE(referer_page, 'NULL') ORDER BY cnt DESC",
+        "sql_explanation": "1. 筛选事件：通过 event_name 模糊匹配或 page_root 和 action 组合，定位到 POI 详情页内的发起导航按钮点击事件。\n2. 来源字段：使用 referer_page 列作为来源页面，若为空则标记为 'NULL'。\n3. 汇总计数：按来源页面分组统计点击数，按降序排列，找出主要来源。\n4. 图表类型：饼图适合展示各来源的占比分布。",
+        "columns_used": [
+          {
+            "column": "referer_page",
+            "business_name": "笔记来源页面",
+            "role": "dimension"
+          },
+          {
+            "column": "page_root",
+            "business_name": "页面模块",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的第1段"
+          },
+          {
+            "column": "action",
+            "business_name": "动作",
+            "role": "dimension",
+            "raw_column": "span_name",
+            "raw_logic": "取 span_name 下划线分隔的最后1段"
+          },
+          {
+            "column": "event_name",
+            "business_name": "事件名称",
+            "role": "dimension",
+            "raw_column": "span_name"
+          }
+        ],
+        "metrics_involved": [
+          {
+            "metric": "navigation_initiations",
+            "business_name": "导航发起次数",
+            "formula_human": "COUNT(*) FILTER (WHERE event_name LIKE '%navigation_button_click')"
+          },
+          {
+            "metric": "poi_views",
+            "business_name": "POI浏览次数",
+            "formula_human": "COUNT(*) FILTER (WHERE page_root = 'poi_detail')"
+          }
+        ],
+        "filters_applied": [
+          "event_name LIKE '%poi_detail%navigation_button_click%' OR (page_root = 'poi_detail' AND action = 'navigation_button_click')"
+        ],
+        "filters_human": [
+          "事件名称匹配「%poi_detail%navigation_button_click%」 ，或 (页面模块为「poi_detail」 ，且 action = 'navigation_button_click')"
+        ],
+        "calculation_logic": "POI详情页发起导航按钮点击的来源分布，主要为来自空值（可能为内部跳转或未知来源）、POI详情页本身或其他页面。",
+        "sample_data": [
+          {
+            "source_page": "NULL",
+            "cnt": 139
+          }
+        ]
+      },
+      "error": null,
+      "id": "63f82bbe",
+      "saved_at": "2026-04-26T11:40:08.049617"
+    }
+  ],
+  "created_at": "2026-04-26T00:55:01.649643",
+  "updated_at": "2026-04-26T11:40:08.049628"
+}
