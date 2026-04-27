@@ -40,6 +40,36 @@ You receive a natural language question from a product manager. You must:
 
 {columns_desc}
 
+## Important: Field Availability by Event Type
+Some fields are only populated for specific event types. Do NOT assume a field is missing/unusable based on overall null rate.
+- **rednote_post_num** (笔记位置序号): ONLY available for card show/click events (discovery_page_post_card_*, porsche_page_recommend_post_card_*)
+- **rednote_poi_title** (POI名称): ONLY available for POI-related events
+- **rednote_post_title** (笔记标题): Available when user interacts with a specific post
+- **rednote_video_post_***: ONLY available for video-related events
+- **referer_page**: Often NULL, use page_root or page for source analysis instead
+
+When analyzing a specific event type, check if the field is populated for THAT event type, not the whole table.
+
+## CRITICAL: Correct Event Names and Column Names
+**The event name column is `span_name`, NOT `event_name`!** Always use `span_name` when filtering by event type.
+
+**Card show events use `cardshow` suffix, NOT `_show`!** This is the most common mistake. Examples:
+- ❌ WRONG: `discovery_page_post_card_show` (DOES NOT EXIST!)
+- ✅ CORRECT: `discovery_page_post_card_cardshow` (9300 events)
+
+Common event names (use EXACT spelling):
+- **Discovery card events**:
+  - `discovery_page_post_card_cardshow` (卡片曝光) ← NOT `_show`!
+  - `discovery_page_post_card_click` (卡片点击)
+- **Porsche card events**:
+  - `porsche_page_recommend_post_card_cardshow` (推荐卡片曝光)
+  - `porsche_page_recommend_post_card_click` (推荐卡片点击)
+- **Page show events** (use `pageshow` suffix):
+  - `discovery_page_pageshow`, `porsche_page_pageshow`, `login_page_pageshow`
+- **Search events**: `search_homepage_pageshow`, `search_results_page_pageshow`
+- **POI events**: `poi_detail_page_pageshow`, `poi_detail_page_post_card_cardshow`
+- **Navigation events**: `navigation_bar_porsche_tab_click`, `navigation_bar_discovery_tab_click`
+
 ## Key Analytical Concepts — Think Before You Write SQL
 
 When the user asks about these concepts, you MUST apply the correct formula:
@@ -88,25 +118,56 @@ Respond with valid JSON only, no markdown fences."""
 # Prompt for LLM to autonomously decide if clarification is needed
 CLARIFICATION_PROMPT = """You are an intelligent data analyst assistant. Analyze the user's question and decide if it needs clarification.
 
-## Decision Logic
-- Clear enough → {{\"action\": \"proceed\"}}
-- Ambiguous → {{\"action\": \"clarify\", \"question\": \"中文澄清问题\", \"options\": [{{\"label\": \"选项\", \"value\": \"值\"}}]}}
+## Decision Logic (with confidence threshold)
+- Very clear (confidence > 0.8) → {{\"action\": \"proceed\", \"confidence\": 0.85}}
+- Needs clarification (confidence < 0.5) → {{\"action\": \"clarify\", \"confidence\": 0.3, \"question\": \"精准的中文问题\", \"options\": [{{\"label\": \"≤10字\", \"value\": \"内部标识\"}}]}}
 
-## When to Clarify
-1. Broad category (导航、搜索、页面) matching multiple event types — ask which specific type
-2. Unclear time range (最近、这个月) — ask for specific dates
-3. Ambiguous metric (用户数 — DAU vs total vs active)
-4. Unclear aggregation (分析用户 — per-user vs daily vs overall)
-5. Multiple interpretations
+IMPORTANT: If you are unsure about the DENOMINATOR (分母) or SCOPE of a ratio/percentage question, CLARIFY. Don't guess.
 
-## When NOT to Clarify
-1. Question is specific enough (每天的日活趋势, Porsche+页面访问量)
-2. Conversation history makes it clear
-3. Reasonable default exists
+## When to Clarify (问到点子上)
+1. **占比/率/比例类问题** — 必须澄清分母是什么（占总XX的占比？占总事件的占比？占该页面事件的占比？）
+   - Example: "发现页进入帖子详情页的占比" → Clarify: 分母是什么？
+   - Example: "APP登录率" → Clarify: 分母是全部用户还是登录页访问用户？
+2. **页面来源类问题** — 澄清具体事件或范围
+   - Example: "从发现页进入帖子详情页" → Clarify: 是指点击卡片事件还是页面跳转？
+3. **转化/漏斗类问题** — 澄清具体步骤定义
+   - Example: "搜索转化漏斗" → Clarify: 具体包含哪些步骤？
+4. **时间范围模糊** — "最近"、"这段时间" → Clarify: 具体日期范围
+5. **用户范围模糊** — "用户数"是指DAU/总用户/活跃用户/特定页面用户？
+
+## When NOT to Clarify (明确无需澄清)
+1. Question is very specific with clear metric and scope (每天的日活趋势, Porsche页访问量, 登录页展示次数)
+2. Known metric keyword with standard definition (DAU = COUNT(DISTINCT reduser_id) per day)
+3. Simple aggregation without ambiguity (Top 10热门事件, 各页面事件数)
+4. Direct event count without ratio (导航栏点击次数)
+
+## Examples Analysis
+- "每天的日活趋势" → Proceed (DAU有标准定义，confidence=0.9)
+- "Porsche页面的访问量" → Proceed (page_root='porsche'的事件计数，confidence=0.85)
+- "登录页展示次数" → Proceed (login_page_pageshow事件，confidence=0.9)
+- "发现页进入帖子详情页的占比趋势" → **Clarify** (分母不明确：是发现页事件数？还是帖子详情页总访问数？还是发现页卡片曝光数？confidence=0.3)
+- "APP登录率" → **Clarify** (分母不明确：全部用户？登录页访问用户？confidence=0.4)
+- "用户设备数量分布" → Proceed (device_id按用户聚合，confidence=0.85)
+- "周末vs工作日活跃对比" → Proceed (is_weekend分组，confidence=0.85)
+
+## Clarification Question Guidelines
+- 问题要精准，直击关键歧义点
+- 选项要简洁明确（≤10字）
+- 最多4个选项
+- 示例：{{\"question\": \"占比的分母是什么？\", \"options\": [{{\"label\": \"发现页事件数\", \"value\": \"discovery_events\"}}, {{\"label\": \"帖子详情页总数\", \"value\": \"post_detail_events\"}}, {{\"label\": \"发现页卡片曝光\", \"value\": \"card_show\"}}]}}
+
+## Important: Field Availability by Event Type
+Do NOT assume a field is unusable based on overall null rate. Some fields are fully populated for specific events:
+- **rednote_post_num** (笔记位置序号): FULLY available for discovery_page_post_card_click, discovery_page_post_card_cardshow, porsche_page_recommend_post_card_* events
+- **rednote_poi_***: Available for POI-related events
+- **rednote_video_***: Available for video post events
+
+When user mentions "笔记位置" or "第几个顺位", rednote_post_num is valid for card click events.
 
 ## Data Context
 - {total_users} users, {total_events} events, {date_range}
-- Columns: event_name, page, page_root, event_date, reduser_id, action, duration_sec
+- Available columns:
+{columns_desc}
 
 ## Conversation History
 {conversation_history}
@@ -118,8 +179,8 @@ CLARIFICATION_PROMPT = """You are an intelligent data analyst assistant. Analyze
 {event_types_sample}
 
 Respond in JSON:
-- Proceed: {{\"action\": \"proceed\"}}
-- Clarify: {{\"action\": \"clarify\", \"question\": \"友好的中文问题\", \"options\": [{{\"label\": \"...\", \"value\": \"...\"}}]}}
+- Proceed: {{\"action\": \"proceed\", \"confidence\": 0.85}}
+- Clarify: {{\"action\": \"clarify\", \"confidence\": 0.3, \"question\": \"精准问题\", \"options\": [{{\"label\": \"...\", \"value\": \"...\"}}]}}
 
 Only JSON, no markdown."""
 
@@ -170,6 +231,17 @@ CHART_TEMPLATES = {
 
 
 class Agent:
+    # Pre-filter patterns for obvious queries that don't need clarification
+    OBVIOUS_QUERY_PATTERNS = [
+        r"每天的.{0,5}(DAU|日活|事件数|新增).{0,5}趋势",
+        r"(Top|TOP|前).{0,3}\d+.{0,5}(热门|事件|用户)",
+        r"周末.{0,5}工作日.{0,5}(对比|差异)",
+        r"(登录|发现|保时捷|Porsche).{0,5}页.{0,5}(展示|访问|浏览)",
+        r"APP.{0,5}(多台设备|设备数)",
+        r"每小时.{0,5}(用户|事件).{0,5}(分布|活跃)",
+        r"(各|所有).{0,5}页面.{0,5}(事件数|访问量)",
+    ]
+
     def __init__(self, data_manager: DataManager, semantic_path: str = None):
         self.dm = data_manager
         self.semantic_path = semantic_path or os.path.join(
@@ -194,6 +266,56 @@ class Agent:
         import yaml
         with open(self.semantic_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
+
+    def _should_skip_clarification(self, question: str) -> bool:
+        """Pre-filter obvious queries that don't need clarification."""
+        for pattern in self.OBVIOUS_QUERY_PATTERNS:
+            if re.search(pattern, question, re.IGNORECASE):
+                return True
+        return False
+
+    def _fuzzy_match_event(self, term: str) -> str:
+        """Match event name with typo tolerance."""
+        event_defs = self.semantic.get("event_definitions", {})
+        # Direct match
+        if term in event_defs:
+            return term
+        # Alias match
+        for event_name, info in event_defs.items():
+            aliases = info.get("aliases", [])
+            if term in aliases:
+                return event_name
+        # Prefix match (tolerate missing prefix like "ogin" → "login")
+        for event_name in event_defs:
+            if event_name.endswith(term) or term.endswith(event_name[-10:]):
+                return event_name
+        # Case-insensitive match
+        term_lower = term.lower()
+        for event_name in event_defs:
+            if event_name.lower() == term_lower:
+                return event_name
+        return term
+
+    def _truncate_history_preserve_pairs(self):
+        """Truncate history while keeping clarification Q&A pairs intact."""
+        if len(self.conversation_history) <= 12:
+            return
+        # Build new history from the end, keeping pairs intact
+        new_history = []
+        i = len(self.conversation_history) - 1
+        while i >= 0 and len(new_history) < 12:
+            entry = self.conversation_history[i]
+            new_history.insert(0, entry)
+            # If this is a clarification response, ensure the preceding user question is included
+            if isinstance(entry, dict) and entry.get("type") == "clarification" and i > 0:
+                prev = self.conversation_history[i - 1]
+                if isinstance(prev, dict) and prev.get("role") == "user":
+                    # Check if already included (avoid duplicate)
+                    if len(new_history) > 0 and new_history[0] != prev:
+                        new_history.insert(0, prev)
+                        i -= 1
+            i -= 1
+        self.conversation_history = new_history
 
     def _get_event_types_sample(self) -> str:
         """Get top event types with business semantics for clarification context."""
@@ -234,6 +356,16 @@ class Agent:
         date_range = " ~ ".join(self.dm.meta.get("date_range", ["?", "?"]))
         event_types_sample = self._get_event_types_sample()
 
+        # Build columns description from semantic layer (same as _build_prompt)
+        cols = self.semantic.get("columns", {})
+        cols_desc_parts = []
+        for name, info in cols.items():
+            role = info.get("role", "dimension")
+            desc = info.get("description", info.get("business_name", ""))
+            dtype = info.get("type", "")
+            cols_desc_parts.append(f"- {name} ({dtype}, {role}): {desc}")
+        columns_desc = "\n".join(cols_desc_parts)
+
         history_text = ""
         if self.conversation_history:
             lines = []
@@ -254,10 +386,50 @@ class Agent:
             total_users=total_users,
             total_events=total_events,
             date_range=date_range,
+            columns_desc=columns_desc,
             conversation_history=history_text or "无",
             question=question,
             event_types_sample=event_types_sample,
         )
+
+    def _fix_common_sql_errors(self, sql: str) -> str:
+        """Fix common SQL generation errors."""
+        # Fix: _show should be cardshow for card events (event_name)
+        # The AI often generates wrong event names with _show suffix instead of cardshow
+        fixes = [
+            # Most common mistake: discovery page post card
+            ("discovery_page_post_card_show", "discovery_page_post_card_cardshow"),
+            ("discovery_page_post_cardshow", "discovery_page_post_card_cardshow"),
+            # Porsche page
+            ("porsche_page_recommend_post_card_show", "porsche_page_recommend_post_card_cardshow"),
+            ("porsche_page_recommend_post_cardshow", "porsche_page_recommend_post_card_cardshow"),
+            ("porsche_page_Map_poi_card_show", "porsche_page_Map_poi_card_cardshow"),
+            # Search results
+            ("search_results_page_post_card_show", "search_results_page_post_card_carshow"),
+            ("search_results_page_post_cardshow", "search_results_page_post_card_carshow"),
+            # POI detail
+            ("poi_detail_page_post_card_show", "poi_detail_page_post_card_cardshow"),
+            ("poi_detail_page_post_cardshow", "poi_detail_page_post_card_cardshow"),
+        ]
+        for wrong, correct in fixes:
+            if wrong in sql:
+                sql = sql.replace(wrong, correct)
+                print(f"[Agent] Fixed SQL event_name: {wrong} → {correct}")
+
+        # Fix: action values - the actual action values are 'cardshow' and 'click', NOT 'post_card_show'
+        action_fixes = [
+            ("action = 'post_card_show'", "action = 'cardshow'"),
+            ("action = 'card_show'", "action = 'cardshow'"),
+            ("action = 'show'", "action = 'cardshow'"),
+            ("action LIKE '%card_show'", "action LIKE '%cardshow'"),
+            ("action LIKE '%_show'", "action LIKE '%cardshow'"),
+        ]
+        for wrong, correct in action_fixes:
+            if wrong in sql:
+                sql = sql.replace(wrong, correct)
+                print(f"[Agent] Fixed SQL action: {wrong} → {correct}")
+
+        return sql
 
     def _build_prompt(self, question: str) -> str:
         cols = self.semantic.get("columns", {})
@@ -619,30 +791,44 @@ class Agent:
         # Record user question
         self.conversation_history.append({"role": "user", "content": question})
 
-        # Step 1: Ask LLM if clarification needed
+        # Step 1: Pre-filter obvious queries that don't need clarification
+        if self._should_skip_clarification(question):
+            skip_clarification = True
+            print(f"[Agent] Pre-filtered obvious query: {question[:50]}")
+
+        # Step 2: Ask LLM if clarification needed (with confidence threshold)
         if not skip_clarification:
             clarification_prompt = self._build_clarification_prompt(question)
             try:
                 clarification_result = self._call_deepseek(clarification_prompt)
 
-                if isinstance(clarification_result, dict) and clarification_result.get("action") == "clarify":
-                    self.conversation_history.append({
-                        "role": "assistant",
-                        "content": clarification_result.get("question", ""),
-                        "type": "clarification",
-                    })
-                    return {
-                        "need_clarification": True,
-                        "message": clarification_result.get("question", "请问您能提供更多信息吗？"),
-                        "options": clarification_result.get("options", []),
-                        "original_question": question,
-                    }
+                # Check action and confidence threshold
+                if isinstance(clarification_result, dict):
+                    action = clarification_result.get("action")
+                    confidence = clarification_result.get("confidence", 0.5)
+
+                    # Only trigger clarification if action == "clarify" AND confidence < 0.5
+                    if action == "clarify" and confidence < 0.5:
+                        self.conversation_history.append({
+                            "role": "assistant",
+                            "content": clarification_result.get("question", ""),
+                            "type": "clarification",
+                        })
+                        return {
+                            "need_clarification": True,
+                            "message": clarification_result.get("question", "请问您能提供更多信息吗？"),
+                            "options": clarification_result.get("options", []),
+                            "original_question": question,
+                        }
+                    elif action == "clarify" and confidence >= 0.5:
+                        # Low confidence clarification - proceed with reasonable default instead
+                        print(f"[Agent] Clarification suggested but confidence={confidence} >= 0.5, proceeding with defaults")
             except Exception as e:
                 # Log clarification error but continue to SQL generation
                 print(f"Clarification check failed: {e}")
                 pass
 
-        # Step 2: Generate SQL
+        # Step 3: Generate SQL
         prompt = self._build_prompt(question)
 
         last_error = None
@@ -657,6 +843,9 @@ class Agent:
                 sql = result.get("sql")
                 if not sql:
                     raise Exception("No SQL in response")
+
+                # Fix common SQL generation errors
+                sql = self._fix_common_sql_errors(sql)
 
                 chart_type = result.get("chart_type", "table")
                 summary = result.get("summary", "")
@@ -722,13 +911,18 @@ class Agent:
         if clear_history:
             self.conversation_history = []
 
-        # Limit history to prevent context pollution
-        if len(self.conversation_history) > 10:
-            self.conversation_history = self.conversation_history[-10:]
+        # Truncate history while keeping clarification Q&A pairs intact
+        if len(self.conversation_history) > 12:
+            self._truncate_history_preserve_pairs()
 
         self.conversation_history.append({"role": "user", "content": question})
 
-        # Step 1: Stream clarification check - show reasoning immediately
+        # Step 1: Pre-filter obvious queries that don't need clarification
+        if self._should_skip_clarification(question):
+            skip_clarification = True
+            print(f"[Agent] Pre-filtered obvious query (stream): {question[:50]}")
+
+        # Step 2: Stream clarification check - show reasoning immediately
         if not skip_clarification:
             clarification_prompt = self._build_clarification_prompt(question)
             clarification_reasoning = ""
@@ -752,8 +946,14 @@ class Agent:
                             content = re.sub(r"\n?```\s*$", "", content)
                         try:
                             clarification_data = json.loads(content)
-                            if isinstance(clarification_data, dict) and clarification_data.get("action") == "clarify":
-                                needs_clarification = True
+                            if isinstance(clarification_data, dict):
+                                action = clarification_data.get("action")
+                                confidence = clarification_data.get("confidence", 0.5)
+                                # Only trigger clarification if action == "clarify" AND confidence < 0.5
+                                if action == "clarify" and confidence < 0.5:
+                                    needs_clarification = True
+                                elif action == "clarify" and confidence >= 0.5:
+                                    print(f"[Agent] Stream: Clarification suggested but confidence={confidence} >= 0.5, proceeding")
                         except:
                             pass
 
@@ -777,7 +977,7 @@ class Agent:
                 print(f"[Agent] Clarification check failed: {e}")
                 pass
 
-        # Step 2: Stream SQL generation
+        # Step 3: Stream SQL generation
         prompt = self._build_prompt(question)
         full_reasoning = ""
         full_content = ""
@@ -806,6 +1006,9 @@ class Agent:
                     chart_type = result.get("chart_type", "table")
                     summary = result.get("summary", "")
                     title = result.get("title", question)  # Use LLM-generated title, fallback to question
+
+                    # Fix common SQL generation errors
+                    sql = self._fix_common_sql_errors(sql)
 
                     # Execute SQL
                     try:

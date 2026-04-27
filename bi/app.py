@@ -47,6 +47,7 @@ async def startup():
 class QueryRequest(BaseModel):
     question: str
     clear_history: bool = False
+    skip_clarification: bool = False  # User has already clarified, skip further clarification
 
 
 class CreateDashboardRequest(BaseModel):
@@ -91,7 +92,11 @@ async def api_query_stream(req: QueryRequest):
 
     def generate():
         import json
-        for chunk in _agent.query_stream(req.question, clear_history=req.clear_history):
+        for chunk in _agent.query_stream(
+            req.question,
+            clear_history=req.clear_history,
+            skip_clarification=req.skip_clarification
+        ):
             # SSE format: data: {json}\n\n
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 

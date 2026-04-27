@@ -14,10 +14,12 @@ event_definitions:
     business_name: "发现页展示"
     description: "用户进入小红书发现页（推荐内容首页），系统展示页面"
     category: "页面展示"
+    aliases: ["discovery_pageshow", "discover_page_pageshow", "发现页"]
   porsche_page_pageshow:
     business_name: "Porsche+主页展示"
     description: "用户进入保时捷专属页面，展示保时捷相关内容和地图"
     category: "页面展示"
+    aliases: ["porsche_pageshow", "保时捷页", "Porsche页"]
   post_detail_page_pageshow:
     business_name: "笔记详情页展示"
     description: "用户点击笔记卡片后进入详情页查看完整内容"
@@ -26,26 +28,32 @@ event_definitions:
     business_name: "POI详情页展示"
     description: "用户点击POI(地点)卡片后进入详情页，展示地点信息、地址、相关笔记"
     category: "页面展示"
+    aliases: ["poi_pageshow", "POI页", "poi_page", "地点详情"]
   search_homepage_pageshow:
     business_name: "搜索首页展示"
     description: "用户进入搜索页面，展示搜索历史和推荐"
     category: "页面展示"
+    aliases: ["search_pageshow", "搜索页", "search_page"]
   search_results_page_pageshow:
     business_name: "搜索结果页展示"
     description: "用户提交搜索后展示搜索结果列表"
     category: "页面展示"
+    aliases: ["search_results_pageshow", "搜索结果", "搜索结果页"]
   profile_page_pageshow:
     business_name: "个人主页展示"
     description: "用户进入自己的个人主页，展示发布的笔记、收藏等"
     category: "页面展示"
+    aliases: ["profile_pageshow", "个人页", "profile_page"]
   trival_guide_page_pageshow:
     business_name: "旅行指南页展示"
     description: "用户进入旅行指南页面，展示行程规划和攻略"
     category: "页面展示"
+    aliases: ["trival_pageshow", "旅行指南", "travel_guide"]
   login_page_pageshow:
     business_name: "登录页展示"
     description: "用户进入登录页面"
     category: "页面展示"
+    aliases: ["ogin_page_pageshow", "login_pageshow", "login_page", "ogin_page"]  # 常见笔误/简写
 
   # ── Card Impressions (cardshow/carshow) ──
   discovery_page_post_card_cardshow:
@@ -96,14 +104,17 @@ event_definitions:
     business_name: "导航栏保时捷Tab点击"
     description: "用户点击底部导航栏的保时捷图标，切换到保时捷页"
     category: "导航"
+    aliases: ["导航保时捷", "nav_porsche", "保时捷导航"]
   navigation_bar_discovery_tab_click:
     business_name: "导航栏发现Tab点击"
     description: "用户点击底部导航栏的发现图标，切换到发现页"
     category: "导航"
+    aliases: ["导航发现", "nav_discovery", "发现导航"]
   navigation_bar_profile_icon_click:
     business_name: "导航栏个人主页点击"
     description: "用户点击底部导航栏的个人图标，进入个人主页"
     category: "导航"
+    aliases: ["导航个人", "nav_profile", "个人导航"]
 
   # ── POI Navigation (发起导航) ──
   poi_detail_page_navigation_button_click:
@@ -362,6 +373,13 @@ columns:
     type: string
     role: dimension
     description: "笔记类型"
+  rednote_post_num:
+    business_name: "笔记位置序号"
+    type: float
+    role: dimension
+    description: "笔记卡片的位置序号（从1开始），仅在卡片曝光/点击事件中有值"
+    available_events: ["discovery_page_post_card_cardshow", "discovery_page_post_card_click", "porsche_page_recommend_post_card_cardshow", "porsche_page_recommend_post_card_click", "discovery_page_post_like_click"]
+    note: "该字段只在笔记卡片相关事件中填充，其他事件为NULL。用于分析卡片点击的位置分布。"
   rednote_post_is_like:
     business_name: "笔记是否点赞"
     type: string
@@ -553,3 +571,8 @@ example_queries:
   - question: "导航点击的上一个页面来源占比"
     sql: "SELECT page as source_page, COUNT(*) as cnt FROM events WHERE event_name LIKE '%navigation_button_click' GROUP BY page ORDER BY cnt DESC"
     chart_type: "pie"
+  # --- Card show/click events: MUST use cardshow NOT _show ---
+  - question: "发现页卡片点击率趋势"
+    sql: "SELECT event_date, COUNT(CASE WHEN event_name = 'discovery_page_post_card_cardshow' THEN 1 END) as shows, COUNT(CASE WHEN event_name = 'discovery_page_post_card_click' THEN 1 END) as clicks, ROUND(CAST(COUNT(CASE WHEN event_name = 'discovery_page_post_card_click' THEN 1 END) AS DOUBLE) / NULLIF(COUNT(CASE WHEN event_name = 'discovery_page_post_card_cardshow' THEN 1 END), 0) * 100, 2) as ctr_pct FROM events WHERE event_name IN ('discovery_page_post_card_cardshow', 'discovery_page_post_card_click') GROUP BY event_date ORDER BY event_date"
+    chart_type: "line"
+    note: "IMPORTANT: Card show events use 'cardshow' suffix, NOT '_show'!"

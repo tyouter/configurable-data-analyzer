@@ -977,7 +977,7 @@ async function sendQuery() {
   streamDiv.id = streamMsgId;
   streamDiv.innerHTML = `
     <div class="role ai">AI ANALYST</div>
-    <details class="reasoning-block" open>
+    <details class="reasoning-block">
       <summary class="reasoning-summary">推理过程 <span class="reasoning-status">...</span></summary>
       <div class="reasoning-content" id="${streamMsgId}-reasoning"></div>
     </details>
@@ -1133,7 +1133,7 @@ async function handleClarification(btn) {
   streamDiv.id = streamMsgId;
   streamDiv.innerHTML = `
     <div class="role ai">AI ANALYST</div>
-    <details class="reasoning-block" open>
+    <details class="reasoning-block">
       <summary class="reasoning-summary">推理过程 <span class="reasoning-status">...</span></summary>
       <div class="reasoning-content" id="${streamMsgId}-reasoning"></div>
     </details>
@@ -1155,7 +1155,10 @@ async function handleClarification(btn) {
     const r = await fetch('/api/query/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({question: refinedQuestion})
+      body: JSON.stringify({
+        question: refinedQuestion,
+        skip_clarification: true  // User has clarified, skip further clarification
+      })
     });
 
     const reader = r.body.getReader();
@@ -1646,6 +1649,109 @@ function switchTab(tabId) {
     grid.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>${msg}</p></div>`;
   };
 
+  // Helper: generate ECharts option from raw data + chart_type
+  const autoGenerateChartOption = (chart) => {
+    const chartType = chart.chart_type || 'line';
+    let data = chart.data || [];
+    const title = chart.title || '';
+    const xField = chart.x || (data[0] ? Object.keys(data[0])[0] : 'x');
+    const yField = chart.y || (data[0] ? Object.keys(data[0]).filter(k => k !== xField)[0] : 'y');
+
+    // Handle single-object data (convert to array for bar charts)
+    if (!Array.isArray(data) && typeof data === 'object') {
+      const keys = Object.keys(data);
+      if (chartType === 'bar' || chartType === 'pie') {
+        data = keys.map(k => ({ [xField]: k, [yField]: data[k] }));
+      } else {
+        data = [data];
+      }
+    }
+
+    if (!data.length) return null;
+
+    const palette = COLOR_PALETTES[currentPalette];
+
+    if (chartType === 'line' || chartType === 'bar') {
+      // 处理日期格式：去掉时间部分，只保留日期
+      const xData = data.map(d => {
+        const val = d[xField];
+        if (typeof val === 'string' && val.includes(' ')) {
+          return val.split(' ')[0]; // 去掉时间部分
+        }
+        return val;
+      });
+      const yData = data.map(d => d[yField]);
+
+      // 计算xAxis标签配置
+      const xLabelConfig = {
+        rotate: xData.length > 10 ? 45 : 0, // 数据多时旋转
+        fontSize: 11,
+        interval: xData.length > 15 ? Math.floor(xData.length / 15) : 0 // 控制显示间隔
+      };
+
+      return {
+        title: { text: title, left: 'center', top: 10, textStyle: { fontSize: 13 } },
+        tooltip: { trigger: 'axis' },
+        legend: { top: 35 },
+        grid: { top: 55, bottom: xData.length > 10 ? 40 : 25, left: 50, right: 30 },
+        xAxis: {
+          type: 'category',
+          data: xData,
+          axisLabel: xLabelConfig
+        },
+        yAxis: { type: 'value' },
+        series: [{
+          type: chartType,
+          data: yData,
+          smooth: chartType === 'line',
+          itemStyle: { color: palette.colors[0] }
+        }]
+      };
+    } else if (chartType === 'pie') {
+      const pieData = data.map(d => ({
+        name: d[xField] || d.name || d.label || Object.values(d)[0],
+        value: d[yField] || d.value || d.pct || Object.values(d)[1]
+      }));
+      return {
+        title: { text: title, left: 'center', top: 10 },
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: { orient: 'vertical', left: 5, top: 45 },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['55%', '55%'],
+          data: pieData,
+          itemStyle: { colors: palette.colors }
+        }]
+      };
+    } else if (chartType === 'funnel') {
+      // 漏斗图需要保持原始顺序，不自动排序
+      const funnelData = data.map(d => ({
+        name: d[xField] || d.step || d.name,
+        value: d[yField] || d.users || d.value || d.count
+      }));
+      return {
+        title: { text: title, left: 'center', top: 10, textStyle: { fontSize: 13 } },
+        tooltip: { trigger: 'item', formatter: '{b}: {c}' },
+        legend: { orient: 'vertical', left: 5, top: 45 },
+        series: [{
+          type: 'funnel',
+          left: '15%',
+          top: 50,
+          bottom: 10,
+          width: '70%',
+          min: 0,
+          max: 100,
+          sort: 'none', // 保持原始顺序，不自动排序
+          data: funnelData,
+          itemStyle: { colors: palette.colors },
+          label: { show: true, position: 'inside' }
+        }]
+      };
+    }
+    return null;
+  };
+
   if (tabId === 'temp') {
     const dash = dashboards[tempDashboardId];
     if (dash && dash.charts && dash.charts.length > 0) {
@@ -1653,6 +1759,11 @@ function switchTab(tabId) {
       dash.charts.forEach(c => {
         if (c.chart_option) renderChart(c, 'temp', c.id);
         else if (c.chart_type === 'table' && c.data?.length) renderTable(c, 'temp', c.id);
+        else if (c.chart_type && c.data?.length) {
+          // Auto-generate chart_option for dashboard charts
+          const chartWithOption = { ...c, chart_option: autoGenerateChartOption(c) };
+          if (chartWithOption.chart_option) renderChart(chartWithOption, 'temp', c.id);
+        }
       });
       if (grid.children.length === 0) showEmpty('在左侧输入问题或点击快捷指标<br>图表将显示在这里');
     } else {
@@ -1665,6 +1776,11 @@ function switchTab(tabId) {
       dash.charts.forEach(c => {
         if (c.chart_option) renderChart(c, tabId, c.id);
         else if (c.chart_type === 'table' && c.data?.length) renderTable(c, tabId, c.id);
+        else if (c.chart_type && c.data?.length) {
+          // Auto-generate chart_option for dashboard charts
+          const chartWithOption = { ...c, chart_option: autoGenerateChartOption(c) };
+          if (chartWithOption.chart_option) renderChart(chartWithOption, tabId, c.id);
+        }
       });
       if (grid.children.length === 0) showEmpty('Dashboard 暂无图表');
     } else {
@@ -1809,12 +1925,20 @@ function showAuditFromContext() {
   const a = contextAudit;
   let html = '';
 
-  // Data source
+  // Data source - 兼容两种格式
   html += `<div class="audit-section"><h3>Data Source</h3><div class="info-grid">`;
-  html += `<span class="label">文件</span><span>${a.data_source?.file || '-'}</span>`;
-  html += `<span class="label">表</span><span>${a.data_source?.table || '-'}</span>`;
-  html += `<span class="label">扫描行数</span><span>${a.data_source?.total_rows_scanned?.toLocaleString() || '-'}</span>`;
-  html += `<span class="label">日期范围</span><span>${a.data_source?.date_range?.join(' ~ ') || '-'}</span>`;
+  if (typeof a.data_source === 'string') {
+    // 简单字符串格式
+    html += `<span class="label">数据源</span><span>${a.data_source || '-'}</span>`;
+    html += `<span class="label">指标</span><span>${a.metric || '-'}</span>`;
+    html += `<span class="label">计算时间</span><span>${a.calculation_time || '-'}</span>`;
+  } else {
+    // 嵌套对象格式
+    html += `<span class="label">文件</span><span>${a.data_source?.file || '-'}</span>`;
+    html += `<span class="label">表</span><span>${a.data_source?.table || '-'}</span>`;
+    html += `<span class="label">扫描行数</span><span>${a.data_source?.total_rows_scanned?.toLocaleString() || '-'}</span>`;
+    html += `<span class="label">日期范围</span><span>${a.data_source?.date_range?.join(' ~ ') || '-'}</span>`;
+  }
   html += `</div></div>`;
 
   // SQL + Chinese explanation
