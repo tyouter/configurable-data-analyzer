@@ -1,0 +1,11 @@
+provider: custom
+base_url: ${OPENAI_BASE_URL}
+model: ${BI_MODEL}
+
+mcp_servers:
+  chatbi:
+    url: "http://chatbi-mcp:8000/sse"
+    transport: sse
+    tools:
+      resources: false
+      prompts: false

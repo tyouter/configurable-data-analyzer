@@ -36,6 +36,10 @@ env/
 data/
 config/
 
+# Environment
+.env
+hermes-config/.env
+
 # OS
 .DS_Store
 Thumbs.db

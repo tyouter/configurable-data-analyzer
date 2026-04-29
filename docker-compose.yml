@@ -1,0 +1,81 @@
+services:
+  chatbi-mcp:
+    build: .
+    container_name: chatbi-mcp
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data:ro
+    environment:
+      - TRANSPORT=sse
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - BI_MODEL=${BI_MODEL:-deepseek-chat}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(3); s.connect(('localhost',8000)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - chatbi-net
+
+  hermes-agent:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-agent
+    command: gateway run
+    ports:
+      - "8642:8642"
+    volumes:
+      - hermes-home:/opt/data
+      - hermes-agent-src:/opt/hermes
+      - ./hermes-config/config.yaml:/opt/data/config.yaml:ro
+      - ./hermes-config/.env:/opt/data/.env:ro
+      - ./data:/workspace:ro
+    environment:
+      - OPENAI_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      - BI_MODEL=${BI_MODEL:-deepseek-chat}
+    depends_on:
+      chatbi-mcp:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+    networks:
+      - chatbi-net
+
+  hermes-webui:
+    image: ghcr.io/nesquena/hermes-webui:latest
+    container_name: hermes-webui
+    depends_on:
+      - hermes-agent
+    ports:
+      - "8787:8787"
+    volumes:
+      - hermes-home:/home/hermeswebui/.hermes
+      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent
+    environment:
+      - HERMES_WEBUI_HOST=0.0.0.0
+      - HERMES_WEBUI_PORT=8787
+      - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui-mvp
+      - WANTED_UID=1000
+      - WANTED_GID=1000
+    restart: unless-stopped
+    networks:
+      - chatbi-net
+
+volumes:
+  hermes-home:
+    driver: local
+  hermes-agent-src:
+
+networks:
+  chatbi-net:
+    driver: bridge

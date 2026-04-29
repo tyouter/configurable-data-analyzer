@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "chatbi": {
+      "command": "python",
+      "args": ["mcp_server/server.py"],
+      "env": {
+        "DEEPSEEK_API_KEY": "",
+        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+        "BI_MODEL": "deepseek-chat"
+      }
+    }
+  }
+}

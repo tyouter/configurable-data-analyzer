@@ -1,0 +1,1 @@
+# ChatBI MCP Server package

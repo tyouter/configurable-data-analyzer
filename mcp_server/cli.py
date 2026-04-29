@@ -1,0 +1,353 @@
+# -*- coding: utf-8 -*-
+"""
+ChatBI CLI — Command-line interface for project management and queries.
+
+Usage:
+  python mcp_server/cli.py create <name> <data_file> [--type TYPE] [--no-llm]
+  python mcp_server/cli.py list
+  python mcp_server/cli.py switch <project_id>
+  python mcp_server/cli.py info [project_id]
+  python mcp_server/cli.py delete <project_id>
+  python mcp_server/cli.py query <metric> [--dims dim1,dim2] [--filters field=val] [--limit N]
+  python mcp_server/cli.py sql <sql_statement>
+  python mcp_server/cli.py context [section]
+  python mcp_server/cli.py serve [--transport stdio|sse] [--port PORT]
+"""
+
+import argparse
+import json
+import os
+import sys
+
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+from mcp_server.project_model import ProjectStore, ProjectSession, PROJECTS_DIR
+from mcp_server.semantic_generator import generate_semantic_layer, detect_project_type
+from mcp_server.semantic_query import validate_raw_sql
+
+
+_session = ProjectSession()
+
+
+def cmd_create(args):
+    store = _session.store
+    data_files = args.data_files
+    for f in data_files:
+        if not os.path.exists(f):
+            print(f"ERROR: File not found: {f}")
+            return 1
+
+    project = store.create_project(
+        name=args.name,
+        data_files=data_files,
+        project_type=args.type or "generic",
+    )
+
+    dm = _session.get_dm(project.id)
+    if not args.type:
+        detected = detect_project_type(dm)
+        project.project_type = detected
+        print(f"  Detected project type: {detected}")
+
+    semantic = generate_semantic_layer(
+        dm,
+        project_type=project.project_type,
+        use_llm=not args.no_llm,
+    )
+    project.semantic_layer = semantic
+    store.save_project(project)
+    _session.switch_project(project.id)
+
+    print(f"\n  Project created successfully!")
+    print(f"  ID:       {project.id}")
+    print(f"  Name:     {project.name}")
+    print(f"  Type:     {project.project_type}")
+    print(f"  Rows:     {dm.meta.get('total_rows', 0)}")
+    print(f"  Columns:  {dm.meta.get('total_columns', 0)}")
+    print(f"  Metrics:  {len(semantic.get('metrics', {}))}")
+    print(f"  Events:   {len(semantic.get('event_definitions', {}))}")
+    return 0
+
+
+def cmd_list(args):
+    projects = _session.store.list_projects()
+    if not projects:
+        print("  No projects found. Use 'create' to add one.")
+        return 0
+
+    current = _session.get_current_project()
+    current_id = current.id if current else None
+
+    print(f"  {'*':1} {'ID':<15} {'Name':<30} {'Type':<20} {'Files':>6}")
+    print(f"  {'─'*1} {'─'*15} {'─'*30} {'─'*20} {'─'*6}")
+    for p in projects:
+        marker = "→" if p["id"] == current_id else " "
+        print(f"  {marker} {p['id']:<15} {p['name']:<30} {p.get('project_type', '?'):<20} {p.get('data_files_count', 0):>6}")
+    return 0
+
+
+def cmd_switch(args):
+    project = _session.store.get_project(args.project_id)
+    if not project:
+        print(f"  ERROR: Project '{args.project_id}' not found")
+        return 1
+    _session.switch_project(args.project_id)
+    print(f"  Switched to project: {project.name} ({project.id})")
+    return 0
+
+
+def cmd_info(args):
+    project_id = args.project_id
+    if project_id:
+        project = _session.store.get_project(project_id)
+    else:
+        project = _session.get_current_project()
+
+    if not project:
+        print("  No active project. Use 'switch' or provide project_id.")
+        return 1
+
+    dm = _session.get_dm(project.id)
+    semantic = project.semantic_layer or {}
+
+    print(f"\n  Project: {project.name}")
+    print(f"  ID:      {project.id}")
+    print(f"  Type:    {project.project_type}")
+    print(f"  Created: {project.created_at}")
+    print(f"  Updated: {project.updated_at}")
+    print(f"  Rows:    {dm.meta.get('total_rows', 0) if dm else 'N/A'}")
+    print(f"  Columns: {dm.meta.get('total_columns', 0) if dm else 'N/A'}")
+
+    metrics = semantic.get("metrics", {})
+    if metrics:
+        print(f"\n  Metrics ({len(metrics)}):")
+        for name, defn in metrics.items():
+            print(f"    {name:<25} {defn.get('business_name', '')}")
+
+    events = semantic.get("event_definitions", {})
+    if events:
+        print(f"\n  Events ({len(events)}):")
+        for name, defn in list(events.items())[:10]:
+            print(f"    {name:<40} {defn.get('business_name', '')}")
+        if len(events) > 10:
+            print(f"    ... and {len(events) - 10} more")
+
+    return 0
+
+
+def cmd_delete(args):
+    project = _session.store.get_project(args.project_id)
+    if not project:
+        print(f"  ERROR: Project '{args.project_id}' not found")
+        return 1
+
+    if not args.force:
+        confirm = input(f"  Delete project '{project.name}' ({project.id})? [y/N] ")
+        if confirm.lower() != "y":
+            print("  Cancelled.")
+            return 0
+
+    _session.store.delete_project(args.project_id)
+    print(f"  Deleted project: {project.name} ({project.id})")
+    return 0
+
+
+def cmd_query(args):
+    project, dm = _require_project()
+    semantic = project.semantic_layer
+
+    from mcp_server.server import _build_dynamic_l1_query
+
+    dimensions = args.dims.split(",") if args.dims else []
+    filters = []
+    if args.filters:
+        for f in args.filters:
+            if "=" in f:
+                field, value = f.split("=", 1)
+                filters.append({"field": field, "op": "eq", "value": value})
+
+    sql, err = _build_dynamic_l1_query(
+        semantic_layer=semantic,
+        metric=args.metric,
+        dimensions=dimensions,
+        filters=filters,
+        limit=args.limit,
+    )
+
+    if err:
+        print(f"  ERROR: {err}")
+        return 1
+
+    print(f"\n  SQL:\n  {sql}\n")
+
+    data = dm.execute(sql)
+    if not data:
+        print("  (no results)")
+        return 0
+
+    cols = list(data[0].keys())
+    col_widths = {c: max(len(str(c)), max(len(str(row.get(c, ""))) for row in data[:20])) for c in cols}
+
+    header = " | ".join(c.ljust(col_widths[c]) for c in cols)
+    print(f"  {header}")
+    print(f"  {'─' * len(header)}")
+
+    for row in data[:50]:
+        line = " | ".join(str(row.get(c, "")).ljust(col_widths[c]) for c in cols)
+        print(f"  {line}")
+
+    if len(data) > 50:
+        print(f"  ... {len(data) - 50} more rows")
+
+    print(f"\n  Total: {len(data)} rows")
+    return 0
+
+
+def cmd_sql(args):
+    project, dm = _require_project()
+
+    sql = args.sql
+    try:
+        sql = validate_raw_sql(sql)
+    except ValueError as e:
+        print(f"  ERROR: {e}")
+        return 1
+
+    print(f"\n  SQL:\n  {sql}\n")
+
+    data = dm.execute(sql)
+    if not data:
+        print("  (no results)")
+        return 0
+
+    cols = list(data[0].keys())
+    for row in data[:50]:
+        print("  " + " | ".join(str(row.get(c, "")) for c in cols))
+
+    if len(data) > 50:
+        print(f"  ... {len(data) - 50} more rows")
+
+    print(f"\n  Total: {len(data)} rows")
+    return 0
+
+
+def cmd_context(args):
+    project = _session.get_current_project()
+    if not project:
+        print("  No active project. Use 'switch' first.")
+        return 1
+
+    semantic = project.semantic_layer or {}
+    section = args.section or "all"
+
+    if section in ("metrics", "all"):
+        metrics = semantic.get("metrics", {})
+        print(f"\n  Metrics ({len(metrics)}):")
+        for name, defn in metrics.items():
+            print(f"    {name:<25} {defn.get('business_name', '')} — {defn.get('sql', '')}")
+
+    if section in ("dimensions", "all"):
+        columns = semantic.get("columns", {})
+        dims = {k: v for k, v in columns.items() if v.get("role") == "dimension"}
+        print(f"\n  Dimensions ({len(dims)}):")
+        for name, defn in dims.items():
+            print(f"    {name:<25} {defn.get('business_name', '')} ({defn.get('type', '')})")
+
+    if section in ("events", "all"):
+        events = semantic.get("event_definitions", {})
+        print(f"\n  Events ({len(events)}):")
+        for name, defn in events.items():
+            print(f"    {name:<40} {defn.get('business_name', '')}")
+
+    return 0
+
+
+def cmd_serve(args):
+    from mcp_server.server import mcp
+    mcp.run(transport=args.transport)
+    return 0
+
+
+def _require_project():
+    project = _session.get_current_project()
+    if not project:
+        print("  ERROR: No active project. Use 'switch' or 'create' first.")
+        sys.exit(1)
+    dm = _session.get_current_dm()
+    if not dm:
+        print("  ERROR: Project data not loaded. Try 'switch' again.")
+        sys.exit(1)
+    return project, dm
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="chatbi",
+        description="ChatBI CLI — Project-agnostic data analysis platform",
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    p_create = sub.add_parser("create", help="Create a new project from data files")
+    p_create.add_argument("name", help="Project name")
+    p_create.add_argument("data_files", nargs="+", help="Data file paths (xlsx/csv/parquet)")
+    p_create.add_argument("--type", "-t", help="Project type (behavior_analysis/business_report/time_series/generic)")
+    p_create.add_argument("--no-llm", action="store_true", help="Skip LLM-assisted semantic generation")
+
+    p_list = sub.add_parser("list", help="List all projects")
+
+    p_switch = sub.add_parser("switch", help="Switch active project")
+    p_switch.add_argument("project_id", help="Project ID to switch to")
+
+    p_info = sub.add_parser("info", help="Show project details")
+    p_info.add_argument("project_id", nargs="?", help="Project ID (default: current)")
+
+    p_delete = sub.add_parser("delete", help="Delete a project")
+    p_delete.add_argument("project_id", help="Project ID to delete")
+    p_delete.add_argument("--force", "-f", action="store_true", help="Skip confirmation")
+
+    p_query = sub.add_parser("query", help="Execute L1 structured query")
+    p_query.add_argument("metric", help="Metric name from semantic layer")
+    p_query.add_argument("--dims", "-d", help="Comma-separated dimensions")
+    p_query.add_argument("--filters", "-f", nargs="*", help="Filters as field=value")
+    p_query.add_argument("--limit", "-l", type=int, default=50, help="Row limit")
+
+    p_sql = sub.add_parser("sql", help="Execute raw SQL query")
+    p_sql.add_argument("sql", help="SQL statement")
+
+    p_context = sub.add_parser("context", help="Show semantic layer context")
+    p_context.add_argument("section", nargs="?", help="Section: metrics/dimensions/events/all")
+
+    p_serve = sub.add_parser("serve", help="Start MCP Server")
+    p_serve.add_argument("--transport", "-t", default="stdio", choices=["stdio", "sse"])
+    p_serve.add_argument("--port", "-p", type=int, default=8000)
+
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        return 0
+
+    commands = {
+        "create": cmd_create,
+        "list": cmd_list,
+        "switch": cmd_switch,
+        "info": cmd_info,
+        "delete": cmd_delete,
+        "query": cmd_query,
+        "sql": cmd_sql,
+        "context": cmd_context,
+        "serve": cmd_serve,
+    }
+
+    handler = commands.get(args.command)
+    if handler:
+        return handler(args)
+    else:
+        parser.print_help()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
