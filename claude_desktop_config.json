@@ -8,7 +8,7 @@
       "env": {
         "DEEPSEEK_API_KEY": "",
         "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
-        "BI_MODEL": "deepseek-chat"
+        "BI_MODEL": "deepseek-v4-pro"
       }
     }
   }

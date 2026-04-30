@@ -839,7 +839,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ChatBI MCP Server")
     parser.add_argument(
         "--transport",
-        choices=["stdio", "sse"],
+        choices=["stdio", "sse", "streamable-http"],
         default="stdio",
         help="Transport protocol (default: stdio)",
     )
@@ -882,5 +882,10 @@ if __name__ == "__main__":
             ],
         )
         uvicorn.run(app, host=args.host, port=args.port)
+    elif args.transport == "streamable-http":
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        mcp.settings.transport_security = None
+        mcp.run(transport="streamable-http")
     else:
         mcp.run(transport="stdio")
