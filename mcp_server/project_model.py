@@ -21,6 +21,7 @@ import duckdb
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from typing import Optional
@@ -57,6 +58,117 @@ class EventDef:
     description: str = ""
     category: str = ""
     aliases: list = field(default_factory=list)
+
+
+class FileCategory(str, Enum):
+    RAW_DATA = "raw_data"
+    REFERENCE_KPI = "reference_kpi"
+    REFERENCE_DICT = "reference_dict"
+    REFERENCE_REQ = "reference_req"
+    REFERENCE_OTHER = "reference_other"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class FileClassification:
+    filename: str = ""
+    filepath: str = ""
+    category: str = "unknown"
+    confidence: float = 0.0
+    reason: str = ""
+    columns: list = field(default_factory=list)
+    row_count: int = 0
+    encoding: str = "utf-8"
+    format: str = "csv"
+
+    def category_enum(self) -> FileCategory:
+        try:
+            return FileCategory(self.category)
+        except ValueError:
+            return FileCategory.UNKNOWN
+
+    def is_reference(self) -> bool:
+        return self.category.startswith("reference")
+
+    def is_raw_data(self) -> bool:
+        return self.category == "raw_data"
+
+
+@dataclass
+class FileSchemaInfo:
+    filename: str = ""
+    columns: list = field(default_factory=list)
+    row_count: int = 0
+    numeric_columns: list = field(default_factory=list)
+    date_columns: list = field(default_factory=list)
+    category_columns: list = field(default_factory=list)
+    quality_score: float = 0.0
+    quality_issues: list = field(default_factory=list)
+
+
+@dataclass
+class ReferenceContent:
+    filename: str = ""
+    category: str = "reference_other"
+    raw_text: str = ""
+    kpi_definitions: list = field(default_factory=list)
+    field_definitions: list = field(default_factory=list)
+    analysis_goals: list = field(default_factory=list)
+
+
+@dataclass
+class DataAuditReport:
+    project_name: str = ""
+    created_at: str = ""
+    file_classifications: list = field(default_factory=list)
+    raw_data_schemas: list = field(default_factory=list)
+    reference_contents: list = field(default_factory=list)
+    summary: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "project_name": self.project_name,
+            "created_at": self.created_at,
+            "file_classifications": [
+                fc if isinstance(fc, dict) else {
+                    "filename": fc.filename,
+                    "filepath": fc.filepath,
+                    "category": fc.category,
+                    "confidence": fc.confidence,
+                    "reason": fc.reason,
+                    "columns": fc.columns,
+                    "row_count": fc.row_count,
+                    "encoding": fc.encoding,
+                    "format": fc.format,
+                }
+                for fc in self.file_classifications
+            ],
+            "raw_data_schemas": [
+                s if isinstance(s, dict) else {
+                    "filename": s.filename,
+                    "columns": s.columns,
+                    "row_count": s.row_count,
+                    "numeric_columns": s.numeric_columns,
+                    "date_columns": s.date_columns,
+                    "category_columns": s.category_columns,
+                    "quality_score": s.quality_score,
+                    "quality_issues": s.quality_issues,
+                }
+                for s in self.raw_data_schemas
+            ],
+            "reference_contents": [
+                rc if isinstance(rc, dict) else {
+                    "filename": rc.filename,
+                    "category": rc.category,
+                    "raw_text": rc.raw_text[:500],
+                    "kpi_definitions": rc.kpi_definitions,
+                    "field_definitions": rc.field_definitions,
+                    "analysis_goals": rc.analysis_goals,
+                }
+                for rc in self.reference_contents
+            ],
+            "summary": self.summary,
+        }
 
 
 @dataclass
@@ -234,6 +346,44 @@ class ProjectStore:
             return False
         shutil.rmtree(project_dir)
         return True
+
+    def _audit_report_path(self, project_id: str) -> str:
+        return os.path.join(self._project_dir(project_id), "audit_report.yaml")
+
+    def save_audit_report(self, project_id: str, report: DataAuditReport) -> str:
+        report_path = self._audit_report_path(project_id)
+        project_dir = self._project_dir(project_id)
+        os.makedirs(project_dir, exist_ok=True)
+        data = report.to_dict()
+        with open(report_path, "w", encoding="utf-8") as f:
+            yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        return report_path
+
+    def load_audit_report(self, project_id: str) -> Optional[DataAuditReport]:
+        report_path = self._audit_report_path(project_id)
+        if not os.path.exists(report_path):
+            return None
+        with open(report_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if not data:
+            return None
+        return DataAuditReport(
+            project_name=data.get("project_name", ""),
+            created_at=data.get("created_at", ""),
+            file_classifications=[
+                FileClassification(**fc) if isinstance(fc, dict) else fc
+                for fc in data.get("file_classifications", [])
+            ],
+            raw_data_schemas=[
+                FileSchemaInfo(**s) if isinstance(s, dict) else s
+                for s in data.get("raw_data_schemas", [])
+            ],
+            reference_contents=[
+                ReferenceContent(**rc) if isinstance(rc, dict) else rc
+                for rc in data.get("reference_contents", [])
+            ],
+            summary=data.get("summary", {}),
+        )
 
 
 class ProjectDataManager:
