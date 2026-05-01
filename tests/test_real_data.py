@@ -11,7 +11,10 @@ from mcp_server.reference_parser import ReferenceParser, KPIValidator
 from mcp_server.project_model import DataAuditReport
 from datetime import datetime
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "rednote analysis")
+DATA_DIR = os.environ.get(
+    "CHATBI_TEST_DATA_DIR",
+    os.path.join(os.path.dirname(__file__), "..", "projects", "rednote", "data"),
+)
 
 if not os.path.exists(DATA_DIR):
     print(f"SKIP: {DATA_DIR} not found")

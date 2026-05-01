@@ -27,7 +27,10 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 
-PROJECTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "projects"))
+PROJECTS_DIR = os.environ.get(
+    "CHATBI_PROJECTS_DIR",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "projects")),
+)
 
 
 @dataclass
@@ -608,7 +611,32 @@ class ProjectDataManager:
             try:
                 table_name = self.project.semantic_layer.get("table_name", "events")
                 cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
-                return [{"column": c[0], "dtype": c[1]} for c in cols]
+                total_rows = self.meta.get("total_rows", 0)
+                result = []
+                for c in cols:
+                    col_name, dtype = c[0], c[1]
+                    null_count = 0
+                    sample = []
+                    try:
+                        null_count = self.con.execute(
+                            f"SELECT COUNT(*) FROM {table_name} WHERE \"{col_name}\" IS NULL"
+                        ).fetchone()[0]
+                    except Exception:
+                        pass
+                    try:
+                        sample_rows = self.con.execute(
+                            f'SELECT DISTINCT "{col_name}" FROM {table_name} WHERE "{col_name}" IS NOT NULL LIMIT 3'
+                        ).fetchall()
+                        sample = [str(r[0]) for r in sample_rows]
+                    except Exception:
+                        pass
+                    result.append({
+                        "column": col_name,
+                        "dtype": dtype,
+                        "null_count": null_count,
+                        "sample": sample,
+                    })
+                return result
             except Exception:
                 return []
         info = []
@@ -631,11 +659,38 @@ class ProjectDataManager:
 
 
 class ProjectSession:
+    _CURRENT_PROJECT_FILE = ".current_project"
+
     def __init__(self, projects_dir: str = None):
         self.store = ProjectStore(projects_dir)
         self.projects_dir = projects_dir or PROJECTS_DIR
         self._current_project_id: Optional[str] = None
         self._managers: dict[str, ProjectDataManager] = {}
+        self._load_current_project_id()
+
+    def _state_file(self) -> str:
+        return os.path.join(self.projects_dir, self._CURRENT_PROJECT_FILE)
+
+    def _load_current_project_id(self):
+        try:
+            fp = self._state_file()
+            if os.path.exists(fp):
+                pid = open(fp, encoding="utf-8").read().strip()
+                if pid and self.store.get_project(pid):
+                    self._current_project_id = pid
+        except Exception:
+            pass
+
+    def _save_current_project_id(self):
+        try:
+            fp = self._state_file()
+            if self._current_project_id:
+                with open(fp, "w", encoding="utf-8") as f:
+                    f.write(self._current_project_id)
+            elif os.path.exists(fp):
+                os.remove(fp)
+        except Exception:
+            pass
 
     @property
     def current_project_id(self) -> Optional[str]:
@@ -646,6 +701,7 @@ class ProjectSession:
         if not project:
             raise ValueError(f"Project not found: {project_id}")
         self._current_project_id = project_id
+        self._save_current_project_id()
         if project_id not in self._managers:
             dm = ProjectDataManager(project, self.projects_dir)
             dm.load()
@@ -660,6 +716,12 @@ class ProjectSession:
     def get_current_dm(self) -> Optional[ProjectDataManager]:
         if not self._current_project_id:
             return None
+        if self._current_project_id not in self._managers:
+            project = self.store.get_project(self._current_project_id)
+            if project:
+                dm = ProjectDataManager(project, self.projects_dir)
+                dm.load()
+                self._managers[self._current_project_id] = dm
         return self._managers.get(self._current_project_id)
 
     def get_dm(self, project_id: str) -> ProjectDataManager:
@@ -678,3 +740,4 @@ class ProjectSession:
             del self._managers[project_id]
         if self._current_project_id == project_id:
             self._current_project_id = None
+            self._save_current_project_id()

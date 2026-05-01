@@ -11,6 +11,9 @@ Usage:
   python mcp_server/cli.py query <metric> [--dims dim1,dim2] [--filters field=val] [--limit N]
   python mcp_server/cli.py sql <sql_statement>
   python mcp_server/cli.py context [section]
+  python mcp_server/cli.py dashboard-list
+  python mcp_server/cli.py dashboard-create <name>
+  python mcp_server/cli.py dashboard-save-chart -d <dashboard> -t <title> [-c bar|line|pie|table] <sql>
   python mcp_server/cli.py serve [--transport stdio|sse] [--port PORT]
 """
 
@@ -26,6 +29,7 @@ if _PROJECT_ROOT not in sys.path:
 from mcp_server.project_model import ProjectStore, ProjectSession, PROJECTS_DIR
 from mcp_server.semantic_generator import generate_semantic_layer, detect_project_type
 from mcp_server.semantic_query import validate_raw_sql
+from mcp_server import dashboard_store
 
 
 _session = ProjectSession()
@@ -264,6 +268,70 @@ def cmd_context(args):
     return 0
 
 
+def cmd_dashboard_list(args):
+    project = _session.get_current_project()
+    if not project:
+        print("  ERROR: No active project. Use 'switch' or 'create' first.")
+        return 1
+    dashboards = dashboard_store.list_dashboards(PROJECTS_DIR, project.id)
+    if not dashboards:
+        print("  No dashboards found. Use 'dashboard-create' to add one.")
+        return 0
+    print(f"  {'ID':<15} {'Name':<30} {'Charts':>7} {'Updated':<20}")
+    print(f"  {'─'*15} {'─'*30} {'─'*7} {'─'*20}")
+    for d in dashboards:
+        print(f"  {d['id']:<15} {d['name']:<30} {d['charts_count']:>7} {d.get('updated_at', '')[:19]:<20}")
+    return 0
+
+
+def cmd_dashboard_create(args):
+    project = _session.get_current_project()
+    if not project:
+        print("  ERROR: No active project. Use 'switch' or 'create' first.")
+        return 1
+    result = dashboard_store.create_dashboard(PROJECTS_DIR, project.id, args.name)
+    if result.get("exists"):
+        print(f"  Dashboard already exists: {result['id']} ({args.name})")
+    else:
+        print(f"  Dashboard created: {result['id']} ({args.name})")
+    return 0
+
+
+def cmd_dashboard_save_chart(args):
+    project = _session.get_current_project()
+    if not project:
+        print("  ERROR: No active project. Use 'switch' or 'create' first.")
+        return 1
+    dm = _session.get_current_dm()
+    if not dm:
+        print("  ERROR: Project data not loaded. Try 'switch' again.")
+        return 1
+
+    sql = args.sql
+    try:
+        sql = validate_raw_sql(sql)
+    except ValueError as e:
+        print(f"  ERROR: {e}")
+        return 1
+
+    data = dm.execute(sql)
+    if not data:
+        print("  (no results — chart not saved)")
+        return 0
+
+    from mcp_server.chart_renderer import build_echarts_option
+    chart_option = build_echarts_option(data=data, chart_type=args.chart_type, title=args.title)
+    chart_record = {
+        "title": args.title,
+        "chart_type": args.chart_type,
+        "chart_option": chart_option,
+        "sql": args.sql,
+    }
+    result = dashboard_store.save_chart(PROJECTS_DIR, project.id, args.dashboard, chart_record)
+    print(f"  Chart saved: {result.get('chart_id', '?')} → dashboard '{args.dashboard}'")
+    return 0
+
+
 def cmd_serve(args):
     from mcp_server.server import mcp
     mcp.run(transport=args.transport)
@@ -319,6 +387,15 @@ def main():
     p_context = sub.add_parser("context", help="Show semantic layer context")
     p_context.add_argument("section", nargs="?", help="Section: metrics/dimensions/events/all")
 
+    p_dash_list = sub.add_parser("dashboard-list", help="List dashboards for current project")
+    p_dash_create = sub.add_parser("dashboard-create", help="Create a new dashboard")
+    p_dash_create.add_argument("name", help="Dashboard name")
+    p_dash_save = sub.add_parser("dashboard-save-chart", help="Execute SQL and save chart to dashboard")
+    p_dash_save.add_argument("--dashboard", "-d", required=True, help="Dashboard name")
+    p_dash_save.add_argument("--title", "-t", required=True, help="Chart title")
+    p_dash_save.add_argument("--chart-type", "-c", default="bar", help="Chart type: bar/line/pie/table")
+    p_dash_save.add_argument("sql", help="SQL query")
+
     p_serve = sub.add_parser("serve", help="Start MCP Server")
     p_serve.add_argument("--transport", "-t", default="stdio", choices=["stdio", "sse"])
     p_serve.add_argument("--port", "-p", type=int, default=8000)
@@ -338,6 +415,9 @@ def main():
         "query": cmd_query,
         "sql": cmd_sql,
         "context": cmd_context,
+        "dashboard-list": cmd_dashboard_list,
+        "dashboard-create": cmd_dashboard_create,
+        "dashboard-save-chart": cmd_dashboard_save_chart,
         "serve": cmd_serve,
     }
 

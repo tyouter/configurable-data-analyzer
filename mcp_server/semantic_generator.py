@@ -272,6 +272,7 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
         nulls = col["null_count"]
         total = dm.meta.get("total_rows", 1)
 
+        name_lower = name.lower()
         col_def = {
             "business_name": name,
             "type": "string",
@@ -283,9 +284,15 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
         if "int" in dtype.lower() or "float" in dtype.lower():
             col_def["type"] = "float" if "float" in dtype.lower() else "integer"
             is_numeric = True
-            if nulls < total * 0.5:
+            is_id_like = any(kw in name_lower for kw in [
+                "id", "uid", "version", "flag", "kind", "code",
+                "index", "seq", "order", "rank",
+            ]) or name_lower.endswith("_num")
+            if nulls < total * 0.5 and not is_id_like:
                 col_def["role"] = "measure"
                 numeric_cols.append(name)
+            elif is_id_like:
+                col_def["role"] = "dimension"
         elif "date" in dtype.lower() or "time" in dtype.lower():
             col_def["type"] = "timestamp"
             date_cols.append(name)
@@ -296,11 +303,16 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
                 col_def["enum"] = sorted(set(str(s) for s in samples if s))
                 category_cols.append(name)
 
-        name_lower = name.lower()
         if any(kw in name_lower for kw in ["event", "span", "action"]):
             if "name" in name_lower or "type" in name_lower:
-                event_name_col = name
-        if any(kw in name_lower for kw in ["user", "uid", "reduser", "customer", "member"]):
+                if event_name_col is None or "name" in name_lower:
+                    event_name_col = name
+        name_parts = set(name_lower.split("_"))
+        if (any(p in name_parts for p in ["uid", "userid"])
+            or ("user" in name_parts and "id" in name_parts)
+            or name_lower.endswith("_uid")
+            or name_lower.endswith("_customer_id") or name_lower.endswith("_member_id")
+            or name_lower == "reduser_id"):
             user_id_col = name
         if any(kw in name_lower for kw in ["time", "timestamp", "date", "created_at", "order_date"]):
             if not timestamp_col:
@@ -337,6 +349,103 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
         "keywords": ["事件数", "总数", "total", "count"],
         "description": "总行数",
     }
+
+    if project_type == "behavior_analysis" and event_name_col:
+        event_strs = []
+        if dm.df is not None and event_name_col in dm.df.columns:
+            event_strs = [str(e) for e in dm.df[event_name_col].dropna().unique()]
+        elif dm.con is not None:
+            try:
+                table_name = dm.project.semantic_layer.get("table_name", "events")
+                rows = dm.con.execute(
+                    f'SELECT DISTINCT "{event_name_col}" FROM {table_name} WHERE "{event_name_col}" IS NOT NULL LIMIT 200'
+                ).fetchall()
+                event_strs = [str(r[0]) for r in rows]
+            except Exception:
+                pass
+
+        if event_strs:
+            page_show_events = [e for e in event_strs if "_pageshow" in e or "_pageview" in e]
+            click_events = [e for e in event_strs if "_click" in e]
+            card_show_events = [e for e in event_strs if "_cardshow" in e or "_carshow" in e]
+            search_events = [e for e in event_strs if "search" in e.lower()]
+            navigation_events = [e for e in event_strs if "navigation" in e.lower()]
+            like_events = [e for e in event_strs if "like" in e.lower()]
+            save_events = [e for e in event_strs if "save" in e.lower()]
+
+            if page_show_events:
+                metrics["page_views"] = {
+                    "business_name": "页面浏览次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} IN ({', '.join(repr(e) for e in page_show_events)}))",
+                    "keywords": ["页面浏览", "浏览", "PV", "页面展示"],
+                    "description": "所有页面展示事件的次数",
+                }
+            if click_events:
+                metrics["total_clicks"] = {
+                    "business_name": "总点击次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '%_click')",
+                    "keywords": ["点击", "click", "总点击"],
+                    "description": "所有点击事件的次数",
+                }
+            if card_show_events:
+                metrics["card_impressions"] = {
+                    "business_name": "卡片曝光次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} IN ({', '.join(repr(e) for e in card_show_events)}))",
+                    "keywords": ["卡片曝光", "曝光", "card show"],
+                    "description": "所有卡片曝光事件的次数",
+                }
+            if search_events:
+                metrics["search_queries"] = {
+                    "business_name": "搜索次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '%search%')",
+                    "keywords": ["搜索", "查询", "search"],
+                    "description": "搜索相关事件的次数",
+                }
+            if navigation_events:
+                nav_confirm_events = [e for e in navigation_events if "confirm" in e.lower()]
+                if nav_confirm_events:
+                    metrics["navigation_confirms"] = {
+                        "business_name": "导航确认次数",
+                        "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '%navigation%confirm%')",
+                        "keywords": ["导航确认", "确认导航", "navigation confirm"],
+                        "description": "用户确认发起导航的次数",
+                    }
+                metrics["navigation_initiations"] = {
+                    "business_name": "导航发起次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '%navigation_button_click')",
+                    "keywords": ["导航", "发起导航", "navigation"],
+                    "description": "用户点击导航按钮的次数",
+                }
+            if like_events:
+                metrics["post_likes"] = {
+                    "business_name": "点赞次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '%like%click')",
+                    "keywords": ["点赞", "喜欢", "like"],
+                    "description": "点赞事件的次数",
+                }
+            if save_events:
+                metrics["post_saves"] = {
+                    "business_name": "收藏次数",
+                    "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '%save%click')",
+                    "keywords": ["收藏", "保存", "save"],
+                    "description": "收藏事件的次数",
+                }
+
+            pages = set()
+            for e in event_strs:
+                parts = e.split("_")
+                if len(parts) >= 2:
+                    pages.add("_".join(parts[:2]))
+            for page in sorted(pages)[:10]:
+                safe_page = re.sub(r'[^a-zA-Z0-9_]', '_', page)
+                page_events = [e for e in event_strs if e.startswith(page + "_")]
+                if page_events:
+                    metrics[f"{safe_page}_views"] = {
+                        "business_name": f"{page}页浏览次数",
+                        "sql": f"COUNT(*) FILTER (WHERE {event_name_col} LIKE '{page}%')",
+                        "keywords": [page, f"{page}页", "浏览"],
+                        "description": f"{page} 页面相关事件的次数",
+                    }
 
     for nc in numeric_cols:
         if nc == user_id_col or any(kw in nc.lower() for kw in ["id", "uid"]):
@@ -399,9 +508,20 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
                 "description": f"总{main_metric_col} / 去重用户数",
             }
 
-    if event_name_col and dm.df is not None and event_name_col in dm.df.columns:
-        unique_events = dm.df[event_name_col].dropna().unique()[:50]
-        for evt in unique_events:
+    if event_name_col:
+        unique_event_list = []
+        if dm.df is not None and event_name_col in dm.df.columns:
+            unique_event_list = dm.df[event_name_col].dropna().unique()[:50]
+        elif dm.con is not None:
+            try:
+                table_name = dm.project.semantic_layer.get("table_name", "events")
+                rows = dm.con.execute(
+                    f'SELECT DISTINCT "{event_name_col}" FROM {table_name} WHERE "{event_name_col}" IS NOT NULL LIMIT 50'
+                ).fetchall()
+                unique_event_list = [r[0] for r in rows]
+            except Exception:
+                pass
+        for evt in unique_event_list:
             evt_str = str(evt)
             event_definitions[evt_str] = {
                 "business_name": evt_str,

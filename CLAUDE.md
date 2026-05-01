@@ -1,130 +1,122 @@
-# Rednote Data Analyzer
+# ChatBI MCP Server
 
-小红书车载数据分析BI系统，支持对话式查询、Dashboard管理、业务指标计算。
+项目无关的对话式数据分析平台，通过 MCP 协议暴露数据分析能力给 AI Agent。
 
 ## 项目结构
 
 ```
 .
-├── bi/                         # BI系统核心
-│   ├── agent.py               # LLM Agent (DeepSeek V4)
-│   ├── app.py                 # FastAPI后端 (端口8501)
-│   ├── static/index.html      # 前端界面 (ECharts图表)
-│   ├── semantic.yaml          # 语义层定义 (事件、字段、指标)
-│   ├── dashboard_store.py     # Dashboard持久化 (JSON)
-│   ├── data_layer.py          # 数据加载与预处理
-│   └── dashboards/            # Dashboard存储目录
-│       └── *.json             # Dashboard配置文件
-│
-├── tools/                     # 分析工具
-│   ├── calculate_metrics.py   # 业务指标计算脚本 (30个指标)
-│   ├── generate_dashboard_via_api.py  # 通过API生成Dashboard
-│   ├── analyzer.py            # 数据分析器
-│   ├── kpi_replica_analysis*.py  # KPI复刻分析
-│   ├── full_deep_analysis*.py     # 深度分析
-│   └── ...                    # 其他分析工具
-│
-├── data/                      # 数据目录
-│   └── rednote/               # Rednote数据
-│       └── rednote20260319-20260412.xlsx  # 主数据文件
-│
-├── skills/                    # Claude Agent技能
-└── requirements.txt           # Python依赖
+├── mcp_server/                 # MCP Server 核心
+│   ├── server.py               # MCP 工具入口（19个工具）
+│   ├── project_model.py        # 项目 CRUD + DuckDB 数据层
+│   ├── semantic_generator.py   # LLM 语义层生成
+│   ├── semantic_query.py       # L1/L2/L3 查询引擎
+│   ├── analysis_templates.py   # L2 分析模板（留存/漏斗/同环比）
+│   ├── chart_renderer.py       # ECharts 图表生成
+│   ├── dashboard_store.py      # Dashboard 持久化
+│   ├── file_classifier.py      # 文件自动分类（原始数据/参考文档）
+│   ├── data_auditor.py         # 数据质量审计引擎
+│   ├── reference_parser.py     # 参考文档解析 + KPI 校验
+│   └── cli.py                  # CLI 接口
+├── projects/                   # 运行时项目数据（不入库）
+│   └── {project_id}/
+│       ├── project.yaml        # 项目配置 + 语义层
+│       ├── data/               # 原始数据文件
+│       └── {id}.duckdb         # DuckDB 数据库
+├── examples/                   # 示例配置模板
+├── tests/                      # 测试套件
+├── docs/                       # 文档
+├── .mcp.json                   # Trae/VS Code MCP 配置
+└── requirements.txt            # Python 依赖
 ```
 
-## 核心功能
+## 核心能力
 
-### 1. 对话式数据查询 (BI Chat)
+### 项目管理
 
-基于DeepSeek V4推理模型的LLM Agent，支持：
-- 自然语言查询转SQL
-- 交互式澄清（对模糊问题提问）
-- 流式输出（推理过程实时显示）
-- SQL执行与结果渲染
+- **多项目隔离**：每个项目独立的数据文件、语义层和 DuckDB 实例
+- **交互式创建**：4 阶段流程（文件分类 → 认知对齐 → 确认 → 构建）
+- **参考文档识别**：自动区分原始数据、KPI 定义、数据字典、需求文档
 
-**示例查询**：
-- "发现页每天的帖子点击率趋势"
-- "导航用户POI类型分布"
-- "使用AI路书和不使用用户的导航率对比"
+### 三级查询协议
 
-### 2. Dashboard管理
+| 级别 | 方式 | 说明 |
+|------|------|------|
+| L1 | `semantic_query(level="L1")` | 指标 + 维度 + 筛选，自动生成 SQL |
+| L2 | `semantic_query(level="L2")` | 留存/漏斗/同环比分析模板 |
+| L3 | `raw_sql()` | 原始 SQL 兜底查询 |
 
-多Dashboard系统支持：
-- Dashboard创建/切换/删除
-- 图表持久化保存
-- 右键菜单：复制图表、下载PNG
-- 配色方案选择（Ferrari、Porsche、Dark等）
+### 可视化与 Dashboard
 
-### 3. Business指标计算 (`tools/calculate_metrics.py`)
+- ECharts 图表生成（line/bar/pie/funnel/scatter/table）
+- Dashboard CRUD：创建/保存/删除图表
 
-直接计算30个业务指标，包含完整审计信息：
+## MCP 工具一览
 
-**Discovery页指标 (7个)**：
-- CTR趋势、顺位分布、类型分布
-- POI帖子比例、导航转化、AI路书转化
-- 漏斗分析
+| 工具 | 功能 |
+|------|------|
+| `create_project` | 创建项目（4阶段交互） |
+| `list_projects` | 列出所有项目 |
+| `switch_project` | 切换当前项目 |
+| `get_current_project` | 获取当前项目信息 |
+| `delete_project` | 删除项目 |
+| `regenerate_semantic_layer` | 重新生成语义层 |
+| `semantic_query` | 结构化语义查询（L1/L2） |
+| `raw_sql` | 原始 SQL 查询（L3） |
+| `get_semantic_context` | 获取语义层元数据 |
+| `render_chart` | 生成 ECharts 图表 |
+| `list_dashboards` | 列出 Dashboard |
+| `create_dashboard` | 创建 Dashboard |
+| `save_chart_to_dashboard` | 保存图表到 Dashboard |
+| `delete_chart` | 删除图表 |
+| `delete_dashboard` | 删除 Dashboard |
 
-**Porsche+页指标 (13个)**：
-- 活跃率、人均打开次数、CTR
-- 顺位分布、运营位对比、类型分布
-- POI转化、地图用户、漏斗分析
+## 环境变量
 
-**O2O指标 (10个)**：
-- 搜索用户趋势、活跃率、人均次数
-- POI类型分布、时间分布、周末vs工作日
-- AI路书对比、运营位视频占比
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `CHATBI_PROJECTS_DIR` | 项目数据存储目录 | `./projects` |
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | 无 |
+| `DEEPSEEK_BASE_URL` | DeepSeek API 地址 | `https://api.deepseek.com` |
+| `BI_MODEL` | LLM 模型名 | `deepseek-chat` |
 
-### 4. 审计追踪
+## MCP Server 配置
 
-每个图表包含完整审计信息：
-- `data_source`: 文件、表、扫描行数、日期范围
-- `calculation_logic`: 计算逻辑说明
-- `sql_explanation`: SQL步骤说明
-- `columns_used`: 字段列表（含义、角色、样本）
-- `filters_applied`: 筛选条件
+ChatBI MCP Server 通过 MCP 协议暴露数据分析能力，支持多种 Agent/IDE 接入：
 
-### 5. 前端特性
+### Trae / VS Code
 
-- ECharts图表渲染（line、bar、pie、funnel、table）
-- 深色主题配色方案
-- X轴标签旋转、日期格式化
-- 漏斗图顺序保持
-- 图表布局防重叠
+项目根目录 `.mcp.json` 已配置，开箱即用。
 
-## 快速启动
+### Claude Desktop
+
+将以下配置复制到 Claude Desktop 配置目录：
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- macOS: `~/.claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "chatbi": {
+      "command": "<你的Python绝对路径>",
+      "args": ["<项目绝对路径>/mcp_server/server.py"],
+      "env": {
+        "DEEPSEEK_API_KEY": "<你的API Key>",
+        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+        "BI_MODEL": "deepseek-v4-pro",
+        "CHATBI_PROJECTS_DIR": "<数据存储绝对路径>"
+      }
+    }
+  }
+}
+```
+
+### Hermes Agent
 
 ```bash
-# 启动BI服务器
-python bi/app.py
-# 访问 http://localhost:8501
-
-# 计算业务指标（生成Dashboard）
-python tools/calculate_metrics.py
+hermes mcp add chatbi --command python --args "mcp_server/server.py" \
+  --env DEEPSEEK_API_KEY=<key> --env BI_MODEL=deepseek-v4-pro
 ```
-
-## 数据说明
-
-**主数据文件**: `data/rednote/rednote20260319-20260412.xlsx`
-- 时间范围: 2026-03-19 ~ 2026-04-12
-- 事件数: 65,722
-- 用户数: 297
-
-**数据清洗规则**:
-- 过滤 `rednote_poi_title = 'akimbo(西丽店)'` (测试事件)
-
-**关键事件**:
-- `discovery_page_post_card_cardshow/click` - 发现页帖子展示/点击
-- `porsche_page_recommend_post_card_cardshow/click` - Porsche+页帖子展示/点击
-- `post_detail_page_POI_button_show` - POI按钮显示（识别带POI帖子）
-- `poi_detail_page_navigation_button_click` - 导航按钮点击
-- `post_detail_page_ai_travel_guide_button_click` - AI路书按钮点击
-
-**关键字段**:
-- `rednote_post_type`: 帖子类型 (normal图文, video视频)
-- `rednote_post_num`: 帖子顺位
-- `rednote_post_is_operational_rec`: 是否运营位
-- `rednote_poi_type`: POI分类
-- `rednote_poi_title`: POI名称
 
 ## 依赖
 
@@ -132,37 +124,42 @@ python tools/calculate_metrics.py
 pandas>=2.0.0
 openpyxl>=3.1.0
 pyyaml>=6.0
-duckdb
-fastapi
-uvicorn
-requests
+duckdb>=0.9.0
+mcp[cli]>=1.0.0
+fastapi>=0.100.0
+uvicorn>=0.24.0
+requests>=2.31.0
 ```
 
-## 开发历史
+## 开发指南
 
-| Commit | 功能 |
-|--------|------|
-| eb4975e | Business指标计算工具 + 完整审计信息 |
-| ea186d4 | Business/Strategy看板生成器工具 |
-| af2f40e | 右键菜单复制/下载图表 |
-| 6ed3984 | Ferrari品牌配色方案 |
-| 2029b7c | 完整主题配置 |
-| 64b5526 | 配色方案选择器 |
-| d8c94dd | LLM生成专业BI图表标题 |
-| aebb7e0 | DeepSeek V4推理模型 + 流式输出 + 交互式澄清 |
-| cb1a6ab | Rednote BI Agent系统 |
+### 运行测试
 
-## API端点
+```bash
+# 单元测试
+python tests/test_classifier.py
+python tests/test_auditor.py
+python tests/test_parser.py
+python tests/test_kpi_validator.py
+python tests/test_report_persist.py
 
-| 端点 | 功能 |
-|------|------|
-| `POST /api/query/stream` | 流式查询（SSE） |
-| `GET /api/dashboards` | Dashboard列表 |
-| `POST /api/dashboards` | 保存图表到Dashboard |
-| `POST /api/dashboards/create` | 创建新Dashboard |
-| `DELETE /api/dashboards/{id}` | 删除Dashboard |
-| `GET /api/schema` | 获取数据Schema |
-| `GET /api/metrics` | 获取指标定义 |
+# 集成测试
+python tests/test_phase1.py
+python tests/test_phase2.py
+python tests/test_autoresearch_p3.py
+
+# 真实数据测试（需要 CHATBI_TEST_DATA_DIR 指向数据目录）
+python tests/test_real_data.py
+```
+
+### 创建新项目
+
+通过 MCP 工具 `create_project` 的 4 阶段交互流程：
+
+1. **start** — 提交数据文件，自动分类 + 审计 + 参考文档解析
+2. **classify** — 用户修正文件分类，回答认知对齐问题（可多轮）
+3. **confirm** — 确认要导入的原始数据、参考文档和分析目标
+4. **build** — 导入确认的文件，生成语义层
 
 # currentDate
-Today's date is 2026-04-28.
+Today's date: 2026-05-01.

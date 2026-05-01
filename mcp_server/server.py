@@ -157,7 +157,9 @@ def _build_dynamic_l1_query(
     select_parts = [f"{dim}" for dim in dimensions] + [f"{metric_sql} AS {metric}"]
     select_clause = ", ".join(select_parts)
 
-    group_clause = ", ".join(dimensions)
+    group_clause = ""
+    if dimensions:
+        group_clause = f"GROUP BY {', '.join(dimensions)}"
 
     where_parts = []
     for f in filters:
@@ -209,7 +211,15 @@ def _build_dynamic_l1_query(
 
     limit_clause = f"LIMIT {min(limit, 2000)}"
 
-    sql = f"SELECT {select_clause}\nFROM {table_name}\n{where_clause}\nGROUP BY {group_clause}\n{order_clause}\n{limit_clause}"
+    parts = [f"SELECT {select_clause}", f"FROM {table_name}"]
+    if where_clause:
+        parts.append(where_clause)
+    if group_clause:
+        parts.append(group_clause)
+    if order_clause:
+        parts.append(order_clause)
+    parts.append(limit_clause)
+    sql = "\n".join(parts)
     import re
     return re.sub(r'\n\s+', '\n', sql), None
 
@@ -250,9 +260,16 @@ def _build_dynamic_l2_query(
 
 @mcp.tool()
 def create_project(
-    name: str,
-    data_files: list[str],
+    name: str = "",
+    data_files: list[str] = [],
+    action: str = "start",
+    project_id: Optional[str] = None,
     project_type: Optional[str] = None,
+    corrections: Optional[dict] = None,
+    questions: Optional[str] = None,
+    confirmed_raw_files: Optional[list[str]] = None,
+    confirmed_ref_files: Optional[list[str]] = None,
+    analysis_goals: Optional[list[str]] = None,
     use_llm: bool = True,
 ) -> dict:
     """
@@ -779,7 +796,7 @@ def delete_project(project_id: str) -> dict:
     ok = _session.store.delete_project(project_id)
     if not ok:
         return {"error": f"Project not found: {project_id}"}
-    return {"ok": True, "deleted_project_id": project_id}
+    return {"status": "deleted", "deleted_project_id": project_id}
 
 
 @mcp.tool()

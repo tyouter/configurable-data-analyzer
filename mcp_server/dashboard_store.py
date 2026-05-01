@@ -9,9 +9,31 @@ Each project has its own dashboards/ directory:
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
+from decimal import Decimal
+
+
+class _ChartJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
+        if isinstance(o, Decimal):
+            return float(o)
+        if hasattr(o, "item"):
+            return o.item()
+        if hasattr(o, "isoformat"):
+            return o.isoformat()
+        return super().default(o)
+
+
+def _json_dumps(obj, **kwargs):
+    return json.dumps(obj, cls=_ChartJSONEncoder, ensure_ascii=False, indent=2, **kwargs)
+
+
+def _json_dump(obj, fp, **kwargs):
+    return json.dump(obj, fp, cls=_ChartJSONEncoder, ensure_ascii=False, indent=2, **kwargs)
 
 
 def _dashboards_dir(projects_dir: str, project_id: str) -> str:
@@ -71,7 +93,7 @@ def create_dashboard(projects_dir: str, project_id: str, name: str) -> dict:
     }
     fp = _filepath(projects_dir, project_id, dashboard_id)
     with open(fp, "w", encoding="utf-8") as f:
-        json.dump(dashboard, f, ensure_ascii=False, indent=2)
+        _json_dump(dashboard, f)
     return {"id": dashboard_id, "name": name, "exists": False}
 
 
@@ -87,7 +109,7 @@ def save_chart(projects_dir: str, project_id: str, dashboard_name: str, chart: d
             chart["saved_at"] = datetime.now().isoformat()
             data["charts"].append(chart)
             data["updated_at"] = datetime.now().isoformat()
-            f.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            f.write_text(_json_dumps(data), encoding="utf-8")
             return {"dashboard_id": data["id"], "chart_id": chart_id, "dashboard_name": dashboard_name}
 
     dashboard_id = str(uuid.uuid4())[:8]
@@ -103,7 +125,7 @@ def save_chart(projects_dir: str, project_id: str, dashboard_name: str, chart: d
     }
     fp = _filepath(projects_dir, project_id, dashboard_id)
     with open(fp, "w", encoding="utf-8") as f:
-        json.dump(dashboard, f, ensure_ascii=False, indent=2)
+        _json_dump(dashboard, f)
     return {"dashboard_id": dashboard_id, "chart_id": chart_id, "dashboard_name": dashboard_name}
 
 
@@ -115,7 +137,7 @@ def delete_chart(projects_dir: str, project_id: str, dashboard_id: str, chart_id
     data["charts"] = [c for c in data.get("charts", []) if c.get("id") != chart_id]
     data["updated_at"] = datetime.now().isoformat()
     with open(fp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        _json_dump(data, f)
     return True
 
 
