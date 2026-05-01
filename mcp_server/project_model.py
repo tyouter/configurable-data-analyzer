@@ -27,7 +27,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 
-PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "..", "projects")
+PROJECTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "projects"))
 
 
 @dataclass
@@ -383,6 +383,86 @@ class ProjectStore:
                 for rc in data.get("reference_contents", [])
             ],
             summary=data.get("summary", {}),
+        )
+
+    def _create_state_path(self, project_id: str) -> str:
+        return os.path.join(self._project_dir(project_id), ".create_state.json")
+
+    def save_create_state(self, project_id: str, state: "CreateProjectState") -> str:
+        path = self._create_state_path(project_id)
+        project_dir = self._project_dir(project_id)
+        os.makedirs(project_dir, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state.to_dict(), f, ensure_ascii=False, indent=2)
+        return path
+
+    def load_create_state(self, project_id: str) -> Optional["CreateProjectState"]:
+        path = self._create_state_path(project_id)
+        if not os.path.exists(path):
+            return None
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return CreateProjectState.from_dict(data)
+
+    def delete_create_state(self, project_id: str) -> bool:
+        path = self._create_state_path(project_id)
+        if os.path.exists(path):
+            os.remove(path)
+            return True
+        return False
+
+
+class CreateState(str, Enum):
+    PRE_ANALYZE = "PRE_ANALYZE"
+    ALIGN = "ALIGN"
+    CONFIRM = "CONFIRM"
+    BUILD = "BUILD"
+    COMPLETED = "COMPLETED"
+
+
+@dataclass
+class CreateProjectState:
+    state: str = "PRE_ANALYZE"
+    project_id: str = ""
+    name: str = ""
+    data_files: list = field(default_factory=list)
+    audit_report: dict = field(default_factory=dict)
+    user_corrections: dict = field(default_factory=dict)
+    confirmed_raw_files: list = field(default_factory=list)
+    confirmed_ref_files: list = field(default_factory=list)
+    analysis_goals: list = field(default_factory=list)
+    created_at: str = ""
+    updated_at: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "state": self.state,
+            "project_id": self.project_id,
+            "name": self.name,
+            "data_files": self.data_files,
+            "audit_report": self.audit_report,
+            "user_corrections": self.user_corrections,
+            "confirmed_raw_files": self.confirmed_raw_files,
+            "confirmed_ref_files": self.confirmed_ref_files,
+            "analysis_goals": self.analysis_goals,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "CreateProjectState":
+        return cls(
+            state=d.get("state", "PRE_ANALYZE"),
+            project_id=d.get("project_id", ""),
+            name=d.get("name", ""),
+            data_files=d.get("data_files", []),
+            audit_report=d.get("audit_report", {}),
+            user_corrections=d.get("user_corrections", {}),
+            confirmed_raw_files=d.get("confirmed_raw_files", []),
+            confirmed_ref_files=d.get("confirmed_ref_files", []),
+            analysis_goals=d.get("analysis_goals", []),
+            created_at=d.get("created_at", ""),
+            updated_at=d.get("updated_at", ""),
         )
 
 

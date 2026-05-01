@@ -82,6 +82,59 @@ Generate a semantic layer definition in YAML format with the following sections:
 
 Respond with valid YAML only, no markdown fences."""
 
+SCHEMA_ANALYSIS_PROMPT_WITH_REFS = """You are a senior data analyst. Analyze the following dataset schema and generate a comprehensive semantic layer definition.
+
+## Dataset Schema
+Table name: {table_name}
+Project type: {project_type}
+Total rows: {total_rows}
+Total columns: {total_columns}
+
+## Column Details
+{columns_detail}
+
+## Sample Data (first 3 rows)
+{sample_data}
+
+## Basic Statistics
+{statistics}
+
+## Reference Documents (IMPORTANT - use these as constraints)
+{reference_context}
+
+## Task
+Generate a semantic layer definition in YAML format with the following sections:
+
+1. **table_name**: A descriptive table name
+2. **columns**: For each column, provide:
+   - business_name: Chinese business name
+   - type: data type (string/integer/float/date/timestamp/boolean)
+   - role: dimension or measure
+   - description: Chinese description (prefer definitions from reference documents)
+   - derived: true if this is a computed column
+   - enum: list of possible values if cardinality < 20
+
+3. **metrics**: Define metrics based on BOTH the data schema AND the KPI definitions from reference documents. For each metric:
+   - business_name: Chinese metric name (use names from KPI definitions if available)
+   - sql: DuckDB SQL expression (MUST use column names from the schema above)
+   - keywords: Chinese keywords for this metric
+   - description: How this metric is calculated (include KPI caliber/口径 from reference docs)
+
+4. **event_definitions** (only for behavior_analysis type): Define events based on the event definitions from reference documents.
+
+5. **examples**: 5-10 example queries users might ask, in Chinese.
+
+6. **rules**: Data analysis rules including any business rules from reference documents.
+
+## Critical Rules
+- You MUST use the KPI definitions from reference documents as the primary source for metrics
+- Each metric's SQL formula MUST use actual column names from the schema (not descriptions)
+- If a KPI definition references an event name, use it in a CASE WHEN or FILTER clause
+- Preserve the exact business names and caliber descriptions from the reference documents
+- All business names and descriptions should be in Chinese
+
+Respond with valid YAML only, no markdown fences."""
+
 
 TYPE_TEMPLATES = {
     "behavior_analysis": {
@@ -390,22 +443,34 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
     }
 
 
-def generate_semantic_layer_with_llm(dm: ProjectDataManager, project_type: str = "generic") -> dict:
+def generate_semantic_layer_with_llm(dm: ProjectDataManager, project_type: str = "generic", reference_context: str = "") -> dict:
     """
     Generate a comprehensive semantic layer using LLM analysis.
     Falls back to rule-based generation if LLM is unavailable.
     """
     schema = _analyze_schema(dm)
 
-    prompt = SCHEMA_ANALYSIS_PROMPT.format(
-        table_name=dm.project.semantic_layer.get("table_name", "events"),
-        project_type=project_type,
-        total_rows=schema["total_rows"],
-        total_columns=schema["total_columns"],
-        columns_detail=schema["columns_detail"],
-        sample_data=schema["sample_data"],
-        statistics=schema["statistics"],
-    )
+    if reference_context:
+        prompt = SCHEMA_ANALYSIS_PROMPT_WITH_REFS.format(
+            table_name=dm.project.semantic_layer.get("table_name", "events"),
+            project_type=project_type,
+            total_rows=schema["total_rows"],
+            total_columns=schema["total_columns"],
+            columns_detail=schema["columns_detail"],
+            sample_data=schema["sample_data"],
+            statistics=schema["statistics"],
+            reference_context=reference_context,
+        )
+    else:
+        prompt = SCHEMA_ANALYSIS_PROMPT.format(
+            table_name=dm.project.semantic_layer.get("table_name", "events"),
+            project_type=project_type,
+            total_rows=schema["total_rows"],
+            total_columns=schema["total_columns"],
+            columns_detail=schema["columns_detail"],
+            sample_data=schema["sample_data"],
+            statistics=schema["statistics"],
+        )
 
     try:
         yaml_content = _call_llm(prompt)
@@ -432,6 +497,7 @@ def generate_semantic_layer(
     dm: ProjectDataManager,
     project_type: str = "generic",
     use_llm: bool = True,
+    reference_context: str = "",
 ) -> dict:
     """
     Generate semantic layer for a project.
@@ -439,7 +505,7 @@ def generate_semantic_layer(
     Otherwise falls back to rule-based generation.
     """
     if use_llm and DEEPSEEK_API_KEY:
-        return generate_semantic_layer_with_llm(dm, project_type)
+        return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
     return generate_basic_semantic_layer(dm, project_type)
 
 

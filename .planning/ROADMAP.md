@@ -71,8 +71,8 @@
 
 | Phase | Status | Completion |
 |-------|--------|------------|
-| Phase 1 | ✅ Completed | 100% |
-| Phase 2 | Not started | 0% |
+| Phase 1 | Completed | 100% |
+| Phase 2 | Planned | 0% |
 | Phase 3 | Not started | 0% |
 | Phase 4 | Not started | 0% |
 

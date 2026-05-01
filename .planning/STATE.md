@@ -3,47 +3,51 @@
 ## Current Position
 
 **Milestone:** Data Pre-Analysis Flow
-**Phase:** 1 — 文件分类与预分析引擎 ✅
-**Status:** Completed — ready for `/gsd-plan-phase 2`
+**Phase:** ALL COMPLETE
+**Status:** Ready for commit
 
-## Context
+## Summary
 
-ChatBI MCP Server `create_project` 重构。将原子操作拆为4阶段交互流程：
-1. 文件分类与预分析（自动） ← ✅ **已完成**
-2. 交互式认知对齐（多轮） ← 下一步
-3. 用户确认（审批门控）
-4. 智能语义层生成（参考文档约束）
+All 4 phases complete. ChatBI MCP Server `create_project` refactored from atomic operation to 4-stage interactive flow with reference document injection.
 
-## Phase 1 Deliverables
+## Phase Completion
 
-| File | Description | Status |
-|------|-------------|--------|
-| `mcp_server/project_model.py` | 5 新 dataclass + `FileCategory` Enum + 持久化方法 | ✅ |
-| `mcp_server/file_classifier.py` | LLM + 规则双模文件分类器 | ✅ |
-| `mcp_server/data_auditor.py` | Schema 提取 + 质量评估 | ✅ |
-| `mcp_server/reference_parser.py` | KPI/字典/需求文档解析 | ✅ |
-| `tests/test_phase1.py` | 端到端集成验证 | ✅ |
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | 文件分类 + 数据审计 + 参考文档解析 | Completed |
+| Phase 2 | 交互式认知对齐流程 (4阶段状态机) | Completed |
+| Phase 3 | 参考文档约束注入语义层生成 | Completed |
+| Phase 4 | P0 Bug 修复 + 集成验证 | Completed |
 
-## Decisions
+## Test Suite: 9/9 PASS
 
-- MCP 工具内原生交互（不新增平台回调）
-- 参考文档通过 LLM Prompt 注入（非规则化）
-- 最小化改造范围（只改 create_project）
-- 强制迁移旧项目
-- 单工具 + 状态机（不拆成多个 MCP 工具）
-- LLM 自动分类 + 用户多轮确认
+| Test | Phase |
+|------|-------|
+| test_classifier.py | Phase 1 |
+| test_auditor.py | Phase 1 |
+| test_parser.py | Phase 1 |
+| test_report_persist.py | Phase 1 |
+| test_phase1.py | Phase 1 集成 |
+| test_kpi_validator.py | Phase 1 AutoResearch |
+| test_real_data.py | Phase 1 真实数据 |
+| test_phase2.py | Phase 2 集成 |
+| test_autoresearch_p3.py | Phase 3+4 AutoResearch |
 
-## Blockers
+## Files Modified
 
-None.
+| File | Changes |
+|------|---------|
+| `mcp_server/server.py` | 4阶段状态机 + 参考文档注入 + load_dotenv |
+| `mcp_server/project_model.py` | CreateState + CreateProjectState + 绝对路径 |
+| `mcp_server/semantic_generator.py` | reference_context 参数 + SCHEMA_ANALYSIS_PROMPT_WITH_REFS |
+| `mcp_server/file_classifier.py` | Phase 1 列名模式匹配 |
+| `mcp_server/reference_parser.py` | Phase 1 AutoResearch + KPIValidator |
+| `mcp_server/data_auditor.py` | Phase 1 审计引擎 |
 
-## Focus
+## New Files
 
-Ready for `/gsd-plan-phase 2` — 交互式认知对齐流程
-
-## Human Actions Pending
-
-None — awaiting user signal to proceed with Phase 2 planning.
+- `tests/test_phase2.py`
+- `tests/test_autoresearch_p3.py`
 
 ---
-*Last updated: 2026-04-30 after Phase 1 completion*
+*Last updated: 2026-04-30 — all phases complete*

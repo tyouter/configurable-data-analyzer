@@ -34,6 +34,12 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from mcp.server.fastmcp import FastMCP
 
 from mcp_server.project_model import (
@@ -41,8 +47,14 @@ from mcp_server.project_model import (
     ProjectStore,
     ProjectSession,
     ProjectDataManager,
+    CreateProjectState,
+    CreateState,
+    DataAuditReport,
     PROJECTS_DIR,
 )
+from mcp_server.file_classifier import FileClassifier
+from mcp_server.data_auditor import DataAuditor
+from mcp_server.reference_parser import ReferenceParser
 from mcp_server.semantic_generator import (
     generate_semantic_layer,
     detect_project_type,
@@ -61,13 +73,20 @@ mcp = FastMCP(
 
 支持多项目管理，每个项目拥有独立的数据文件、语义层和DuckDB实例。
 
-使用流程：
-1. create_project — 导入数据文件，自动生成语义层
-2. switch_project — 切换到目标项目
-3. get_semantic_context — 查看当前项目的语义层（指标、维度、事件定义）
-4. semantic_query / raw_sql — 执行数据分析查询
-5. render_chart — 生成图表
-6. Dashboard CRUD — 管理图表看板
+创建项目流程（多阶段交互）：
+1. create_project(action="start") — 提交数据文件，自动分类+审计+解析，返回审计报告
+2. create_project(action="classify") — 用户修正文件分类，支持多轮交互
+3. create_project(action="confirm") — 用户确认要导入的文件和分析目标
+4. create_project(action="build") — 仅导入确认的文件，生成语义层
+
+快捷流程：create_project(name, data_files) — 等同于 action="start"
+
+查询流程：
+5. switch_project — 切换到目标项目
+6. get_semantic_context — 查看当前项目的语义层
+7. semantic_query / raw_sql — 执行数据分析查询
+8. render_chart — 生成图表
+9. Dashboard CRUD — 管理图表看板
 
 三级查询协议：
 - L1 简单查询：通过 metric + dimensions + filters 结构化查询
@@ -237,58 +256,461 @@ def create_project(
     use_llm: bool = True,
 ) -> dict:
     """
-    创建新项目：导入数据文件，自动生成语义层。
+    创建新项目（多阶段交互流程）。
 
-    流程：
-    1. 复制数据文件到项目目录
-    2. 加载数据到DuckDB
-    3. 自动检测项目类型（如未指定）
-    4. 生成语义层（LLM辅助或规则推导）
-    5. 保存项目配置
+    阶段说明：
+    - action="start": 提交数据文件，自动执行文件分类、Schema提取、参考文档解析，返回审计报告
+    - action="classify": 修正文件分类或回答问题（可多轮）
+    - action="confirm": 确认要导入的原始数据文件、参考文档和分析目标
+    - action="build": 执行构建——仅导入确认的文件并生成语义层
+    - action="status": 查询当前进行中的创建流程状态
+
+    快捷方式：直接传 name + data_files 等同于 action="start"
 
     Args:
-        name: 项目名称，如 "小红书车载应用分析"
-        data_files: 数据文件路径列表，支持 xlsx/csv/parquet
-        project_type: 项目类型 behavior_analysis/business_report/time_series/generic（可选，自动检测）
-        use_llm: 是否使用LLM辅助生成语义层（需要DEEPSEEK_API_KEY，默认True）
+        action: 阶段操作 start/classify/confirm/build/status（默认 start）
+        name: 项目名称（action=start 时必填）
+        data_files: 数据文件路径列表（action=start 时必填）
+        project_id: 项目ID（action=classify/confirm/build/status 时必填）
+        project_type: 项目类型（可选，自动检测）
+        corrections: 文件分类修正 {"filename": "new_category"}（action=classify）
+        questions: 用户问题（action=classify）
+        confirmed_raw_files: 确认导入的原始数据文件名列表（action=confirm）
+        confirmed_ref_files: 确认作为参考的文件名列表（action=confirm）
+        analysis_goals: 确认的分析目标列表（action=confirm）
+        use_llm: 是否使用LLM辅助生成语义层（默认True）
     """
     try:
-        project = _session.store.create_project(
-            name=name,
-            data_files=data_files,
-            project_type=project_type or "generic",
-        )
+        effective_action = action
+        if effective_action == "start" and data_files:
+            pass
+        elif effective_action == "start" and not data_files and not name:
+            return _get_create_status()
 
-        dm = _session.get_dm(project.id)
-
-        if not project_type:
-            detected = detect_project_type(dm)
-            project.project_type = detected
-
-        semantic = generate_semantic_layer(
-            dm,
-            project_type=project.project_type,
-            use_llm=use_llm,
-        )
-        project.semantic_layer = semantic
-
-        _session.store.save_project(project)
-
-        _session.switch_project(project.id)
-
-        return {
-            "project_id": project.id,
-            "name": project.name,
-            "project_type": project.project_type,
-            "data_files": project.data_source.get("files", []),
-            "total_rows": dm.meta.get("total_rows", 0),
-            "total_columns": dm.meta.get("total_columns", 0),
-            "metrics_count": len(semantic.get("metrics", {})),
-            "events_count": len(semantic.get("event_definitions", {})),
-            "semantic_source": "llm" if (use_llm and os.environ.get("DEEPSEEK_API_KEY")) else "rule_based",
-        }
+        if effective_action == "start":
+            return _create_phase_start(name, data_files, project_type)
+        elif effective_action == "classify":
+            return _create_phase_classify(project_id, corrections, questions)
+        elif effective_action == "confirm":
+            return _create_phase_confirm(
+                project_id, confirmed_raw_files,
+                confirmed_ref_files, analysis_goals,
+            )
+        elif effective_action == "build":
+            return _create_phase_build(project_id, use_llm, project_type)
+        elif effective_action == "status":
+            return _get_create_status()
+        else:
+            return {"error": f"Unknown action: {effective_action}. Use start/classify/confirm/build/status"}
     except Exception as e:
-        return {"error": f"Failed to create project: {str(e)}"}
+        return {"error": f"create_project({action}) failed: {str(e)}"}
+
+
+def _create_phase_start(name: str, data_files: list[str], project_type: Optional[str]) -> dict:
+    from datetime import datetime
+
+    if not name:
+        return {"error": "name is required for action=start"}
+    if not data_files:
+        return {"error": "data_files is required for action=start"}
+
+    existing_files = [f for f in data_files if os.path.exists(f)]
+    if not existing_files:
+        return {"error": "No valid file paths found in data_files"}
+
+    project_id = Project.generate_id()
+    now = datetime.now().isoformat()
+
+    classifier = FileClassifier()
+    classifications = classifier.classify_all(existing_files)
+
+    raw_classifications = [c for c in classifications if c.is_raw_data()]
+    raw_columns = []
+    if raw_classifications:
+        auditor = DataAuditor()
+        schemas = auditor.audit_all(classifications)
+        for s in schemas:
+            raw_columns.extend([col["name"] for col in s.columns])
+    else:
+        schemas = []
+
+    parser = ReferenceParser(raw_schema_columns=raw_columns)
+    ref_contents = parser.parse_all(classifications)
+
+    raw_count = sum(1 for c in classifications if c.is_raw_data())
+    ref_count = sum(1 for c in classifications if c.is_reference())
+    total_rows = sum(s.row_count for s in schemas)
+
+    audit_report = DataAuditReport(
+        project_name=name,
+        created_at=now,
+        file_classifications=[
+            {
+                "filename": c.filename,
+                "filepath": c.filepath,
+                "category": c.category,
+                "confidence": c.confidence,
+                "reason": c.reason,
+                "columns": c.columns,
+                "row_count": c.row_count,
+                "format": c.format,
+            }
+            for c in classifications
+        ],
+        raw_data_schemas=[
+            {
+                "filename": s.filename,
+                "row_count": s.row_count,
+                "columns": s.columns,
+                "quality_score": s.quality_score,
+                "quality_issues": s.quality_issues,
+            }
+            for s in schemas
+        ],
+        reference_contents=[
+            {
+                "filename": r.filename,
+                "category": r.category,
+                "kpi_definitions": r.kpi_definitions,
+                "field_definitions": r.field_definitions,
+                "analysis_goals": r.analysis_goals,
+            }
+            for r in ref_contents
+        ],
+        summary={
+            "raw_files": raw_count,
+            "ref_files": ref_count,
+            "total_rows": total_rows,
+            "kpi_count": sum(len(r.kpi_definitions) for r in ref_contents),
+            "field_definitions_count": sum(len(r.field_definitions) for r in ref_contents),
+        },
+    )
+
+    create_state = CreateProjectState(
+        state="ALIGN",
+        project_id=project_id,
+        name=name,
+        data_files=existing_files,
+        audit_report=audit_report.to_dict(),
+        created_at=now,
+        updated_at=now,
+    )
+
+    project_dir = os.path.join(PROJECTS_DIR, project_id)
+    os.makedirs(project_dir, exist_ok=True)
+    _session.store.save_create_state(project_id, create_state)
+    _session.store.save_audit_report(project_id, audit_report)
+
+    return {
+        "state": "ALIGN",
+        "project_id": project_id,
+        "audit_report": audit_report.to_dict(),
+        "message": "数据预分析完成。请审查文件分类和KPI定义，确认或修正后继续。",
+        "next_actions": ["classify", "confirm"],
+    }
+
+
+def _create_phase_classify(
+    project_id: str,
+    corrections: Optional[dict],
+    questions: Optional[str],
+) -> dict:
+    from datetime import datetime
+
+    if not project_id:
+        return {"error": "project_id is required for action=classify"}
+
+    create_state = _session.store.load_create_state(project_id)
+    if not create_state:
+        return {"error": f"No create state found for project {project_id}. Start with action=start first."}
+
+    if create_state.state not in ("ALIGN", "PRE_ANALYZE"):
+        return {"error": f"Cannot classify in state {create_state.state}. Expected ALIGN."}
+
+    audit_report = create_state.audit_report
+    classifications = audit_report.get("file_classifications", [])
+
+    if corrections:
+        valid_categories = {"raw_data", "reference_kpi", "reference_dict", "reference_req", "reference_other"}
+        for filename, new_cat in corrections.items():
+            if new_cat not in valid_categories:
+                return {"error": f"Invalid category '{new_cat}'. Valid: {sorted(valid_categories)}"}
+            for fc in classifications:
+                if fc["filename"] == filename:
+                    fc["category"] = new_cat
+                    fc["reason"] = "用户修正"
+                    fc["confidence"] = 1.0
+                    break
+
+        create_state.user_corrections.update(corrections)
+
+    answer = ""
+    if questions:
+        answer = _answer_alignment_question(questions, audit_report)
+
+    create_state.state = "ALIGN"
+    create_state.updated_at = datetime.now().isoformat()
+    _session.store.save_create_state(project_id, create_state)
+
+    result = {
+        "state": "ALIGN",
+        "project_id": project_id,
+        "file_classifications": classifications,
+        "summary": audit_report.get("summary", {}),
+    }
+    if corrections:
+        result["corrections_applied"] = list(corrections.keys())
+    if answer:
+        result["answer"] = answer
+    result["message"] = "已更新。请继续修正或确认。"
+    result["next_actions"] = ["classify", "confirm"]
+    return result
+
+
+def _create_phase_confirm(
+    project_id: str,
+    confirmed_raw_files: Optional[list[str]],
+    confirmed_ref_files: Optional[list[str]],
+    analysis_goals: Optional[list[str]],
+) -> dict:
+    from datetime import datetime
+
+    if not project_id:
+        return {"error": "project_id is required for action=confirm"}
+
+    create_state = _session.store.load_create_state(project_id)
+    if not create_state:
+        return {"error": f"No create state found for project {project_id}."}
+
+    if create_state.state not in ("ALIGN", "CONFIRM"):
+        return {"error": f"Cannot confirm in state {create_state.state}. Expected ALIGN."}
+
+    audit_report = create_state.audit_report
+    classifications = audit_report.get("file_classifications", [])
+
+    raw_names = {fc["filename"] for fc in classifications if fc["category"] == "raw_data"}
+    ref_names = {fc["filename"] for fc in classifications if fc["category"].startswith("reference")}
+
+    if confirmed_raw_files is not None:
+        invalid = set(confirmed_raw_files) - raw_names
+        if invalid:
+            return {"error": f"These files are not classified as raw_data: {sorted(invalid)}"}
+        create_state.confirmed_raw_files = confirmed_raw_files
+    elif not create_state.confirmed_raw_files:
+        create_state.confirmed_raw_files = sorted(raw_names)
+
+    if confirmed_ref_files is not None:
+        invalid = set(confirmed_ref_files) - ref_names
+        if invalid:
+            return {"error": f"These files are not classified as reference: {sorted(invalid)}"}
+        create_state.confirmed_ref_files = confirmed_ref_files
+    elif not create_state.confirmed_ref_files:
+        create_state.confirmed_ref_files = sorted(ref_names)
+
+    if analysis_goals:
+        create_state.analysis_goals = analysis_goals
+
+    if not create_state.confirmed_raw_files:
+        return {"error": "At least 1 raw data file must be confirmed to build."}
+
+    create_state.state = "CONFIRM"
+    create_state.updated_at = datetime.now().isoformat()
+    _session.store.save_create_state(project_id, create_state)
+
+    return {
+        "state": "BUILD_READY",
+        "project_id": project_id,
+        "build_plan": {
+            "raw_files_to_import": create_state.confirmed_raw_files,
+            "ref_files_for_context": create_state.confirmed_ref_files,
+            "analysis_goals": create_state.analysis_goals,
+            "summary": audit_report.get("summary", {}),
+        },
+        "message": "确认后将开始构建语义层。调用 action=build 继续。",
+        "next_actions": ["build"],
+    }
+
+
+def _create_phase_build(
+    project_id: str,
+    use_llm: bool,
+    project_type: Optional[str],
+) -> dict:
+    from datetime import datetime
+
+    if not project_id:
+        return {"error": "project_id is required for action=build"}
+
+    create_state = _session.store.load_create_state(project_id)
+    if not create_state:
+        return {"error": f"No create state found for project {project_id}."}
+
+    if create_state.state != "CONFIRM":
+        return {"error": f"Cannot build in state {create_state.state}. Complete confirm first."}
+
+    classifications = create_state.audit_report.get("file_classifications", [])
+    raw_file_map = {}
+    for fc in classifications:
+        if fc["filename"] in create_state.confirmed_raw_files:
+            raw_file_map[fc["filename"]] = fc["filepath"]
+
+    raw_paths = [raw_file_map[name] for name in create_state.confirmed_raw_files if name in raw_file_map]
+
+    if not raw_paths:
+        return {"error": "No confirmed raw data files found to import."}
+
+    project = _session.store.create_project(
+        name=create_state.name,
+        data_files=raw_paths,
+        project_type=project_type or "generic",
+        project_id=project_id,
+    )
+
+    dm = _session.get_dm(project.id)
+
+    if not project_type:
+        detected = detect_project_type(dm)
+        project.project_type = detected
+
+    semantic = generate_semantic_layer(
+        dm,
+        project_type=project.project_type,
+        use_llm=use_llm,
+        reference_context=_build_reference_context(create_state),
+    )
+    project.semantic_layer = semantic
+
+    if create_state.analysis_goals:
+        project.meta["analysis_goals"] = create_state.analysis_goals
+    project.meta["confirmed_ref_files"] = create_state.confirmed_ref_files
+
+    _session.store.save_project(project)
+    _session.store.delete_create_state(project_id)
+
+    _session.switch_project(project.id)
+
+    return {
+        "state": "COMPLETED",
+        "project_id": project.id,
+        "name": project.name,
+        "project_type": project.project_type,
+        "data_files": project.data_source.get("files", []),
+        "total_rows": dm.meta.get("total_rows", 0),
+        "total_columns": dm.meta.get("total_columns", 0),
+        "metrics_count": len(semantic.get("metrics", {})),
+        "events_count": len(semantic.get("event_definitions", {})),
+        "semantic_source": "llm" if (use_llm and os.environ.get("DEEPSEEK_API_KEY")) else "rule_based",
+    }
+
+
+def _build_reference_context(create_state: CreateProjectState) -> str:
+    audit_report = create_state.audit_report
+    ref_contents = audit_report.get("reference_contents", [])
+    confirmed_ref = set(create_state.confirmed_ref_files)
+
+    if create_state.state in ("CONFIRM", "BUILD", "COMPLETED") and not confirmed_ref:
+        return ""
+
+    parts = []
+    for rc in ref_contents:
+        if confirmed_ref and rc.get("filename") not in confirmed_ref:
+            continue
+
+        sections = []
+        cat = rc.get("category", "")
+        if cat == "reference_kpi":
+            kpis = rc.get("kpi_definitions", [])
+            if kpis:
+                sections.append("### KPI 指标定义")
+                for kpi in kpis:
+                    name = kpi.get("name", "?")
+                    desc = kpi.get("description", "")
+                    formula = kpi.get("formula", "")
+                    params = kpi.get("params", [])
+                    line = f"- **{name}**: {desc}"
+                    if formula:
+                        line += f" (公式: {formula})"
+                    if params:
+                        line += f" [参数: {', '.join(params)}]"
+                    sections.append(line)
+        elif cat == "reference_dict":
+            fields = rc.get("field_definitions", [])
+            if fields:
+                sections.append("### 数据字典")
+                for fd in fields:
+                    field = fd.get("field", "?")
+                    meaning = fd.get("meaning", "")
+                    enums = fd.get("enum_values", [])
+                    line = f"- **{field}**: {meaning}"
+                    if enums:
+                        line += f" (枚举: {', '.join(str(e) for e in enums[:10])})"
+                    sections.append(line)
+        else:
+            raw = rc.get("raw_text", "")
+            if raw:
+                sections.append(f"### 参考文档内容\n{raw[:1000]}")
+
+        if sections:
+            parts.append(f"## 文件: {rc['filename']} (类型: {cat})\n" + "\n".join(sections))
+
+    if not parts:
+        return ""
+
+    return "\n\n".join(parts)
+
+
+def _answer_alignment_question(question: str, audit_report: dict) -> str:
+    summary = audit_report.get("summary", {})
+    classifications = audit_report.get("file_classifications", [])
+    ref_contents = audit_report.get("reference_contents", [])
+
+    context_parts = [
+        f"项目概况: {summary.get('raw_files', 0)} 个原始数据文件, {summary.get('ref_files', 0)} 个参考文档, 共 {summary.get('total_rows', 0)} 行数据",
+        "文件分类:",
+    ]
+    for fc in classifications:
+        context_parts.append(f"  - {fc['filename']}: {fc['category']} (置信度: {fc.get('confidence', 0):.0%})")
+
+    for rc in ref_contents:
+        if rc.get("kpi_definitions"):
+            context_parts.append(f"\n{rc['filename']} 中的 KPI 定义 ({len(rc['kpi_definitions'])} 个):")
+            for kpi in rc["kpi_definitions"][:10]:
+                context_parts.append(f"  - {kpi.get('name', '?')}: {kpi.get('description', '')[:60]}")
+
+    context = "\n".join(context_parts)
+    return f"基于审计报告:\n{context}\n\n关于您的问题「{question}」，请参考以上信息。如需更详细的分析，请在确认后构建项目。"
+
+
+def _get_create_status() -> dict:
+    projects_dir = os.path.join(os.path.dirname(__file__), "..", "projects")
+    projects_dir = os.path.abspath(projects_dir)
+    if not os.path.exists(projects_dir):
+        return {"state": "NONE", "message": "No projects directory."}
+
+    pending = []
+    for entry in os.listdir(projects_dir):
+        state_path = os.path.join(projects_dir, entry, ".create_state.json")
+        if os.path.exists(state_path):
+            try:
+                cs = _session.store.load_create_state(entry)
+                if cs and cs.state not in ("COMPLETED",):
+                    pending.append({
+                        "project_id": cs.project_id,
+                        "name": cs.name,
+                        "state": cs.state,
+                        "created_at": cs.created_at,
+                    })
+            except Exception:
+                pass
+
+    if not pending:
+        return {"state": "NONE", "message": "No pending create_project flows."}
+
+    return {
+        "state": "PENDING",
+        "pending_projects": pending,
+        "message": f"Found {len(pending)} pending create flow(s). Use action=classify/confirm/build to continue.",
+    }
 
 
 @mcp.tool()
