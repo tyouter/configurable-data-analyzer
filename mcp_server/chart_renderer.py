@@ -145,7 +145,29 @@ def build_echarts_option(
     Build ECharts option dict from query result data.
     Returns None for 'table' type (no chart needed).
     """
-    if chart_type == "table" or chart_type not in CHART_TEMPLATES:
+    if chart_type == "table":
+        return None
+
+    if chart_type == "kpi_card":
+        if not data:
+            return None
+        row = data[0]
+        values = list(row.values())
+        primary_value = values[0] if values else None
+        sub_parts = values[1:] if len(values) > 1 else []
+        def _fmt_val(v):
+            if isinstance(v, float):
+                return f"{v:,.2f}" if abs(v) >= 100 else f"{v:.2f}"
+            return str(v)
+        sub_text = " | ".join(_fmt_val(v) for v in sub_parts) if sub_parts else ""
+        return {
+            "value": primary_value,
+            "metric_type": "count",
+            "sub_text": sub_text,
+            "raw_data": {k: v for k, v in row.items()},
+        }
+
+    if chart_type not in CHART_TEMPLATES:
         return None
 
     option = copy.deepcopy(CHART_TEMPLATES[chart_type])

@@ -27,9 +27,17 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from mcp_server.project_model import ProjectStore, ProjectSession, PROJECTS_DIR
-from mcp_server.semantic_generator import generate_semantic_layer, detect_project_type
+from mcp_server.project_model import ProjectSession, PROJECTS_DIR
 from mcp_server.semantic_query import validate_raw_sql
+from mcp_server.service.project import create_project as svc_create_project
+from mcp_server.service.query import (
+    require_project,
+    build_dynamic_l1_query,
+    execute_raw_sql as svc_execute_raw_sql,
+)
+from mcp_server.service.dashboard import (
+    render_chart as svc_render_chart,
+)
 from mcp_server import dashboard_store
 
 
@@ -37,42 +45,75 @@ _session = ProjectSession()
 
 
 def cmd_create(args):
-    store = _session.store
     data_files = args.data_files
     for f in data_files:
         if not os.path.exists(f):
             print(f"ERROR: File not found: {f}")
             return 1
 
-    project = store.create_project(
+    result = svc_create_project(
+        session=_session,
         name=args.name,
         data_files=data_files,
+        action="start",
         project_type=args.type or "generic",
-    )
-
-    dm = _session.get_dm(project.id)
-    if not args.type:
-        detected = detect_project_type(dm)
-        project.project_type = detected
-        print(f"  Detected project type: {detected}")
-
-    semantic = generate_semantic_layer(
-        dm,
-        project_type=project.project_type,
         use_llm=not args.no_llm,
     )
-    project.semantic_layer = semantic
-    store.save_project(project)
-    _session.switch_project(project.id)
 
-    print(f"\n  Project created successfully!")
-    print(f"  ID:       {project.id}")
-    print(f"  Name:     {project.name}")
-    print(f"  Type:     {project.project_type}")
-    print(f"  Rows:     {dm.meta.get('total_rows', 0)}")
-    print(f"  Columns:  {dm.meta.get('total_columns', 0)}")
-    print(f"  Metrics:  {len(semantic.get('metrics', {}))}")
-    print(f"  Events:   {len(semantic.get('event_definitions', {}))}")
+    if "error" in result:
+        print(f"  ERROR: {result['error']}")
+        return 1
+
+    if result.get("state") == "ALIGN":
+        project_id = result["project_id"]
+        audit = result.get("audit_report", {})
+        summary = audit.get("summary", {})
+
+        print(f"\n  Project pre-analysis complete!")
+        print(f"  ID:       {project_id}")
+        print(f"  Name:     {args.name}")
+        print(f"  Raw files:  {summary.get('raw_files', 0)}")
+        print(f"  Ref files:  {summary.get('ref_files', 0)}")
+        print(f"  Total rows: {summary.get('total_rows', 0)}")
+        print(f"\n  File classifications:")
+        for fc in audit.get("file_classifications", []):
+            print(f"    {fc['filename']}: {fc['category']} (confidence: {fc.get('confidence', 0):.0%})")
+        print(f"\n  Auto-building project...")
+
+        confirm_result = svc_create_project(
+            session=_session,
+            action="confirm",
+            project_id=project_id,
+        )
+
+        if "error" in confirm_result:
+            print(f"  ERROR in confirm: {confirm_result['error']}")
+            return 1
+
+        build_result = svc_create_project(
+            session=_session,
+            action="build",
+            project_id=project_id,
+            use_llm=not args.no_llm,
+            project_type=args.type,
+        )
+
+        if "error" in build_result:
+            print(f"  ERROR in build: {build_result['error']}")
+            return 1
+
+        if build_result.get("state") == "COMPLETED":
+            print(f"\n  Project created successfully!")
+            print(f"  ID:       {build_result.get('project_id', project_id)}")
+            print(f"  Name:     {build_result.get('name', args.name)}")
+            print(f"  Type:     {build_result.get('project_type', '?')}")
+            print(f"  Metrics:  {build_result.get('metrics_count', 0)}")
+            print(f"  Events:   {build_result.get('events_count', 0)}")
+        else:
+            print(f"  Build result: {json.dumps(build_result, indent=2, default=str)}")
+    else:
+        print(f"  Result: {json.dumps(result, indent=2, default=str)}")
+
     return 0
 
 
@@ -160,10 +201,13 @@ def cmd_delete(args):
 
 
 def cmd_query(args):
-    project, dm = _require_project()
-    semantic = project.get_full_semantic_layer(PROJECTS_DIR)
+    try:
+        project, dm = require_project(_session)
+    except ValueError as e:
+        print(f"  ERROR: {e}")
+        return 1
 
-    from mcp_server.server import _build_dynamic_l1_query
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR)
 
     dimensions = args.dims.split(",") if args.dims else []
     filters = []
@@ -173,7 +217,7 @@ def cmd_query(args):
                 field, value = f.split("=", 1)
                 filters.append({"field": field, "op": "eq", "value": value})
 
-    sql, err = _build_dynamic_l1_query(
+    sql, err = build_dynamic_l1_query(
         semantic_layer=semantic,
         metric=args.metric,
         dimensions=dimensions,
@@ -211,18 +255,15 @@ def cmd_query(args):
 
 
 def cmd_sql(args):
-    project, dm = _require_project()
+    result = svc_execute_raw_sql(session=_session, sql=args.sql)
 
-    sql = args.sql
-    try:
-        sql = validate_raw_sql(sql)
-    except ValueError as e:
-        print(f"  ERROR: {e}")
+    if "error" in result:
+        print(f"  ERROR: {result['error']}")
         return 1
 
-    print(f"\n  SQL:\n  {sql}\n")
+    data = result.get("data", [])
+    print(f"\n  SQL:\n  {result.get('sql', args.sql)}\n")
 
-    data = dm.execute(sql)
     if not data:
         print("  (no results)")
         return 0
@@ -370,18 +411,6 @@ def cmd_serve(args):
     from mcp_server.server import mcp
     mcp.run(transport=args.transport)
     return 0
-
-
-def _require_project():
-    project = _session.get_current_project()
-    if not project:
-        print("  ERROR: No active project. Use 'switch' or 'create' first.")
-        sys.exit(1)
-    dm = _session.get_current_dm()
-    if not dm:
-        print("  ERROR: Project data not loaded. Try 'switch' again.")
-        sys.exit(1)
-    return project, dm
 
 
 def main():

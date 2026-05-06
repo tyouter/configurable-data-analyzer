@@ -13,6 +13,7 @@ DuckDB instance, and configuration. Projects are stored as:
 """
 
 import os
+import re
 import json
 import shutil
 import uuid
@@ -214,7 +215,14 @@ class Project:
     meta: dict = field(default_factory=dict)
 
     @staticmethod
-    def generate_id() -> str:
+    def generate_id(name: str = "") -> str:
+        if name:
+            slug = name.strip()
+            slug = re.sub(r'[<>:"/\\|?*]', '', slug)
+            slug = re.sub(r'\s+', '-', slug)
+            slug = slug.strip('-.')
+            if slug:
+                return slug
         return str(uuid.uuid4())[:8]
 
     def to_dict(self) -> dict:
@@ -333,6 +341,15 @@ class ProjectStore:
         self.projects_dir = projects_dir or PROJECTS_DIR
         os.makedirs(self.projects_dir, exist_ok=True)
 
+    def _ensure_unique_id(self, project_id: str) -> str:
+        if not os.path.exists(self._project_dir(project_id)):
+            return project_id
+        base = project_id
+        counter = 2
+        while os.path.exists(self._project_dir(f"{base}-{counter}")):
+            counter += 1
+        return f"{base}-{counter}"
+
     def _project_dir(self, project_id: str) -> str:
         return os.path.join(self.projects_dir, project_id)
 
@@ -370,8 +387,27 @@ class ProjectStore:
                     continue
         return projects
 
+    def resolve_project_id(self, identifier: str) -> Optional[str]:
+        config_path = self._config_path(identifier)
+        if os.path.exists(config_path):
+            return identifier
+        for entry in sorted(os.listdir(self.projects_dir)):
+            cp = os.path.join(self.projects_dir, entry, "project.yaml")
+            if os.path.exists(cp):
+                try:
+                    with open(cp, encoding="utf-8") as f:
+                        data = yaml.safe_load(f)
+                    if data.get("name") == identifier or data.get("id") == identifier:
+                        return data.get("id", entry)
+                except Exception:
+                    continue
+        return None
+
     def get_project(self, project_id: str) -> Optional[Project]:
-        config_path = self._config_path(project_id)
+        resolved = self.resolve_project_id(project_id)
+        if not resolved:
+            return None
+        config_path = self._config_path(resolved)
         if not os.path.exists(config_path):
             return None
         with open(config_path, encoding="utf-8") as f:
@@ -397,7 +433,11 @@ class ProjectStore:
         project_type: str = "generic",
         project_id: str = None,
     ) -> Project:
-        project_id = project_id or Project.generate_id()
+        if project_id:
+            project_id = project_id
+        else:
+            project_id = Project.generate_id(name)
+            project_id = self._ensure_unique_id(project_id)
         now = datetime.now().isoformat()
 
         data_dir = self._data_dir(project_id)
@@ -718,6 +758,7 @@ class ProjectDataManager:
             existing_cols = [c[0] for c in cols]
             self.meta["columns"] = existing_cols
             self.meta["total_columns"] = len(cols)
+            self._ensure_derived_columns_in_duckdb(table_name, existing_cols)
         except Exception as e:
             self.meta = {"error": str(e)}
 
@@ -983,15 +1024,18 @@ class ProjectSession:
         return self._current_project_id
 
     def switch_project(self, project_id: str) -> Project:
-        project = self.store.get_project(project_id)
+        resolved = self.store.resolve_project_id(project_id)
+        if not resolved:
+            raise ValueError(f"Project not found: {project_id}")
+        project = self.store.get_project(resolved)
         if not project:
             raise ValueError(f"Project not found: {project_id}")
-        self._current_project_id = project_id
+        self._current_project_id = resolved
         self._save_current_project_id()
-        if project_id not in self._managers:
+        if resolved not in self._managers:
             dm = ProjectDataManager(project, self.projects_dir)
             dm.load()
-            self._managers[project_id] = dm
+            self._managers[resolved] = dm
         return project
 
     def get_current_project(self) -> Optional[Project]:
@@ -1011,14 +1055,15 @@ class ProjectSession:
         return self._managers.get(self._current_project_id)
 
     def get_dm(self, project_id: str) -> ProjectDataManager:
-        if project_id not in self._managers:
-            project = self.store.get_project(project_id)
+        resolved = self.store.resolve_project_id(project_id) or project_id
+        if resolved not in self._managers:
+            project = self.store.get_project(resolved)
             if not project:
                 raise ValueError(f"Project not found: {project_id}")
             dm = ProjectDataManager(project, self.projects_dir)
             dm.load()
-            self._managers[project_id] = dm
-        return self._managers[project_id]
+            self._managers[resolved] = dm
+        return self._managers[resolved]
 
     def unload_project(self, project_id: str):
         if project_id in self._managers:

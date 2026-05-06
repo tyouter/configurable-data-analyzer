@@ -212,6 +212,29 @@ def render_dashboard_html(
 
     body_content = "\n".join(domain_sections)
 
+    date_start_val = ""
+    date_end_val = ""
+    all_dates = []
+    for chart in charts:
+        opt = chart.get("chart_option")
+        if isinstance(opt, dict):
+            x_data = opt.get("xAxis", {})
+            if isinstance(x_data, dict):
+                x_data = x_data.get("data", [])
+            if isinstance(x_data, list):
+                for v in x_data:
+                    s = str(v)
+                    if len(s) >= 10 and s[:4].isdigit():
+                        all_dates.append(s[:10])
+    if all_dates:
+        all_dates.sort()
+        date_start_val = all_dates[0]
+        date_end_val = all_dates[-1]
+
+    date_range_label = ""
+    if date_start_val and date_end_val:
+        date_range_label = f"{date_start_val} ~ {date_end_val}"
+
     theme_switcher = ""
     available_themes = list_themes()
     if len(available_themes) > 1:
@@ -424,15 +447,15 @@ body {{
     <div class="header">
         <div>
             <h1>{_esc(dashboard_title)}</h1>
-            <div class="subtitle">{_esc(project_name)}</div>
+            <div class="subtitle">{_esc(project_name)}{' | ' + _esc(date_range_label) if date_range_label else ''}</div>
         </div>
         {theme_switcher}
     </div>
     <div class="filter-bar" id="filter-bar">
         <label>时间范围</label>
-        <input type="date" id="date-start" />
+        <input type="date" id="date-start" value="{_esc(date_start_val)}" />
         <span style="color:{text_secondary}">~</span>
-        <input type="date" id="date-end" />
+        <input type="date" id="date-end" value="{_esc(date_end_val)}" />
         <button class="filter-btn" data-range="7">近7天</button>
         <button class="filter-btn" data-range="30">近30天</button>
         <button class="filter-btn active" data-range="all">全部</button>
@@ -450,15 +473,10 @@ body {{
         var chart = echarts.init(el, 'dashboard-theme');
         charts.push(chart);
         var optionJson = el.getAttribute('data-option');
-        var chartTitle = el.getAttribute('data-title') || '';
         var parsed = null;
         if (optionJson) {{
             try {{
                 parsed = JSON.parse(optionJson);
-                if (chartTitle && (!parsed.title || !parsed.title.text)) {{
-                    parsed.title = parsed.title || {{}};
-                    parsed.title.text = chartTitle;
-                }}
                 chart.setOption(parsed);
             }} catch(e) {{
                 console.error('Chart option parse error:', e);
@@ -609,6 +627,8 @@ def _render_kpi_card_from_option(title, value, metric_type, card_bg, text_color,
 
 
 def _render_chart_card(index, title, option, card_bg, text_color, border_color, is_dark, is_funnel=False, is_full_width=False):
+    if isinstance(option, dict):
+        option = {k: v for k, v in option.items() if k != "title"}
     option_json = json.dumps(option, ensure_ascii=False)
     full_width_class = " chart-full-width" if (is_funnel or is_full_width) else ""
     return f"""
