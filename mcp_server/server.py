@@ -62,6 +62,7 @@ from mcp_server.service import (
     execute_semantic_query as svc_execute_semantic_query,
     execute_raw_sql as svc_execute_raw_sql,
     explore_column_values as svc_explore_column_values,
+    review_data_issues as svc_review_data_issues,
     get_semantic_context as svc_get_semantic_context,
     review_data_understanding as svc_review_data_understanding,
     update_semantic_config as svc_update_semantic_config,
@@ -79,8 +80,10 @@ mcp = FastMCP(
 1. create_project(action="start") — 提交数据文件，自动分类+审计+解析，返回审计报告
 2. 向用户展示审计结果，询问是否需要修正分类或补充业务上下文
 3. create_project(action="confirm") — 用户确认要导入的文件和分析目标
-4. create_project(action="build") — 生成语义层
-5. get_semantic_context — 展示生成的语义层给用户检查，允许调整
+4. create_project(action="build") — 导入数据并生成语义层
+5. review_data_issues — 对导入的数据执行深度质量检查
+   向用户展示发现的问题（错误/警告/建议），逐个确认处理方式
+6. get_semantic_context — 展示生成的语义层给用户检查，允许调整
 快捷：create_project(name, data_files) 等同于 action="start"
 
 ═══ 查询+渲染流程（交互式）═══
@@ -462,6 +465,31 @@ def explore_column_values(
         limit: 返回值数量上限（默认50，最大200）
     """
     return svc_explore_column_values(session=_session, column=column, pattern=pattern, limit=limit)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Tool: review_data_issues — 数据质量检查
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def review_data_issues(project_type: str = "") -> dict:
+    """
+    对当前项目数据执行深度质量检查，基于行业经验规则发现问题并给出建议。
+
+    在数据导入后、生成语义层之前调用。返回按严重程度分级的问题列表。
+    Agent 应向用户逐个展示问题，收集处理决策。
+
+    检查内容：
+    - 通用：空值率、重复行、未来日期、负数异常、单一值列
+    - 埋点分析：事件名格式、低频事件、会话时长异常、日期断档
+    - 时序分析：时间间隔不一致、数值突刺、数据停滞
+
+    同时返回派生列建议和业务规则提醒。
+
+    Args:
+        project_type: 项目类型，影响检查规则集。可选：behavior_analysis / time_series / 留空=仅通用规则
+    """
+    return svc_review_data_issues(session=_session, project_type=project_type)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -162,3 +162,133 @@ class DataAuditor:
 
         quality_score = round(avg_null * 0.4 + avg_type * 0.3 + avg_unique * 0.3, 4)
         return quality_score, issues
+
+    def deep_audit(
+        self,
+        execute_fn,
+        table_name: str,
+        columns: list[dict],
+        project_type: str = "",
+    ) -> list[dict]:
+        from mcp_server.data_skills import get_rules_for_type
+
+        skills = get_rules_for_type(project_type)
+        issues = []
+        col_names = [c["name"] for c in columns]
+        date_cols = [c["name"] for c in columns if c.get("is_date")]
+        numeric_cols = [c["name"] for c in columns if c.get("is_numeric")]
+
+        for skill in skills:
+            for check in skill.get("checks", []):
+                sql_template = check.get("sql_template")
+                if not sql_template:
+                    detect = check.get("detect", "")
+                    if detect and "unique_rate" in detect:
+                        for col in columns:
+                            if col.get("unique_rate", 0) > 0.95 and not col.get("is_numeric"):
+                                issues.append(self._format_issue(check, col["name"]))
+                    continue
+
+                sql = self._render_sql(sql_template, table_name, col_names, date_cols, numeric_cols)
+                if not sql:
+                    continue
+
+                try:
+                    result = execute_fn(sql)
+                    if result and len(result) > 0:
+                        issues.append(self._format_issue(
+                            check,
+                            extra_data=result[:5],
+                            affected_count=len(result),
+                        ))
+                except Exception:
+                    pass
+
+            for rule in skill.get("business_rules", []):
+                issues.append({
+                    "type": "business_rule",
+                    "severity": "info",
+                    "message": rule,
+                    "suggestion": "请在生成语义层时确保此规则被遵守。",
+                })
+
+        for dc in self._collect_derived_suggestions(skills, col_names, date_cols, numeric_cols):
+            issues.append(dc)
+
+        return issues
+
+    def _render_sql(
+        self,
+        template: str,
+        table_name: str,
+        col_names: list[str],
+        date_cols: list[str],
+        numeric_cols: list[str],
+    ) -> Optional[str]:
+        if "{col}" in template and not numeric_cols:
+            return None
+        if "{date_col}" in template and not date_cols:
+            return None
+        if "{ts_col}" in template and not date_cols:
+            return None
+        if "{val_col}" in template and not numeric_cols:
+            return None
+
+        all_cols = ', '.join(f'"{c}"' for c in col_names)
+        sql = template.replace("{table}", table_name)
+        sql = sql.replace("{all_cols}", all_cols)
+
+        if "{col}" in template:
+            col = numeric_cols[0]
+            sql = sql.replace("{col}", col)
+        if "{date_col}" in template:
+            sql = sql.replace("{date_col}", date_cols[0])
+        if "{ts_col}" in template:
+            sql = sql.replace("{ts_col}", date_cols[0])
+        if "{val_col}" in template:
+            sql = sql.replace("{val_col}", numeric_cols[0])
+
+        return sql
+
+    def _format_issue(
+        self,
+        check: dict,
+        col_name: str = "",
+        extra_data: list = None,
+        affected_count: int = 0,
+    ) -> dict:
+        issue = {
+            "type": "data_quality",
+            "check_id": check["id"],
+            "severity": check["severity"],
+            "name": check["name"],
+            "description": check["description"],
+            "suggestion": check.get("suggestion", ""),
+        }
+        if col_name:
+            issue["column"] = col_name
+        if affected_count:
+            issue["affected_count"] = affected_count
+        if extra_data:
+            issue["sample_data"] = extra_data
+        return issue
+
+    def _collect_derived_suggestions(
+        self,
+        skills: list[dict],
+        col_names: list[str],
+        date_cols: list[str],
+        numeric_cols: list[str],
+    ) -> list[dict]:
+        suggestions = []
+        for skill in skills:
+            for dc in skill.get("derived_columns", []):
+                suggestions.append({
+                    "type": "derived_column_suggestion",
+                    "severity": "info",
+                    "name": dc["name"],
+                    "description": dc["description"],
+                    "example": dc.get("example", ""),
+                    "suggestion": f"建议添加派生列 {dc['name']}：{dc.get('example', dc['description'])}",
+                })
+        return suggestions

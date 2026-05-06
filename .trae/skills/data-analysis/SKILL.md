@@ -96,9 +96,28 @@ export_dashboard(dashboard_name="KPI看板", theme="ggplot2_minimal")
 1. create_project(name, data_files) → 审计报告
 2. 向用户展示分类结果，询问是否修正
 3. create_project(action="confirm", confirmed_raw_files=[...])
-4. create_project(action="build") → 语义层生成
-5. get_semantic_context() → 展示给用户检查
+4. create_project(action="build") → 导入数据 + 语义层生成
+5. review_data_issues(project_type="behavior_analysis") → 数据质量检查
+   向用户展示发现的问题（错误/警告/建议），逐个确认处理方式
+6. get_semantic_context() → 展示给用户检查
 ```
+
+### 数据质量检查详情
+
+`review_data_issues` 基于行业经验规则检查数据质量：
+
+**通用规则**（所有项目都会检查）：
+- 高空值率列、完全重复行、未来日期、负数异常值、单一值列、疑似ID列
+
+**行为分析规则**（project_type="behavior_analysis"）：
+- 事件名格式规范、低频事件、负/超长会话时长、用户事件爆发、日期断档
+- 派生列建议：page_root（页面根路径）、event_action（动作类型）、user_tenure_days（用户天数）
+
+**时序分析规则**（project_type="time_series"）：
+- 时间间隔不一致、数值突刺、数据停滞、零值异常
+- 派生列建议：差分值（增量）、滚动平均值
+
+**Agent 必须向用户展示所有问题并收集决策**，不要自动处理。
 
 ## 查询协议
 

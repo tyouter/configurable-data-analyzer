@@ -16,6 +16,7 @@ from mcp_server.service.query import (
     execute_semantic_query,
     execute_raw_sql,
     explore_column_values,
+    review_data_issues,
 )
 from mcp_server.service.dashboard import (
     list_dashboards,

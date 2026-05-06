@@ -419,3 +419,104 @@ def explore_column_values(
         return result
     except Exception as e:
         return {"error": f"Failed to explore column values: {str(e)}"}
+
+
+def review_data_issues(
+    session: ProjectSession,
+    project_type: str = "",
+) -> dict:
+    try:
+        project, dm = require_project(session)
+    except ValueError as e:
+        return {"error": str(e)}
+
+    from mcp_server.data_auditor import DataAuditor
+
+    table_name = "events"
+    try:
+        sample_sql = f"SELECT * FROM {table_name} LIMIT 1"
+        dm.execute(sample_sql)
+    except Exception:
+        return {"error": f"Table '{table_name}' not found. Load data first."}
+
+    schema_sql = f"SELECT * FROM {table_name} LIMIT 100"
+    sample_data = dm.execute(schema_sql)
+
+    columns = []
+    if sample_data:
+        keys = list(sample_data[0].keys())
+        for col_name in keys:
+            col_sql = f'SELECT COUNT(DISTINCT "{col_name}") AS unique_count, SUM(CASE WHEN "{col_name}" IS NULL THEN 1 ELSE 0 END) AS null_count, COUNT(*) AS total FROM {table_name}'
+            stats = dm.execute(col_sql)
+            row = stats[0] if stats else {}
+            total = row.get("total", 0) or 1
+            unique_count = row.get("unique_count", 0)
+            null_count = row.get("null_count", 0)
+
+            type_sql = f'SELECT "{col_name}" FROM {table_name} WHERE "{col_name}" IS NOT NULL LIMIT 5'
+            samples = dm.execute(type_sql)
+            sample_vals = [str(r.get(col_name, "")) for r in samples]
+
+            is_numeric = False
+            is_date = False
+            for v in sample_vals:
+                try:
+                    float(v)
+                    is_numeric = True
+                    break
+                except (ValueError, TypeError):
+                    pass
+
+            columns.append({
+                "name": col_name,
+                "unique_count": unique_count,
+                "unique_rate": round(unique_count / total, 4),
+                "null_count": null_count,
+                "null_rate": round(null_count / total, 4),
+                "is_numeric": is_numeric,
+                "is_date": is_date,
+                "sample_values": sample_vals,
+            })
+
+    auditor = DataAuditor()
+    issues = auditor.deep_audit(
+        execute_fn=dm.execute,
+        table_name=table_name,
+        columns=columns,
+        project_type=project_type,
+    )
+
+    errors = [i for i in issues if i.get("severity") == "error"]
+    warnings = [i for i in issues if i.get("severity") == "warning"]
+    infos = [i for i in issues if i.get("severity") == "info"]
+
+    summary = (
+        f"数据质量检查完成。发现 {len(errors)} 个错误、{len(warnings)} 个警告、{len(infos)} 个建议。\n"
+    )
+    if errors:
+        summary += f"\n⚠️ 错误（建议修复后再继续）:\n"
+        for e in errors[:5]:
+            summary += f"  - {e['name']}: {e['description']}\n"
+    if warnings:
+        summary += f"\n⚠ 警告（建议确认）:\n"
+        for w in warnings[:5]:
+            summary += f"  - {w['name']}: {w['description']}\n"
+
+    derived = [i for i in issues if i.get("type") == "derived_column_suggestion"]
+    rules = [i for i in issues if i.get("type") == "business_rule"]
+
+    return {
+        "project_id": project.id,
+        "total_issues": len(issues),
+        "errors": errors,
+        "warnings": warnings,
+        "infos": infos,
+        "derived_column_suggestions": derived,
+        "business_rules": rules,
+        "summary": summary,
+        "message": (
+            "请向用户展示以上问题，逐个确认处理方式。"
+            "对于错误级别问题，建议修复后再继续。"
+            "对于派生列建议，确认是否需要添加。"
+        ),
+    }

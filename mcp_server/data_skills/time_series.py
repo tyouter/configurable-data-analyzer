@@ -1,0 +1,71 @@
+# -*- coding: utf-8 -*-
+TIME_SERIES_RULES = {
+    "id": "time_series",
+    "name": "时序/监控数据规则",
+    "description": "适用于时间序列、监控指标数据的行业经验规则",
+    "checks": [
+        {
+            "id": "ts_gap",
+            "name": "时间间隔不一致",
+            "severity": "warning",
+            "description": "时间戳间隔不均匀，存在缺失时段",
+            "sql_template": "WITH ts AS (SELECT \"{ts_col}\" AS ts, LAG(\"{ts_col}\") OVER (ORDER BY \"{ts_col}\") AS prev_ts FROM {table}), gaps AS (SELECT ts, prev_ts, TIMESTAMPDIFF(SECOND, prev_ts, ts) AS gap_seconds FROM ts WHERE prev_ts IS NOT NULL) SELECT MIN(gap_seconds) AS min_gap, MAX(gap_seconds) AS max_gap, AVG(gap_seconds) AS avg_gap, STDDEV(gap_seconds) AS stddev_gap FROM gaps HAVING stddev_gap > avg_gap * 0.5",
+            "suggestion": "时间间隔标准差过大表示数据采集不均匀。建议检查采集频率或填充缺失时段。",
+        },
+        {
+            "id": "ts_value_spike",
+            "name": "数值突刺",
+            "severity": "warning",
+            "description": "数值列存在突增/突降（超过3倍标准差）",
+            "sql_template": "WITH stats AS (SELECT AVG(\"{val_col}\") AS mean, STDDEV(\"{val_col}\") AS sd FROM {table}) SELECT t.\"{ts_col}\", t.\"{val_col}\", ABS(t.\"{val_col}\" - s.mean) / NULLIF(s.sd, 0) AS z_score FROM {table} t, stats s WHERE ABS(t.\"{val_col}\" - s.mean) / NULLIF(s.sd, 0) > 3 ORDER BY z_score DESC LIMIT 10",
+            "suggestion": "超过3倍标准差的突刺可能是异常事件或数据错误。建议逐个确认是否为正常业务波动。",
+        },
+        {
+            "id": "ts_monotonic_decrease",
+            "name": "单调递减/递增",
+            "severity": "info",
+            "description": "数值持续单调变化，可能是累计值而非增量值",
+            "sql_template": None,
+            "detect": "check if values are monotonically increasing/decreasing",
+            "suggestion": "单调递增的值可能是累计计数器，需要做差分才能得到增量值。单调递减可能是资源消耗。",
+        },
+        {
+            "id": "ts_stale_data",
+            "name": "数据停滞",
+            "severity": "error",
+            "description": "最近时段无新数据",
+            "sql_template": "SELECT MAX(\"{ts_col}\") AS latest_ts, CURRENT_TIMESTAMP AS now_ts, TIMESTAMPDIFF(MINUTE, MAX(\"{ts_col}\"), CURRENT_TIMESTAMP) AS stale_minutes FROM {table}",
+            "suggestion": "数据停滞可能是采集服务宕机或网络中断。影响实时监控的可靠性。",
+        },
+        {
+            "id": "ts_value_zero",
+            "name": "零值异常",
+            "severity": "warning",
+            "description": "连续出现零值",
+            "sql_template": "SELECT \"{ts_col}\", \"{val_col}\" FROM {table} WHERE \"{val_col}\" = 0 ORDER BY \"{ts_col}\" DESC LIMIT 20",
+            "suggestion": "连续零值通常表示服务中断或传感器故障，而非真实业务数据。",
+        },
+    ],
+    "derived_columns": [
+        {
+            "name": "ts_diff",
+            "description": "时间序列差分（增量值）",
+            "logic": "当前行减前一行",
+            "example": "累计装机量 → 每日新增装机量",
+            "sql_template": "\"{val_col}\" - LAG(\"{val_col}\") OVER (ORDER BY \"{ts_col}\") AS {val_col}_diff",
+        },
+        {
+            "name": "ts_rolling_avg",
+            "description": "滚动平均值（平滑噪声）",
+            "logic": "最近N个值的平均",
+            "example": "7天滚动DAU",
+            "sql_template": "AVG(\"{val_col}\") OVER (ORDER BY \"{ts_col}\" ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS {val_col}_ma7",
+        },
+    ],
+    "business_rules": [
+        "增长率 = (本期 - 上期) / ABS(上期)，分母为0时应特殊处理",
+        "累计值需要做差分才能得到增量值",
+        "同比对比应使用相同时间段",
+        "环比对比应排除季节性因素",
+    ],
+}
