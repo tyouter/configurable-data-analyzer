@@ -199,6 +199,12 @@ User decisions are saved as `data_cleaning` rules in semantic config, applied as
 python mcp_server/server.py --transport sse --port 8000
 ```
 
+### Streamable HTTP Transport
+
+```bash
+python mcp_server/server.py --transport streamable-http --port 8000
+```
+
 ## Dependencies
 
 ```

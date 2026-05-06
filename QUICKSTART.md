@@ -76,6 +76,12 @@ Edit `.mcp.json` with your API key. Restart IDE.
 python mcp_server/server.py --transport sse --port 8000
 ```
 
+### Streamable HTTP Transport
+
+```bash
+python mcp_server/server.py --transport streamable-http --port 8000
+```
+
 ## Step 4: Create Your First Project
 
 In your MCP client:

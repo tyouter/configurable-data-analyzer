@@ -157,6 +157,12 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
 python mcp_server/server.py --transport sse --port 8000
 ```
 
+**Streamable HTTP Transport:**
+
+```bash
+python mcp_server/server.py --transport streamable-http --port 8000
+```
+
 ## Requirements
 
 - Python 3.10+
