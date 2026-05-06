@@ -2,23 +2,55 @@
 
 Project-agnostic conversational data analysis platform via MCP protocol.
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│  Client Layer (Claude Desktop / Trae / Cursor)  │
+└────────────────────┬────────────────────────────┘
+                     │ MCP Protocol
+┌────────────────────▼────────────────────────────┐
+│  server.py — Thin MCP Wrapper (25 tools)        │
+└────────────────────┬────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────┐
+│  Service Layer (single source of truth)          │
+├─────────────┬──────────────┬─────────────────────┤
+│ project.py  │ query.py     │ dashboard.py        │
+│ context.py  │              │                     │
+├─────────────┴──────────────┴─────────────────────┤
+│  Core Modules                                    │
+├─────────────┬──────────────┬─────────────────────┤
+│ Model+DuckDB│ SemanticGen  │ ChartRenderer       │
+│ Validator   │ Templates    │ DashboardHtml       │
+│ Themes      │ LLM Client   │ Store               │
+└─────────────┴──────────────┴─────────────────────┘
+```
+
 ## Project Structure
 
 ```
 mcp_server/
-├── server.py               # MCP tool entry (24 tools, ~2022 lines)
-├── project_model.py        # Project CRUD + DuckDB + Pipeline state (~1029 lines)
-├── semantic_generator.py   # LLM semantic layer + domain tagging (~1225 lines)
-├── semantic_validator.py   # SQL + data quality + coverage validation (~195 lines)
-├── semantic_query.py       # L1/L2/L3 query engine (~42 lines)
-├── analysis_templates.py   # L2 templates: retention/funnel/period (~280 lines)
-├── chart_renderer.py       # ECharts chart + funnel conversion (~258 lines)
-├── dashboard_html.py       # Dashboard HTML: domain grouping + time filter + dark mode (~645 lines)
-├── dashboard_store.py      # Dashboard persistence + encoding fix + quality check (~252 lines)
-├── file_classifier.py      # File type classification (~342 lines)
-├── data_auditor.py         # Data quality auditing (~164 lines)
-├── reference_parser.py     # Reference document parsing (~606 lines)
-└── cli.py                  # Terminal CLI interface (~473 lines)
+├── server.py               # MCP entry (25 tools, thin wrapper)
+├── cli.py                  # CLI interface (chatbi command)
+├── service/                # Service layer
+│   ├── project.py          # Project CRUD + pipeline
+│   ├── query.py            # L1/L2/L3 query engine
+│   ├── dashboard.py        # Dashboard + chart + spec generation
+│   └── context.py          # Semantic context + validation
+├── project_model.py        # Project model + DuckDB manager
+├── semantic_generator.py   # LLM semantic layer generation
+├── semantic_validator.py   # SQL + data quality validation
+├── semantic_query.py       # SQL builder + validation utils
+├── analysis_templates.py   # L2 templates (retention/funnel/period)
+├── chart_renderer.py       # ECharts chart generation (8 types)
+├── dashboard_html.py       # Dashboard HTML renderer (domain grouping + dark mode)
+├── dashboard_store.py      # Dashboard persistence + quality check
+├── llm_client.py           # Multi-provider LLM client
+├── file_classifier.py      # File type classification
+├── data_auditor.py         # Data quality auditing
+├── reference_parser.py     # Reference document parsing
+└── themes/                 # ECharts themes (ggplot2_minimal / ggplot2_dark)
 ```
 
 ## Core Capabilities
@@ -29,14 +61,7 @@ mcp_server/
 INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE
 ```
 
-Each stage has checkpoint persistence (`.pipeline_state.json`), supporting resume from any point.
-
-- **INGEST**: File classification + data audit + reference document parsing
-- **ALIGN**: User reviews and confirms AI's data understanding
-- **MAP**: Semantic layer generation (metrics, dimensions, events)
-- **VERIFY**: SQL executability + data quality + KPI coverage validation
-- **BUILD**: Semantic layer built with business_domain tags
-- **SERVE**: Dashboard rendered with domain grouping and time filter
+Each stage has checkpoint persistence, supporting resume from any point.
 
 ### 3-Level Query Protocol
 
@@ -48,65 +73,69 @@ Each stage has checkpoint persistence (`.pipeline_state.json`), supporting resum
 
 ### Dashboard Features
 
-- Business domain grouping (KPI cards per domain, charts below)
+- Spec-driven dashboard generation (`generate_dashboard_from_spec`)
+- Business domain grouping with KPI cards and charts
 - Global time filter (JavaScript front-end filtering)
 - Dark mode toggle (ggplot2_minimal / ggplot2_dark themes)
+- 8 chart types: line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar
 - Funnel chart with automatic conversion rates
-- Double UTF-8 encoding auto-fix on save
 
-## MCP Tools (24)
+## MCP Tools (25)
 
-### Project Management
+### Project Management (5)
 
 | Tool | Function |
 |------|----------|
-| `create_project` | Create project (6-stage pipeline) |
+| `create_project` | Create project (6-stage interactive pipeline) |
 | `list_projects` | List all projects |
 | `switch_project` | Switch current project |
 | `get_current_project` | Get current project info |
 | `delete_project` | Delete a project |
 
-### Pipeline Execution
+### Pipeline & Migration (3)
 
 | Tool | Function |
 |------|----------|
-| `execute_pipeline_step` | Execute single pipeline step (supports retry) |
-| `get_pipeline_status` | Get current pipeline state |
+| `execute_pipeline_step` | Execute single pipeline step |
+| `regenerate_semantic_layer` | Regenerate semantic layer |
+| `migrate_project` | Migrate old project format |
 
-### Data Understanding
+### Data Understanding (4)
 
 | Tool | Function |
 |------|----------|
 | `review_data_understanding` | Review AI's data understanding report |
 | `update_column_mapping` | Modify column business name, type, derived logic |
 | `update_event_mapping` | Modify event name and SQL pattern |
-| `update_metric_mapping` | Add/remove/adjust metric definitions |
+| `update_metric` | Add/remove/adjust metric definitions |
 
-### Semantic Layer
+### Semantic Layer (3)
 
 | Tool | Function |
 |------|----------|
 | `get_semantic_context` | Get semantic layer metadata |
-| `regenerate_semantic_layer` | Regenerate semantic layer |
 | `validate_semantic_layer` | Validate SQL + data quality + coverage |
+| `explore_column_values` | Explore distinct values in a column |
 
-### Query & Analysis
+### Query & Analysis (2)
 
 | Tool | Function |
 |------|----------|
 | `semantic_query` | Structured query (L1) or analysis template (L2) |
 | `raw_sql` | Raw SQL query (L3 fallback) |
 
-### Visualization & Dashboard
+### Visualization & Dashboard (8)
 
 | Tool | Function |
 |------|----------|
 | `render_chart` | Generate ECharts chart |
+| `generate_dashboard_from_spec` | Generate full dashboard from spec JSON |
 | `list_dashboards` | List dashboards |
 | `create_dashboard` | Create a new dashboard |
-| `save_chart_to_dashboard` | Save chart to dashboard (auto domain matching) |
+| `save_chart_to_dashboard` | Save chart to dashboard |
 | `delete_chart` | Delete a chart |
 | `delete_dashboard` | Delete a dashboard |
+| `export_dashboard` | Export dashboard as self-contained HTML |
 
 ## Environment Variables
 
@@ -119,49 +148,32 @@ Each stage has checkpoint persistence (`.pipeline_state.json`), supporting resum
 
 ## MCP Client Configuration
 
-### Trae / VS Code
-
-Copy `.mcp.json.example` to `.mcp.json` and fill in your API key.
-
 ### Claude Desktop
-
-Add to Claude Desktop config:
 
 ```json
 {
   "mcpServers": {
     "chatbi": {
-      "command": "<python-absolute-path>",
-      "args": ["<project-absolute-path>/mcp_server/server.py"],
+      "command": "python",
+      "args": ["<path>/mcp_server/server.py"],
       "env": {
-        "DEEPSEEK_API_KEY": "<your-api-key>",
-        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
-        "BI_MODEL": "deepseek-chat"
+        "DEEPSEEK_API_KEY": "<your-api-key>"
       }
     }
   }
 }
 ```
 
-## Development
-
-### Running Tests
+### SSE / HTTP Transport
 
 ```bash
-python tests/test_classifier.py
-python tests/test_auditor.py
-python tests/test_parser.py
-python tests/test_kpi_validator.py
-python tests/test_report_persist.py
+python mcp_server/server.py --transport sse --port 8000
 ```
-
-### Creating a New Project
-
-Use the `create_project` tool's 6-stage interactive pipeline, or step through with `execute_pipeline_step`.
 
 ## Dependencies
 
 ```
+numpy>=1.24.0,<2.0.0
 pandas>=2.0.0
 openpyxl>=3.1.0
 pyyaml>=6.0

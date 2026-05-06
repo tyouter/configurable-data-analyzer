@@ -2,82 +2,69 @@
 
 Project-agnostic conversational data analysis platform, exposing data analysis capabilities to AI Agents via the [MCP protocol](https://modelcontextprotocol.io/).
 
-## Features
+## Highlights
 
-- **MCP Protocol Native** — stdio / SSE / streamable-http transport, works with Claude Desktop, Trae, Cursor, and any MCP-compatible client
-- **6-Stage Interactive Pipeline** — INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE, with human-in-the-loop checkpoints
-- **3-Level Query Protocol** — L1 structured query / L2 analysis templates (retention, funnel, period-over-period) / L3 raw SQL fallback
-- **LLM-Powered Semantic Layer** — Auto-generates metrics, dimensions, and event mappings from your data
-- **Semantic Validation** — SQL executability check + data quality verification + KPI coverage analysis
-- **Business Domain Grouping** — Dashboard organized by business domain with global time filter and dark mode
-- **Funnel Conversion Rates** — Automatic conversion rate calculation for funnel charts
-- **Multi-LLM Support** — DeepSeek, OpenAI, and OpenAI-compatible APIs (Moonshot, Zhipu, Ollama, etc.)
+- **Spec-Driven Dashboard** — Define chart specs in JSON, auto-generate complete dashboard with one tool call
+- **6-Stage Pipeline** — INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE, with human-in-the-loop checkpoints
+- **3-Level Query** — L1 structured query / L2 analysis templates (retention, funnel, PoP) / L3 raw SQL
+- **8 Chart Types** — line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar
+- **LLM Semantic Layer** — Auto-generates metrics, dimensions, event mappings from your data
+- **Multi-LLM** — DeepSeek, OpenAI, and OpenAI-compatible APIs (Moonshot, Zhipu, Ollama, etc.)
+- **Service Layer Architecture** — Clean separation: thin MCP wrapper → service modules → core
 
 ## Quick Start
 
-See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
-
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-org/configurable-data-analyzer.git
+git clone https://github.com/tyouter/configurable-data-analyzer.git
 cd configurable-data-analyzer
 pip install -r requirements.txt
 
 # 2. Configure API key
 cp .env.example .env
-# Edit .env and add your LLM API key
+# Edit .env: DEEPSEEK_API_KEY=sk-your-key
 
 # 3. Start the server
 python mcp_server/server.py
 ```
 
+See [QUICKSTART.md](QUICKSTART.md) for detailed setup with different MCP clients.
+
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                    Client Layer                       │
-├──────────────┬───────────────┬───────────────────────┤
-│ Claude Desktop│   Trae IDE   │  Any MCP Client       │
-└──────┬───────┴───────┬───────┴──────────┬────────────┘
-       │               │                  │
-       ▼               ▼                  ▼
-┌──────────────────────────────────────────────────────┐
-│              MCP Protocol Layer                       │
-│        mcp_server/server.py (FastMCP)                 │
-│             24 MCP Tools                              │
-└──────────────────────┬───────────────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────────────┐
-│                  Service Layer                        │
-├──────────────┬───────────────┬───────────────────────┤
-│ ProjectModel │ SemanticGen   │ SemanticValidator      │
-│ DuckDB + CRUD│ LLM + Domain  │ SQL + Quality + Cov    │
-├──────────────┼───────────────┼───────────────────────┤
-│ ChartRenderer│ DashboardHtml │ DashboardStore         │
-│ ECharts+Fun. │ Domain+Filter │ Persist+Encode Fix     │
-├──────────────┼───────────────┼───────────────────────┤
-│ FileClassifr │ DataAuditor   │ ReferenceParser        │
-│ Data vs Ref  │ Quality Audit │ KPI + Dictionary       │
-└──────────────┴───────────────┴───────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  Client Layer (Claude Desktop / Trae / Cursor)  │
+└────────────────────┬────────────────────────────┘
+                     │ MCP Protocol
+┌────────────────────▼────────────────────────────┐
+│  server.py — Thin MCP Wrapper (25 tools)        │
+└────────────────────┬────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────┐
+│  Service Layer                                   │
+│  project.py · query.py · dashboard.py · context │
+└────────────────────┬────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────┐
+│  Core: Model+DuckDB · Semantic · Charts · Themes│
+└─────────────────────────────────────────────────┘
 ```
 
 ## 6-Stage Pipeline
 
 ```
 INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ SERVE
-  │          │         │        │         │         │
-  │          │         │        │         │         └─ Dashboard display
-  │          │         │        │         └─ Domain-grouped generation
-  │          │         │        └─ SQL validation + data quality
-  │          │         └─ Semantic layer generation
+  │          │        │       │          │         │
+  │          │        │       │          │         └─ Dashboard display
+  │          │        │       │          └─ Domain-grouped generation
+  │          │        │       └─ SQL validation + data quality
+  │          │        └─ Semantic layer generation
   │          └─ User confirms data understanding
   └─ File import + classification + audit
 ```
 
-Each stage has a checkpoint persisted to `.pipeline_state.json`, supporting resume from any point.
-
-## MCP Tools (24)
+## MCP Tools (25)
 
 ### Project Management
 
@@ -89,12 +76,13 @@ Each stage has a checkpoint persisted to `.pipeline_state.json`, supporting resu
 | `get_current_project` | Get current project info |
 | `delete_project` | Delete a project |
 
-### Pipeline Execution
+### Pipeline & Migration
 
 | Tool | Description |
 |------|-------------|
-| `execute_pipeline_step` | Execute a single pipeline step (supports retry) |
-| `get_pipeline_status` | Get current pipeline state |
+| `execute_pipeline_step` | Execute a single pipeline step |
+| `regenerate_semantic_layer` | Regenerate semantic layer |
+| `migrate_project` | Migrate old project format |
 
 ### Data Understanding
 
@@ -103,15 +91,15 @@ Each stage has a checkpoint persisted to `.pipeline_state.json`, supporting resu
 | `review_data_understanding` | Review AI's data understanding report |
 | `update_column_mapping` | Modify column business name, type, derived logic |
 | `update_event_mapping` | Modify event name and SQL pattern |
-| `update_metric_mapping` | Add/remove/adjust metric definitions |
+| `update_metric` | Add/remove/adjust metric definitions |
 
 ### Semantic Layer
 
 | Tool | Description |
 |------|-------------|
 | `get_semantic_context` | Get semantic layer metadata |
-| `regenerate_semantic_layer` | Regenerate semantic layer |
 | `validate_semantic_layer` | Validate SQL + data quality + coverage |
+| `explore_column_values` | Explore distinct values in a column |
 
 ### Query & Analysis
 
@@ -124,12 +112,14 @@ Each stage has a checkpoint persisted to `.pipeline_state.json`, supporting resu
 
 | Tool | Description |
 |------|-------------|
-| `render_chart` | Generate ECharts chart (line/bar/pie/funnel/scatter/table) |
+| `render_chart` | Generate ECharts chart (8 types) |
+| `generate_dashboard_from_spec` | Generate full dashboard from spec JSON |
 | `list_dashboards` | List dashboards |
 | `create_dashboard` | Create a new dashboard |
-| `save_chart_to_dashboard` | Save chart to dashboard (auto domain matching) |
-| `delete_chart` | Delete a chart from dashboard |
+| `save_chart_to_dashboard` | Save chart to dashboard |
+| `delete_chart` | Delete a chart |
 | `delete_dashboard` | Delete a dashboard |
+| `export_dashboard` | Export as self-contained HTML |
 
 ## Configuration
 
@@ -137,32 +127,22 @@ Each stage has a checkpoint persisted to `.pipeline_state.json`, supporting resu
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | Yes | — | LLM API Key (or use `LLM_API_KEY`) |
+| `DEEPSEEK_API_KEY` | Yes | — | LLM API Key |
 | `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` | LLM API Base URL |
 | `BI_MODEL` | No | `deepseek-chat` | LLM model name |
 | `CHATBI_PROJECTS_DIR` | No | `./projects` | Project data directory |
 
 ### MCP Client Setup
 
-**Trae / VS Code:**
-
-Copy `.mcp.json.example` to `.mcp.json` and fill in your API key.
-
 **Claude Desktop:**
-
-Add to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "chatbi": {
       "command": "python",
-      "args": ["<absolute-path>/mcp_server/server.py"],
-      "env": {
-        "DEEPSEEK_API_KEY": "<your-api-key>",
-        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
-        "BI_MODEL": "deepseek-chat"
-      }
+      "args": ["<path>/mcp_server/server.py"],
+      "env": { "DEEPSEEK_API_KEY": "<your-key>" }
     }
   }
 }
@@ -172,26 +152,6 @@ Add to your `claude_desktop_config.json`:
 
 ```bash
 python mcp_server/server.py --transport sse --port 8000
-python mcp_server/server.py --transport streamable-http --port 8000
-```
-
-## Project Structure
-
-```
-mcp_server/
-├── server.py               # MCP tool entry point (24 tools)
-├── project_model.py        # Project CRUD + DuckDB + Pipeline state
-├── semantic_generator.py   # LLM semantic layer generation
-├── semantic_validator.py   # SQL + data quality + coverage validation
-├── semantic_query.py       # L1/L2/L3 query engine
-├── analysis_templates.py   # L2 templates (retention/funnel/period)
-├── chart_renderer.py       # ECharts chart generation
-├── dashboard_html.py       # Dashboard HTML (domain grouping + time filter)
-├── dashboard_store.py      # Dashboard persistence + encoding fix
-├── file_classifier.py      # File type classification
-├── data_auditor.py         # Data quality auditing
-├── reference_parser.py     # Reference document parsing
-└── cli.py                  # Terminal CLI interface
 ```
 
 ## Requirements

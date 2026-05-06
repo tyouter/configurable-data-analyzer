@@ -59,6 +59,9 @@ Thumbs.db
 # GSD planning (internal)
 .planning/
 
+# Design docs (internal)
+docs/
+
 # Temp/debug/ad-hoc test scripts
 tests/diag*.py
 tests/fix_*.py
@@ -84,3 +87,4 @@ tests/dashboard_validator.py
 
 # Legacy/examples
 examples/
+mcp_server/test_project_system.py
