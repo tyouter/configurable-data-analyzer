@@ -262,7 +262,8 @@ class Project:
                 with open(config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
                 for key in ("columns", "metrics", "dimensions",
-                            "examples", "rules", "prompt_template"):
+                            "examples", "rules", "prompt_template",
+                            "data_cleaning"):
                     if key in config and key not in sl:
                         sl[key] = config[key]
                 if "event_definitions" in config and "event_definitions" not in sl:
@@ -722,6 +723,7 @@ class ProjectDataManager:
 
         if self._is_duckdb_populated():
             self._load_meta_from_duckdb()
+            self._ensure_clean_views()
             return self.meta
 
         ds = self.project.data_source
@@ -924,6 +926,40 @@ class ProjectDataManager:
                 self.df["event_hour"] = pd.to_datetime(self.df[src_col], errors="coerce").dt.hour
 
         return created
+
+    def _ensure_clean_views(self):
+        cleaning = self.get_full_semantic_layer().get("data_cleaning", {})
+        view_name = cleaning.get("clean_view")
+        if not view_name:
+            return
+        exclude_users = cleaning.get("exclude_users", [])
+        dedup_cols = cleaning.get("dedup_logic", "")
+        try:
+            self.con.execute(f"SELECT 1 FROM {view_name} LIMIT 1").fetchone()
+            return
+        except Exception:
+            pass
+
+        where_parts = []
+        if exclude_users:
+            users_str = ", ".join(f"'{u}'" for u in exclude_users)
+            where_parts.append(f"reduser_id NOT IN ({users_str})")
+        where_clause = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
+
+        if dedup_cols and "PARTITION BY" in dedup_cols:
+            dedup_expr = dedup_cols.split(" = ")[0].strip()
+            self.con.execute(f"""
+                CREATE VIEW {view_name} AS
+                SELECT * EXCLUDE (_rn)
+                FROM (
+                    SELECT *, ROW_NUMBER() OVER ({dedup_expr}) AS _rn
+                    FROM events
+                    {where_clause}
+                )
+                WHERE _rn = 1
+            """)
+        elif where_clause:
+            self.con.execute(f"CREATE VIEW {view_name} AS SELECT * FROM events {where_clause}")
 
     def execute(self, sql: str) -> list[dict]:
         if not self.con:

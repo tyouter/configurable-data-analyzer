@@ -72,6 +72,9 @@ def build_dynamic_l1_query(
     limit: int = 500,
 ) -> tuple[str, Optional[str]]:
     table_name = semantic_layer.get("table_name", "events")
+    cleaning = semantic_layer.get("data_cleaning", {})
+    if cleaning.get("clean_view"):
+        table_name = cleaning["clean_view"]
     metrics = semantic_layer.get("metrics", {})
     columns = semantic_layer.get("columns", {})
 
@@ -182,6 +185,9 @@ def build_dynamic_l2_query(
 
     try:
         table_name = semantic_layer.get("table_name", "events")
+        cleaning = semantic_layer.get("data_cleaning", {})
+        if cleaning.get("clean_view"):
+            table_name = cleaning["clean_view"]
         sql = builder(typed_params, table=table_name)
         return sql, None
     except Exception as e:
@@ -364,9 +370,13 @@ def explore_column_values(
     except ValueError as e:
         return {"error": str(e)}
 
-    table_name = project.get_full_semantic_layer(PROJECTS_DIR).get("table_name", "events")
+    semantic_layer = project.get_full_semantic_layer(PROJECTS_DIR)
+    table_name = semantic_layer.get("table_name", "events")
+    cleaning = semantic_layer.get("data_cleaning", {})
+    if cleaning.get("clean_view"):
+        table_name = cleaning["clean_view"]
 
-    columns = project.get_full_semantic_layer(PROJECTS_DIR).get("columns", {})
+    columns = semantic_layer.get("columns", {})
     if column not in columns:
         available = sorted(columns.keys())
         return {"error": f"Column '{column}' not found. Available columns: {available[:30]}"}
