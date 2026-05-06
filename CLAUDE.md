@@ -10,7 +10,7 @@ Project-agnostic conversational data analysis platform via MCP protocol.
 └────────────────────┬────────────────────────────┘
                      │ MCP Protocol
 ┌────────────────────▼────────────────────────────┐
-│  server.py — Thin MCP Wrapper (25 tools)        │
+│  server.py — Thin MCP Wrapper (26 tools)        │
 └────────────────────┬────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────┐
@@ -31,11 +31,11 @@ Project-agnostic conversational data analysis platform via MCP protocol.
 
 ```
 mcp_server/
-├── server.py               # MCP entry (25 tools, thin wrapper)
+├── server.py               # MCP entry (26 tools, thin wrapper)
 ├── cli.py                  # CLI interface (chatbi command)
 ├── service/                # Service layer
 │   ├── project.py          # Project CRUD + pipeline
-│   ├── query.py            # L1/L2/L3 query engine
+│   ├── query.py            # L1/L2/L3 query engine + data quality review
 │   ├── dashboard.py        # Dashboard + chart + spec generation
 │   └── context.py          # Semantic context + validation
 ├── project_model.py        # Project model + DuckDB manager
@@ -43,12 +43,17 @@ mcp_server/
 ├── semantic_validator.py   # SQL + data quality validation
 ├── semantic_query.py       # SQL builder + validation utils
 ├── analysis_templates.py   # L2 templates (retention/funnel/period)
-├── chart_renderer.py       # ECharts chart generation (8 types)
+├── chart_selector.py       # Intent-driven chart type resolution (LLM + rules)
+├── chart_renderer.py       # ECharts chart generation (all types)
 ├── dashboard_html.py       # Dashboard HTML renderer (domain grouping + dark mode)
 ├── dashboard_store.py      # Dashboard persistence + quality check
 ├── llm_client.py           # Multi-provider LLM client
 ├── file_classifier.py      # File type classification
-├── data_auditor.py         # Data quality auditing
+├── data_auditor.py         # Data quality auditing + industry-driven deep audit
+├── data_skills/            # Industry data quality rules
+│   ├── generic.py          #   Null rate, duplicates, future dates, negatives
+│   ├── behavior_analysis.py#   Event format, session anomalies, date gaps
+│   └── time_series.py      #   Interval consistency, spikes, stale data
 ├── reference_parser.py     # Reference document parsing
 └── themes/                 # ECharts themes (ggplot2_minimal / ggplot2_dark)
 ```
@@ -71,6 +76,29 @@ Each stage has checkpoint persistence, supporting resume from any point.
 | L2 | `semantic_query(level="L2")` | Retention/funnel/period-over-period templates |
 | L3 | `raw_sql()` | Raw SQL fallback with safety limits |
 
+Query and rendering are separated: `semantic_query` returns data + metadata only. Agent shows results to user, then calls `render_chart` separately.
+
+### Intent-Driven Chart Selection
+
+```
+visualization_goal (semantic layer) → chart_selector.resolve_chart_type() → chart_renderer
+```
+
+- **Priority**: user explicit type > LLM inference from intent > rule-based fallback
+- **confirm mode**: `render_chart(intent, confirm=True)` returns spec for user review
+- **LLM optional**: works without API key (rule-based fallback)
+- Supports all ECharts chart types via generic option builder
+
+### Data Quality Layer
+
+After data import, `review_data_issues` runs industry-driven quality checks:
+- **Generic**: null rate, duplicates, future dates, negative values, single-value cols
+- **Behavior analysis**: event name format, low-freq events, session anomalies, date gaps
+- **Time series**: interval consistency, value spikes, stale data
+
+Returns errors/warnings/suggestions for Agent to discuss with user.
+User decisions are saved as `data_cleaning` rules in semantic config, applied as DuckDB views.
+
 ### Dashboard Features
 
 - Spec-driven dashboard generation (`generate_dashboard_from_spec`)
@@ -80,7 +108,7 @@ Each stage has checkpoint persistence, supporting resume from any point.
 - All ECharts chart types supported (line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
 - Funnel chart with automatic conversion rates
 
-## MCP Tools (25)
+## MCP Tools (26)
 
 ### Project Management (5)
 
@@ -100,11 +128,12 @@ Each stage has checkpoint persistence, supporting resume from any point.
 | `regenerate_semantic_layer` | Regenerate semantic layer |
 | `migrate_project` | Migrate old project format |
 
-### Data Understanding (4)
+### Data Understanding & Quality (5)
 
 | Tool | Function |
 |------|----------|
 | `review_data_understanding` | Review AI's data understanding report |
+| `review_data_issues` | Deep data quality check with industry rules |
 | `update_column_mapping` | Modify column business name, type, derived logic |
 | `update_event_mapping` | Modify event name and SQL pattern |
 | `update_metric` | Add/remove/adjust metric definitions |
@@ -128,7 +157,7 @@ Each stage has checkpoint persistence, supporting resume from any point.
 
 | Tool | Function |
 |------|----------|
-| `render_chart` | Generate ECharts chart |
+| `render_chart` | Intent-driven chart generation (intent/confirm/use_llm) |
 | `generate_dashboard_from_spec` | Generate full dashboard from spec JSON |
 | `list_dashboards` | List dashboards |
 | `create_dashboard` | Create a new dashboard |

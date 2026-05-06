@@ -8,6 +8,8 @@ Project-agnostic conversational data analysis platform, exposing data analysis c
 - **6-Stage Pipeline** — INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE, with human-in-the-loop checkpoints
 - **3-Level Query** — L1 structured query / L2 analysis templates (retention, funnel, PoP) / L3 raw SQL
 - **8+ Chart Types** — line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, plus any ECharts type (area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
+- **Intent-Driven Rendering** — Semantic layer describes visualization goals, rendering layer dynamically selects chart type via LLM + rules
+- **Data Quality Layer** — Industry-driven data cleaning with user dialogue (generic, behavior analysis, time series rules)
 - **LLM Semantic Layer** — Auto-generates metrics, dimensions, event mappings from your data
 - **Multi-LLM** — DeepSeek, OpenAI, and OpenAI-compatible APIs (Moonshot, Zhipu, Ollama, etc.)
 - **Service Layer Architecture** — Clean separation: thin MCP wrapper → service modules → core
@@ -38,7 +40,7 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup with different MCP clients
 └────────────────────┬────────────────────────────┘
                      │ MCP Protocol
 ┌────────────────────▼────────────────────────────┐
-│  server.py — Thin MCP Wrapper (25 tools)        │
+│  server.py — Thin MCP Wrapper (26 tools)        │
 └────────────────────┬────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────┐
@@ -64,7 +66,7 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
   └─ File import + classification + audit
 ```
 
-## MCP Tools (25)
+## MCP Tools (26)
 
 ### Project Management
 
@@ -84,11 +86,12 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
 | `regenerate_semantic_layer` | Regenerate semantic layer |
 | `migrate_project` | Migrate old project format |
 
-### Data Understanding
+### Data Understanding & Quality
 
 | Tool | Description |
 |------|-------------|
 | `review_data_understanding` | Review AI's data understanding report |
+| `review_data_issues` | Deep data quality check with industry rules |
 | `update_column_mapping` | Modify column business name, type, derived logic |
 | `update_event_mapping` | Modify event name and SQL pattern |
 | `update_metric` | Add/remove/adjust metric definitions |
@@ -112,7 +115,7 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
 
 | Tool | Description |
 |------|-------------|
-| `render_chart` | Generate ECharts chart (8 types) |
+| `render_chart` | Intent-driven chart (intent/confirm/use_llm params) |
 | `generate_dashboard_from_spec` | Generate full dashboard from spec JSON |
 | `list_dashboards` | List dashboards |
 | `create_dashboard` | Create a new dashboard |

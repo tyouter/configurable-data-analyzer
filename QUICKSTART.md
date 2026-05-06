@@ -93,6 +93,10 @@ The AI will guide you through the 6-stage pipeline:
 5. **BUILD** — Build with business domain tags
 6. **SERVE** — Dashboard generated
 
+After build, the AI will run `review_data_issues` to check data quality
+(duplicates, anomalies, test accounts) and discuss findings with you
+before proceeding to analysis.
+
 ## Step 5: Query and Visualize
 
 ```
