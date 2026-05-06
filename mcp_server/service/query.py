@@ -5,7 +5,6 @@ from typing import Optional
 from mcp_server.project_model import ProjectSession, Project, ProjectDataManager, PROJECTS_DIR
 from mcp_server.semantic_query import validate_raw_sql
 from mcp_server.analysis_templates import ANALYSIS_TEMPLATES
-from mcp_server.chart_renderer import build_echarts_option, suggest_chart_type
 
 _SQL_EXPR_PATTERN = re.compile(r'[\(\),\+\-\*/\.]', re.ASCII)
 _SQL_AGG_PATTERN = re.compile(r'^\s*(COUNT|SUM|AVG|MIN|MAX|CAST|COALESCE|NULLIF|CASE|EXTRACT|DATE_TRUNC|SUBSTRING|TRIM|UPPER|LOWER|LENGTH|CONCAT|ROUND|FLOOR|CEIL|ABS|ROW_NUMBER|RANK|DENSE_RANK|LAG|LEAD|FIRST_VALUE|LAST_VALUE)\s*\(', re.IGNORECASE)
@@ -245,23 +244,36 @@ def execute_semantic_query(
         data = dm.execute(sql)
         data = serialize_data(data)
 
-        chart_type = suggest_chart_type(data, f"{metric or ''} {analysis_type or ''}")
-        chart_option = build_echarts_option(chart_type, data, metric or analysis_type or "Query Result")
-
         result = {
             "project_id": project.id,
             "sql": sql,
             "data": data,
             "row_count": len(data),
-            "chart_type": chart_type,
-            "chart_option": chart_option,
         }
+
+        if data:
+            sample = data[:3]
+            keys = list(data[0].keys())
+            result["data_preview"] = sample
+            result["columns"] = keys
+            result["summary"] = (
+                f"查询返回 {len(data)} 行 × {len(keys)} 列\n"
+                f"列: {', '.join(keys)}\n"
+                f"前3行: {sample}"
+            )
 
         if metric and metric in semantic_layer.get("metrics", {}):
             m_info = semantic_layer["metrics"][metric]
             result["metric_type"] = m_info.get("metric_type", "")
             result["chart_hint"] = m_info.get("chart_hint", "")
             result["visualization_goal"] = m_info.get("visualization_goal", "")
+            result["business_domain"] = m_info.get("business_domain", "")
+
+        if analysis_type:
+            result["analysis_type"] = analysis_type
+            result["visualization_goal"] = (
+                f"展示{analysis_type}分析结果"
+            )
 
         if not data:
             result["data_quality_warning"] = (
@@ -299,17 +311,21 @@ def execute_raw_sql(
         data = dm.execute(sql)
         data = serialize_data(data)
 
-        chart_type = suggest_chart_type(data)
-        chart_option = build_echarts_option(chart_type, data, "Raw SQL Result")
-
         result = {
             "project_id": project.id,
             "sql": sql,
             "data": data,
             "row_count": len(data),
-            "chart_type": chart_type,
-            "chart_option": chart_option,
         }
+
+        if data:
+            keys = list(data[0].keys())
+            result["data_preview"] = data[:3]
+            result["columns"] = keys
+            result["summary"] = (
+                f"查询返回 {len(data)} 行 × {len(keys)} 列\n"
+                f"列: {', '.join(keys)}"
+            )
 
         if not data:
             result["data_quality_warning"] = (

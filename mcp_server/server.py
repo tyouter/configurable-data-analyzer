@@ -74,24 +74,37 @@ mcp = FastMCP(
 
 支持多项目管理，每个项目拥有独立的数据文件、语义层和DuckDB实例。
 
-创建项目流程（多阶段交互）：
+═══ 创建项目流程（多阶段交互）═══
+
 1. create_project(action="start") — 提交数据文件，自动分类+审计+解析，返回审计报告
-2. create_project(action="classify") — 用户修正文件分类，支持多轮交互
+2. 向用户展示审计结果，询问是否需要修正分类或补充业务上下文
 3. create_project(action="confirm") — 用户确认要导入的文件和分析目标
-4. create_project(action="build") — 仅导入确认的文件，生成语义层
+4. create_project(action="build") — 生成语义层
+5. get_semantic_context — 展示生成的语义层给用户检查，允许调整
+快捷：create_project(name, data_files) 等同于 action="start"
 
-快捷流程：create_project(name, data_files) — 等同于 action="start"
+═══ 查询+渲染流程（交互式）═══
 
-查询流程：
-5. switch_project — 切换到目标项目
-6. get_semantic_context — 查看当前项目的语义层
-7. semantic_query / raw_sql — 执行数据分析查询
-8. render_chart — 生成图表
-9. Dashboard CRUD — 管理图表看板
+6. switch_project — 切换到目标项目
+7. get_semantic_context — 了解当前项目的指标、维度、事件
+8. semantic_query / raw_sql — 执行查询，返回数据+visualization_goal
+9. 向用户展示查询结果摘要（SQL、行数、列、前几行数据）
+10. render_chart(intent=visualization_goal, confirm=True) — 预览渲染规格
+11. 向用户展示渲染建议（图表类型、轴标签、备选方案），确认或调整
+12. render_chart(intent=..., chart_type=确认后的类型) — 实际渲染图表
+13. save_chart_to_dashboard / export_dashboard — 保存和导出
 
-三级查询协议：
-- L1 简单查询：通过 metric + dimensions + filters 结构化查询
-- L2 分析模板：封装留存、漏斗、同环比等分析模式
+═══ 关键原则 ═══
+
+- 查询和渲染分离：semantic_query 只返回数据，不自动渲染图表
+- 每个关键步骤向用户展示结果并确认
+- 使用 intent（可视化目标）驱动图表选择，而非硬编码 chart_hint
+- render_chart(confirm=True) 先预览再渲染，让用户参与决策
+
+═══ 三级查询协议 ═══
+
+- L1 简单查询：metric + dimensions + filters → SQL
+- L2 分析模板：retention / funnel / period_over_period
 - L3 原始SQL：只读SQL查询兜底
 """,
 )
@@ -311,7 +324,10 @@ def semantic_query(
 ) -> dict:
     """
     结构化语义查询，支持L1简单查询和L2分析模板。
-    基于当前项目的语义层自动构建SQL。
+    基于当前项目的语义层自动构建SQL并执行。
+
+    返回查询结果（数据、SQL、visualization_goal），不自动渲染图表。
+    Agent 应先向用户展示查询结果摘要，再调用 render_chart 渲染。
 
     L1 简单查询：指定 metric + dimensions + filters，自动生成SQL。
     L2 分析模板：指定 analysis_type + analysis_params，使用预定义分析模式。
@@ -352,6 +368,9 @@ def raw_sql(sql: str, limit: int = 2000) -> dict:
     L3原始SQL查询（只读，带安全限制）。
     仅用于L1/L2无法覆盖的复杂自定义查询。
     查询在当前项目的DuckDB实例上执行。
+
+    返回查询结果（数据、SQL），不自动渲染图表。
+    Agent 应向用户展示查询结果，再调用 render_chart 渲染。
 
     安全限制：
     - 仅允许SELECT/WITH...SELECT
