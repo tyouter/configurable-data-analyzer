@@ -261,6 +261,7 @@ def execute_semantic_query(
             m_info = semantic_layer["metrics"][metric]
             result["metric_type"] = m_info.get("metric_type", "")
             result["chart_hint"] = m_info.get("chart_hint", "")
+            result["visualization_goal"] = m_info.get("visualization_goal", "")
 
         if not data:
             result["data_quality_warning"] = (

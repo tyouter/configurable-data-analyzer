@@ -6,6 +6,7 @@ from typing import Optional
 from mcp_server.project_model import ProjectSession, PROJECTS_DIR
 from mcp_server import dashboard_store
 from mcp_server.chart_renderer import build_echarts_option, suggest_chart_type
+from mcp_server.chart_selector import resolve_chart_type
 from mcp_server.semantic_query import validate_raw_sql
 from mcp_server.service.query import require_project, serialize_data, build_dynamic_l2_query
 
@@ -105,38 +106,52 @@ def render_chart(
     title: str = "",
     metric_type: str = "",
     chart_hint: str = "",
+    intent: str = "",
+    confirm: bool = False,
+    use_llm: bool = True,
 ) -> dict:
-    if chart_hint:
-        chart_type_map = {
-            "kpi_card": "kpi_card",
-            "bar_line": "bar_line",
-            "ranking_bar": "ranking_bar",
-            "boxplot": "boxplot",
-        }
-        if chart_hint in ("line", "bar", "pie", "funnel", "scatter", "table"):
-            chart_type = chart_hint
-        else:
-            resolved = chart_type_map.get(chart_hint, "")
-            if resolved:
-                chart_type = resolved
+    resolved = resolve_chart_type(
+        data=data,
+        title=title,
+        intent=intent or chart_hint or "",
+        user_chart_type=chart_type,
+        use_llm=use_llm,
+    )
+    effective_type = resolved["chart_type"]
 
-    if not chart_type:
-        if metric_type == "rate" and data and len(data) <= 1:
-            chart_type = "kpi_card"
-        elif metric_type == "count" and data and len(data) <= 1:
-            chart_type = "kpi_card"
-        elif metric_type == "duration" and data and len(data) <= 1:
-            chart_type = "kpi_card"
-        elif metric_type == "distribution":
-            chart_type = "pie"
+    if metric_type in ("rate", "count", "duration") and data and len(data) <= 1:
+        effective_type = "kpi_card"
+    elif not effective_type:
+        if metric_type == "distribution":
+            effective_type = "pie"
         elif metric_type == "ranking":
-            chart_type = "ranking_bar"
+            effective_type = "ranking_bar"
         elif metric_type == "rate":
-            chart_type = "line"
+            effective_type = "line"
         else:
-            chart_type = suggest_chart_type(data, title)
+            effective_type = suggest_chart_type(data, title)
 
-    if chart_type == "kpi_card":
+    render_spec = {
+        "chart_type": effective_type,
+        "reasoning": resolved.get("reasoning", ""),
+        "alternatives": resolved.get("alternatives", []),
+        "confidence": resolved.get("confidence", 0.5),
+    }
+
+    if confirm:
+        return {
+            "status": "confirm_required",
+            "render_spec": render_spec,
+            "data_preview": data[:5] if data else [],
+            "message": (
+                f"即将以 {effective_type} 类型绘制图表: {title}\n"
+                f"原因: {render_spec['reasoning']}\n"
+                f"备选: {render_spec['alternatives']}\n"
+                "请确认或调整后再次调用 render_chart。"
+            ),
+        }
+
+    if effective_type == "kpi_card":
         if data:
             keys = list(data[0].keys())
             rate_keys = [k for k in keys if "rate" in k.lower()]
@@ -172,6 +187,7 @@ def render_chart(
                         "metric_type": metric_type or "rate",
                         "sub_text": sub_text,
                     },
+                    "render_spec": render_spec,
                 }
             val_key = keys[-1] if len(keys) > 1 else keys[0]
             val = data[-1].get(val_key)
@@ -184,19 +200,21 @@ def render_chart(
                     "value": val,
                     "metric_type": metric_type,
                 },
+                "render_spec": render_spec,
             }
-        return {"chart_type": "kpi_card", "chart_option": {"title": {"text": title}, "value": None}}
+        return {"chart_type": "kpi_card", "chart_option": {"title": {"text": title}, "value": None}, "render_spec": render_spec}
 
-    if chart_type == "table":
-        return {"chart_type": "table", "chart_option": None, "data": data}
+    if effective_type == "table":
+        return {"chart_type": "table", "chart_option": None, "data": data, "render_spec": render_spec}
 
-    chart_option = build_echarts_option(chart_type, data, title)
+    chart_option = build_echarts_option(effective_type, data, title)
     if chart_option is None:
-        return {"error": f"Unsupported chart type: {chart_type}"}
+        return {"error": f"Unsupported chart type: {effective_type}"}
 
     return {
-        "chart_type": chart_type,
+        "chart_type": effective_type,
         "chart_option": chart_option,
+        "render_spec": render_spec,
     }
 
 

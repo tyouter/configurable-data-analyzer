@@ -376,16 +376,28 @@ def render_chart(
     title: str = "",
     metric_type: str = "",
     chart_hint: str = "",
+    intent: str = "",
+    confirm: bool = False,
+    use_llm: bool = True,
 ) -> dict:
     """
-    根据查询数据生成ECharts图表配置。
+    根据查询数据生成图表配置。支持意图驱动的智能图表选择。
+
+    图表选择优先级：
+      1. chart_type（用户显式指定，最高优先级）
+      2. intent + LLM推断（根据可视化目标智能匹配最佳图表类型）
+      3. chart_hint（语义层建议，作为intent的补充）
+      4. metric_type + 数据形态规则推断（兜底）
 
     Args:
         data: 查询结果数据（列表的字典）
-        chart_type: 图表类型 line/bar/pie/funnel/scatter/table/kpi_card/bar_line/ranking_bar。留空则自动推断。
+        chart_type: 用户指定的图表类型（如 line/bar/pie 等）。留空则自动推断。
         title: 图表标题
-        metric_type: 指标类型 count/rate/duration/distribution/ranking，辅助图表类型推断
-        chart_hint: 语义层建议的图表类型 kpi_card/line/bar_line/pie/bar/ranking_bar，优先级最高
+        metric_type: 指标类型 count/rate/duration/distribution/ranking
+        chart_hint: 语义层建议（向后兼容）
+        intent: 可视化目标描述（如"展示活跃用户随时间的变化趋势"），用于LLM智能选择图表类型
+        confirm: 设为 True 时返回渲染规格供用户确认，不实际渲染
+        use_llm: 是否使用LLM辅助推断图表类型（默认True，无API Key时自动降级为规则推断）
     """
     return svc_render_chart(
         data=data,
@@ -393,6 +405,9 @@ def render_chart(
         title=title,
         metric_type=metric_type,
         chart_hint=chart_hint,
+        intent=intent,
+        confirm=confirm,
+        use_llm=use_llm,
     )
 
 

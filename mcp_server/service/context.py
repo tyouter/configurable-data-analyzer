@@ -28,6 +28,7 @@ def get_semantic_context(session: ProjectSession, section: Optional[str] = None)
                 "business_domain": info.get("business_domain", ""),
                 "business_domain_label": info.get("business_domain_label", ""),
                 "chart_hint": info.get("chart_hint", ""),
+                "visualization_goal": info.get("visualization_goal", ""),
                 "keywords": info.get("keywords", []),
                 "description": info.get("description", ""),
             })
@@ -79,6 +80,7 @@ def get_semantic_context(session: ProjectSession, section: Optional[str] = None)
                 "business_name": info.get("business_name", name),
                 "metric_type": info.get("metric_type", ""),
                 "chart_hint": info.get("chart_hint", ""),
+                "visualization_goal": info.get("visualization_goal", ""),
                 "keywords": info.get("keywords", []),
                 "description": info.get("description", ""),
             })

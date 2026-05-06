@@ -63,7 +63,7 @@ Generate a semantic layer definition in JSON format with the following sections:
    - sql: DuckDB SQL AGGREGATE expression for this metric. CRITICAL: You MUST use the EXACT values from the Low-Cardinality Column Values section above for ILIKE patterns. For example, if the event names contain "porsche_page_Map_POI_Category_click", use ILIKE '%porsche%' NOT ILIKE '%porsche_plus%'. Do NOT invent event name patterns - only use patterns that match the actual values listed. Do NOT use subqueries, placeholders like {{date}}, or reference the table name. Use only column names from the schema.
    - keywords: Chinese keywords that users might use to ask about this metric
    - description: How this metric is calculated (Chinese)
-   - chart_hint: Suggested chart type - one of "kpi_card" (single value), "line" (trend), "bar_line" (combo bar+line), "pie" (proportion), "bar" (comparison), "ranking_bar" (horizontal bar for top-N)
+   - visualization_goal: What the user wants to see when querying this metric, described in natural language (Chinese). Focus on the intent/goal, NOT a chart type. Examples: "展示总量的单一数值", "展示指标随时间的变化趋势和绝对值", "展示不同类别之间的占比构成", "展示Top N的排名对比", "展示数值的分布区间和集中趋势", "展示多个指标在不同时间段的对比". This helps the rendering layer choose the best visualization dynamically.
 
 4. **event_definitions** (only for behavior_analysis type): If the data contains event-like rows with an event name column, define each event type:
    - event_name: The EXACT event name value from the data (e.g., "discovery_page_post_card_click")
@@ -140,7 +140,7 @@ Generate a semantic layer definition in JSON format with the following sections:
    - sql: DuckDB SQL AGGREGATE expression. CRITICAL: You MUST use the EXACT values from the Low-Cardinality Column Values section above for ILIKE patterns. For example, if the event names contain "porsche_page_Map_POI_Category_click", use ILIKE '%porsche%' NOT ILIKE '%porsche_plus%'. Do NOT invent event name patterns - only use patterns that match the actual values listed. Do NOT use subqueries, placeholders like {{date}}, or reference the table name.
    - keywords: Chinese keywords for this metric
    - description: How this metric is calculated (include KPI caliber/口径 from reference docs)
-   - chart_hint: Suggested chart type - one of "kpi_card" (single value), "line" (trend), "bar_line" (combo bar+line), "pie" (proportion), "bar" (comparison), "ranking_bar" (horizontal bar for top-N)
+   - visualization_goal: What the user wants to see when querying this metric, described in natural language (Chinese). Focus on the intent/goal, NOT a chart type. Examples: "展示总量的单一数值", "展示指标随时间的变化趋势和绝对值", "展示不同类别之间的占比构成", "展示Top N的排名对比", "展示数值的分布区间和集中趋势", "展示多个指标在不同时间段的对比". This helps the rendering layer choose the best visualization dynamically.
 
 4. **event_definitions** (only for behavior_analysis type): Define events based on the event definitions from reference documents. For each:
    - event_name: The EXACT event name value from the data (e.g., "discovery_page_post_card_click")
