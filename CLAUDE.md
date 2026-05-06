@@ -77,7 +77,7 @@ Each stage has checkpoint persistence, supporting resume from any point.
 - Business domain grouping with KPI cards and charts
 - Global time filter (JavaScript front-end filtering)
 - Dark mode toggle (ggplot2_minimal / ggplot2_dark themes)
-- 8 chart types: line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar
+- All ECharts chart types supported (line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
 - Funnel chart with automatic conversion rates
 
 ## MCP Tools (25)

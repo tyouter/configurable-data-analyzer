@@ -135,6 +135,84 @@ def _apply_theme_to_option(option: dict, theme_name: str) -> dict:
     return merged
 
 
+_AXIS_CHART_TYPES = {
+    "area", "heatmap", "candlestick", "radar", "treemap",
+    "sunburst", "sankey", "graph", "parallel", "themeRiver",
+    "lines", "map", "effectScatter", "pictorialBar", "stackedBar",
+    "stackedLine", "waterfall", "gauge", "ring", "doughnut",
+}
+
+
+def _build_generic_option(chart_type: str, data: list[dict], title: str) -> dict:
+    if not data:
+        return {"title": {"text": title}, "series": []}
+
+    keys = list(data[0].keys())
+    _non_axis = frozenset({
+        "pie", "funnel", "radar", "treemap", "sunburst", "sankey",
+        "graph", "gauge", "ring", "doughnut", "map",
+    })
+    is_axis = chart_type not in _non_axis
+
+    option = {"title": {"text": title, "left": "left", "top": 5}}
+
+    if is_axis and len(keys) >= 2:
+        x_key = keys[0]
+        y_keys = keys[1:]
+        option["tooltip"] = {"trigger": "axis"}
+        option["legend"] = {"top": 32, "left": "right"}
+        option["grid"] = {"top": 60, "bottom": 24, "left": 16, "right": 16, "containLabel": True}
+        option["xAxis"] = {"type": "category", "data": [str(row[x_key]) for row in data]}
+        option["yAxis"] = {"type": "value"}
+        option["series"] = []
+        for yk in y_keys:
+            s = {"type": chart_type, "name": yk, "data": [row.get(yk) for row in data]}
+            if chart_type in ("line", "area", "stackedLine"):
+                s["smooth"] = True
+            if chart_type == "area":
+                s["areaStyle"] = {}
+            if chart_type in ("stackedBar", "stackedLine"):
+                s["stack"] = "total"
+            if chart_type in ("pictorialBar",):
+                s["type"] = "pictorialBar"
+            option["series"].append(s)
+    elif chart_type in ("pie", "ring", "doughnut"):
+        name_key = keys[0]
+        val_key = keys[1] if len(keys) > 1 else keys[0]
+        radius = ["35%", "65%"] if chart_type == "ring" else "60%"
+        option["tooltip"] = {"trigger": "item"}
+        option["legend"] = {"top": 32, "left": "right"}
+        option["series"] = [{
+            "type": "pie",
+            "radius": radius,
+            "data": [{"name": str(row[name_key]), "value": row[val_key]} for row in data],
+        }]
+    elif chart_type == "gauge":
+        val = list(data[0].values())[-1] if data else 0
+        option["series"] = [{
+            "type": "gauge",
+            "detail": {"formatter": "{value}%"},
+            "data": [{"value": val, "name": title}],
+        }]
+    elif chart_type == "radar":
+        name_key = keys[0]
+        val_keys = keys[1:]
+        all_max = {}
+        for vk in val_keys:
+            all_max[vk] = max((r.get(vk, 0) or 0) for r in data) * 1.2 or 100
+        indicator = [{"name": str(r[name_key]), "max": max(all_max[vk] for vk in val_keys)} for r in data]
+        option["radar"] = {"indicator": indicator}
+        option["series"] = [{
+            "type": "radar",
+            "data": [{"value": [r.get(vk, 0) for vk in val_keys], "name": title} for r in data],
+        }]
+    else:
+        option["series"] = [{"type": chart_type, "data": data}]
+        option["tooltip"] = {}
+
+    return option
+
+
 def build_echarts_option(
     chart_type: str,
     data: list[dict],
@@ -168,7 +246,9 @@ def build_echarts_option(
         }
 
     if chart_type not in CHART_TEMPLATES:
-        return None
+        option = _build_generic_option(chart_type, data, title)
+        option = _apply_theme_to_option(option, theme)
+        return option
 
     option = copy.deepcopy(CHART_TEMPLATES[chart_type])
     option["title"]["text"] = title

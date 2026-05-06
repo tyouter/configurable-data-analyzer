@@ -64,7 +64,9 @@ python mcp_server/cli.py dashboard-export -d "KPI看板" --open
 | `ggplot2_minimal` | 亮色极简 | ggplot2 theme_minimal 风格，Tableau 经典配色 |
 | `ggplot2_dark` | 暗色极简 | ggplot2 暗色主题，适合大屏展示 |
 
-## 支持的图表类型（8种）
+## 支持的图表类型
+
+支持所有 ECharts 图表类型。内置模板（自动数据绑定）：
 
 | 类型 | 说明 |
 |------|------|
@@ -76,6 +78,21 @@ python mcp_server/cli.py dashboard-export -d "KPI看板" --open
 | `bar_line` | 柱线混合图 |
 | `boxplot` | 箱线图 |
 | `ranking_bar` | 排行榜横向柱状图 |
+
+通用类型（自动构造 option）：
+
+| 类型 | 说明 |
+|------|------|
+| `area` | 面积图 |
+| `ring` / `doughnut` | 环形图 |
+| `radar` | 雷达图 |
+| `gauge` | 仪表盘 |
+| `stackedBar` / `stackedLine` | 堆叠图 |
+| `candlestick` | K线图 |
+| `heatmap` | 热力图 |
+| `treemap` | 矩形树图 |
+| `sankey` | 桑基图 |
+| 其他 | 任意 ECharts series type 均可传入 |
 
 ## 输出格式
 

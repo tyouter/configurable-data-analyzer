@@ -87,7 +87,7 @@ render_chart(
 )
 ```
 
-支持 8 种图表类型：`line`, `bar`, `pie`, `funnel`, `scatter`, `bar_line`, `boxplot`, `ranking_bar`
+支持所有 ECharts 图表类型，常用包括：`line`, `bar`, `pie`, `funnel`, `scatter`, `bar_line`, `boxplot`, `ranking_bar`, `area`, `radar`, `gauge`, `ring`, `stackedBar`, `candlestick`, `heatmap`, `treemap`, `sankey` 等
 
 ### 5. 保存到看板
 

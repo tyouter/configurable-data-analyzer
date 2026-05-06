@@ -7,7 +7,7 @@ Project-agnostic conversational data analysis platform, exposing data analysis c
 - **Spec-Driven Dashboard** — Define chart specs in JSON, auto-generate complete dashboard with one tool call
 - **6-Stage Pipeline** — INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE, with human-in-the-loop checkpoints
 - **3-Level Query** — L1 structured query / L2 analysis templates (retention, funnel, PoP) / L3 raw SQL
-- **8 Chart Types** — line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar
+- **8+ Chart Types** — line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, plus any ECharts type (area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
 - **LLM Semantic Layer** — Auto-generates metrics, dimensions, event mappings from your data
 - **Multi-LLM** — DeepSeek, OpenAI, and OpenAI-compatible APIs (Moonshot, Zhipu, Ollama, etc.)
 - **Service Layer Architecture** — Clean separation: thin MCP wrapper → service modules → core
