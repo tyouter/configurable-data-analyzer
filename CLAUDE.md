@@ -1,124 +1,165 @@
 # ChatBI MCP Server
 
-项目无关的对话式数据分析平台，通过 MCP 协议暴露数据分析能力给 AI Agent。
+Project-agnostic conversational data analysis platform via MCP protocol.
 
-## 项目结构
+## Project Structure
 
 ```
-.
-├── mcp_server/                 # MCP Server 核心
-│   ├── server.py               # MCP 工具入口（19个工具）
-│   ├── project_model.py        # 项目 CRUD + DuckDB 数据层
-│   ├── semantic_generator.py   # LLM 语义层生成
-│   ├── semantic_query.py       # L1/L2/L3 查询引擎
-│   ├── analysis_templates.py   # L2 分析模板（留存/漏斗/同环比）
-│   ├── chart_renderer.py       # ECharts 图表生成
-│   ├── dashboard_store.py      # Dashboard 持久化
-│   ├── file_classifier.py      # 文件自动分类（原始数据/参考文档）
-│   ├── data_auditor.py         # 数据质量审计引擎
-│   ├── reference_parser.py     # 参考文档解析 + KPI 校验
-│   └── cli.py                  # CLI 接口
-├── projects/                   # 运行时项目数据（不入库）
-│   └── {project_id}/
-│       ├── project.yaml        # 项目配置 + 语义层
-│       ├── data/               # 原始数据文件
-│       └── {id}.duckdb         # DuckDB 数据库
-├── examples/                   # 示例配置模板
-├── tests/                      # 测试套件
-├── docs/                       # 文档
-├── .mcp.json                   # Trae/VS Code MCP 配置
-└── requirements.txt            # Python 依赖
+mcp_server/
+├── server.py               # MCP tool entry (24 tools, ~2022 lines)
+├── project_model.py        # Project CRUD + DuckDB + Pipeline state (~1029 lines)
+├── semantic_generator.py   # LLM semantic layer + domain tagging (~1225 lines)
+├── semantic_validator.py   # SQL + data quality + coverage validation (~195 lines)
+├── semantic_query.py       # L1/L2/L3 query engine (~42 lines)
+├── analysis_templates.py   # L2 templates: retention/funnel/period (~280 lines)
+├── chart_renderer.py       # ECharts chart + funnel conversion (~258 lines)
+├── dashboard_html.py       # Dashboard HTML: domain grouping + time filter + dark mode (~645 lines)
+├── dashboard_store.py      # Dashboard persistence + encoding fix + quality check (~252 lines)
+├── file_classifier.py      # File type classification (~342 lines)
+├── data_auditor.py         # Data quality auditing (~164 lines)
+├── reference_parser.py     # Reference document parsing (~606 lines)
+└── cli.py                  # Terminal CLI interface (~473 lines)
 ```
 
-## 核心能力
+## Core Capabilities
 
-### 项目管理
+### 6-Stage Interactive Pipeline
 
-- **多项目隔离**：每个项目独立的数据文件、语义层和 DuckDB 实例
-- **交互式创建**：4 阶段流程（文件分类 → 认知对齐 → 确认 → 构建）
-- **参考文档识别**：自动区分原始数据、KPI 定义、数据字典、需求文档
+```
+INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE
+```
 
-### 三级查询协议
+Each stage has checkpoint persistence (`.pipeline_state.json`), supporting resume from any point.
 
-| 级别 | 方式 | 说明 |
-|------|------|------|
-| L1 | `semantic_query(level="L1")` | 指标 + 维度 + 筛选，自动生成 SQL |
-| L2 | `semantic_query(level="L2")` | 留存/漏斗/同环比分析模板 |
-| L3 | `raw_sql()` | 原始 SQL 兜底查询 |
+- **INGEST**: File classification + data audit + reference document parsing
+- **ALIGN**: User reviews and confirms AI's data understanding
+- **MAP**: Semantic layer generation (metrics, dimensions, events)
+- **VERIFY**: SQL executability + data quality + KPI coverage validation
+- **BUILD**: Semantic layer built with business_domain tags
+- **SERVE**: Dashboard rendered with domain grouping and time filter
 
-### 可视化与 Dashboard
+### 3-Level Query Protocol
 
-- ECharts 图表生成（line/bar/pie/funnel/scatter/table）
-- Dashboard CRUD：创建/保存/删除图表
+| Level | Method | Description |
+|-------|--------|-------------|
+| L1 | `semantic_query(level="L1")` | Metric + dimensions + filters → auto SQL |
+| L2 | `semantic_query(level="L2")` | Retention/funnel/period-over-period templates |
+| L3 | `raw_sql()` | Raw SQL fallback with safety limits |
 
-## MCP 工具一览
+### Dashboard Features
 
-| 工具 | 功能 |
-|------|------|
-| `create_project` | 创建项目（4阶段交互） |
-| `list_projects` | 列出所有项目 |
-| `switch_project` | 切换当前项目 |
-| `get_current_project` | 获取当前项目信息 |
-| `delete_project` | 删除项目 |
-| `regenerate_semantic_layer` | 重新生成语义层 |
-| `semantic_query` | 结构化语义查询（L1/L2） |
-| `raw_sql` | 原始 SQL 查询（L3） |
-| `get_semantic_context` | 获取语义层元数据 |
-| `render_chart` | 生成 ECharts 图表 |
-| `list_dashboards` | 列出 Dashboard |
-| `create_dashboard` | 创建 Dashboard |
-| `save_chart_to_dashboard` | 保存图表到 Dashboard |
-| `delete_chart` | 删除图表 |
-| `delete_dashboard` | 删除 Dashboard |
+- Business domain grouping (KPI cards per domain, charts below)
+- Global time filter (JavaScript front-end filtering)
+- Dark mode toggle (ggplot2_minimal / ggplot2_dark themes)
+- Funnel chart with automatic conversion rates
+- Double UTF-8 encoding auto-fix on save
 
-## 环境变量
+## MCP Tools (24)
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `CHATBI_PROJECTS_DIR` | 项目数据存储目录 | `./projects` |
-| `DEEPSEEK_API_KEY` | DeepSeek API Key | 无 |
-| `DEEPSEEK_BASE_URL` | DeepSeek API 地址 | `https://api.deepseek.com` |
-| `BI_MODEL` | LLM 模型名 | `deepseek-chat` |
+### Project Management
 
-## MCP Server 配置
+| Tool | Function |
+|------|----------|
+| `create_project` | Create project (6-stage pipeline) |
+| `list_projects` | List all projects |
+| `switch_project` | Switch current project |
+| `get_current_project` | Get current project info |
+| `delete_project` | Delete a project |
 
-ChatBI MCP Server 通过 MCP 协议暴露数据分析能力，支持多种 Agent/IDE 接入：
+### Pipeline Execution
+
+| Tool | Function |
+|------|----------|
+| `execute_pipeline_step` | Execute single pipeline step (supports retry) |
+| `get_pipeline_status` | Get current pipeline state |
+
+### Data Understanding
+
+| Tool | Function |
+|------|----------|
+| `review_data_understanding` | Review AI's data understanding report |
+| `update_column_mapping` | Modify column business name, type, derived logic |
+| `update_event_mapping` | Modify event name and SQL pattern |
+| `update_metric_mapping` | Add/remove/adjust metric definitions |
+
+### Semantic Layer
+
+| Tool | Function |
+|------|----------|
+| `get_semantic_context` | Get semantic layer metadata |
+| `regenerate_semantic_layer` | Regenerate semantic layer |
+| `validate_semantic_layer` | Validate SQL + data quality + coverage |
+
+### Query & Analysis
+
+| Tool | Function |
+|------|----------|
+| `semantic_query` | Structured query (L1) or analysis template (L2) |
+| `raw_sql` | Raw SQL query (L3 fallback) |
+
+### Visualization & Dashboard
+
+| Tool | Function |
+|------|----------|
+| `render_chart` | Generate ECharts chart |
+| `list_dashboards` | List dashboards |
+| `create_dashboard` | Create a new dashboard |
+| `save_chart_to_dashboard` | Save chart to dashboard (auto domain matching) |
+| `delete_chart` | Delete a chart |
+| `delete_dashboard` | Delete a dashboard |
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DEEPSEEK_API_KEY` | Yes | — | LLM API Key |
+| `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` | LLM API Base URL |
+| `BI_MODEL` | No | `deepseek-chat` | LLM model name |
+| `CHATBI_PROJECTS_DIR` | No | `./projects` | Project data directory |
+
+## MCP Client Configuration
 
 ### Trae / VS Code
 
-项目根目录 `.mcp.json` 已配置，开箱即用。
+Copy `.mcp.json.example` to `.mcp.json` and fill in your API key.
 
 ### Claude Desktop
 
-将以下配置复制到 Claude Desktop 配置目录：
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-- macOS: `~/.claude/claude_desktop_config.json`
+Add to Claude Desktop config:
 
 ```json
 {
   "mcpServers": {
     "chatbi": {
-      "command": "<你的Python绝对路径>",
-      "args": ["<项目绝对路径>/mcp_server/server.py"],
+      "command": "<python-absolute-path>",
+      "args": ["<project-absolute-path>/mcp_server/server.py"],
       "env": {
-        "DEEPSEEK_API_KEY": "<你的API Key>",
+        "DEEPSEEK_API_KEY": "<your-api-key>",
         "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
-        "BI_MODEL": "deepseek-v4-pro",
-        "CHATBI_PROJECTS_DIR": "<数据存储绝对路径>"
+        "BI_MODEL": "deepseek-chat"
       }
     }
   }
 }
 ```
 
-### Hermes Agent
+## Development
+
+### Running Tests
 
 ```bash
-hermes mcp add chatbi --command python --args "mcp_server/server.py" \
-  --env DEEPSEEK_API_KEY=<key> --env BI_MODEL=deepseek-v4-pro
+python tests/test_classifier.py
+python tests/test_auditor.py
+python tests/test_parser.py
+python tests/test_kpi_validator.py
+python tests/test_report_persist.py
 ```
 
-## 依赖
+### Creating a New Project
+
+Use the `create_project` tool's 6-stage interactive pipeline, or step through with `execute_pipeline_step`.
+
+## Dependencies
 
 ```
 pandas>=2.0.0
@@ -129,37 +170,5 @@ mcp[cli]>=1.0.0
 fastapi>=0.100.0
 uvicorn>=0.24.0
 requests>=2.31.0
+python-dotenv>=1.0.0
 ```
-
-## 开发指南
-
-### 运行测试
-
-```bash
-# 单元测试
-python tests/test_classifier.py
-python tests/test_auditor.py
-python tests/test_parser.py
-python tests/test_kpi_validator.py
-python tests/test_report_persist.py
-
-# 集成测试
-python tests/test_phase1.py
-python tests/test_phase2.py
-python tests/test_autoresearch_p3.py
-
-# 真实数据测试（需要 CHATBI_TEST_DATA_DIR 指向数据目录）
-python tests/test_real_data.py
-```
-
-### 创建新项目
-
-通过 MCP 工具 `create_project` 的 4 阶段交互流程：
-
-1. **start** — 提交数据文件，自动分类 + 审计 + 参考文档解析
-2. **classify** — 用户修正文件分类，回答认知对齐问题（可多轮）
-3. **confirm** — 确认要导入的原始数据、参考文档和分析目标
-4. **build** — 导入确认的文件，生成语义层
-
-# currentDate
-Today's date: 2026-05-01.

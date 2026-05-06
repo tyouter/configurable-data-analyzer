@@ -28,6 +28,40 @@ class _ChartJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
+def _fix_double_encoding(s):
+    if not isinstance(s, str):
+        return s
+    try:
+        raw_bytes = bytearray()
+        for c in s:
+            cp = ord(c)
+            if cp < 0x80:
+                raw_bytes.append(cp)
+            elif 0x80 <= cp <= 0xFF:
+                raw_bytes.append(cp)
+            else:
+                raw_bytes.extend(c.encode("utf-8"))
+        fixed = raw_bytes.decode("utf-8")
+        has_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in fixed)
+        if has_cjk:
+            return fixed
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        pass
+    return s
+
+
+def _fix_chart_encoding(obj, depth=0):
+    if depth > 15:
+        return obj
+    if isinstance(obj, dict):
+        return {_fix_chart_encoding(k, depth + 1) if isinstance(k, str) else k: _fix_chart_encoding(v, depth + 1) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_fix_chart_encoding(item, depth + 1) for item in obj]
+    elif isinstance(obj, str):
+        return _fix_double_encoding(obj)
+    return obj
+
+
 def _json_dumps(obj, **kwargs):
     return json.dumps(obj, cls=_ChartJSONEncoder, ensure_ascii=False, indent=2, **kwargs)
 
@@ -75,6 +109,20 @@ def get_dashboard(projects_dir: str, project_id: str, dashboard_id: str) -> Opti
     return json.loads(open(fp, encoding="utf-8").read())
 
 
+def load_dashboard_by_name(projects_dir: str, project_id: str, name: str) -> Optional[dict]:
+    d = _dashboards_dir(projects_dir, project_id)
+    if not os.path.exists(d):
+        return None
+    for f in sorted(Path(d).glob("*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            if data.get("name") == name:
+                return data
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return None
+
+
 def create_dashboard(projects_dir: str, project_id: str, name: str) -> dict:
     _ensure_dir(projects_dir, project_id)
     d = _dashboards_dir(projects_dir, project_id)
@@ -97,9 +145,54 @@ def create_dashboard(projects_dir: str, project_id: str, name: str) -> dict:
     return {"id": dashboard_id, "name": name, "exists": False}
 
 
+def _check_chart_data_quality(chart: dict) -> list[str]:
+    warnings = []
+    data_sample = chart.get("data_sample", [])
+    chart_type = chart.get("chart_type", "")
+    title = chart.get("title", "untitled")
+
+    if not data_sample:
+        warnings.append(f"[{title}] data_sample is empty — query returned no rows")
+    else:
+        all_null = all(
+            v is None for row in data_sample for v in (row.values() if isinstance(row, dict) else [row])
+        )
+        if all_null:
+            warnings.append(
+                f"[{title}] all values are NULL — SQL filter/LIKE pattern may not match any data"
+            )
+
+        has_null_metric = False
+        for row in data_sample:
+            if not isinstance(row, dict):
+                continue
+            for k, v in row.items():
+                if v is None and k not in ("id",):
+                    has_null_metric = True
+                    break
+        if has_null_metric and not all_null:
+            warnings.append(
+                f"[{title}] some metric values are NULL — check for division by zero or missing data"
+            )
+
+    if chart_type == "table" and data_sample and len(data_sample) == 1:
+        row = data_sample[0]
+        if isinstance(row, dict):
+            for k, v in row.items():
+                if v == 0:
+                    warnings.append(
+                        f"[{title}] metric '{k}' is 0 — verify this is expected"
+                    )
+
+    return warnings
+
+
 def save_chart(projects_dir: str, project_id: str, dashboard_name: str, chart: dict) -> dict:
     _ensure_dir(projects_dir, project_id)
     d = _dashboards_dir(projects_dir, project_id)
+
+    chart = _fix_chart_encoding(chart)
+    quality_warnings = _check_chart_data_quality(chart)
 
     for f in Path(d).glob("*.json"):
         data = json.loads(f.read_text(encoding="utf-8"))
@@ -107,15 +200,22 @@ def save_chart(projects_dir: str, project_id: str, dashboard_name: str, chart: d
             chart_id = str(uuid.uuid4())[:8]
             chart["id"] = chart_id
             chart["saved_at"] = datetime.now().isoformat()
+            if quality_warnings:
+                chart["data_quality_warnings"] = quality_warnings
             data["charts"].append(chart)
             data["updated_at"] = datetime.now().isoformat()
             f.write_text(_json_dumps(data), encoding="utf-8")
-            return {"dashboard_id": data["id"], "chart_id": chart_id, "dashboard_name": dashboard_name}
+            result = {"dashboard_id": data["id"], "chart_id": chart_id, "dashboard_name": dashboard_name}
+            if quality_warnings:
+                result["warnings"] = quality_warnings
+            return result
 
     dashboard_id = str(uuid.uuid4())[:8]
     chart_id = str(uuid.uuid4())[:8]
     chart["id"] = chart_id
     chart["saved_at"] = datetime.now().isoformat()
+    if quality_warnings:
+        chart["data_quality_warnings"] = quality_warnings
     dashboard = {
         "id": dashboard_id,
         "name": dashboard_name,
@@ -126,7 +226,10 @@ def save_chart(projects_dir: str, project_id: str, dashboard_name: str, chart: d
     fp = _filepath(projects_dir, project_id, dashboard_id)
     with open(fp, "w", encoding="utf-8") as f:
         _json_dump(dashboard, f)
-    return {"dashboard_id": dashboard_id, "chart_id": chart_id, "dashboard_name": dashboard_name}
+    result = {"dashboard_id": dashboard_id, "chart_id": chart_id, "dashboard_name": dashboard_name}
+    if quality_warnings:
+        result["warnings"] = quality_warnings
+    return result
 
 
 def delete_chart(projects_dir: str, project_id: str, dashboard_id: str, chart_id: str) -> bool:

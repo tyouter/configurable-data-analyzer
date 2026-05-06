@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小红书KPI看板V3 - 小红书车载应用分析-V2</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f8f9fa;
+    color: #1a1a1a;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+.dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e8e8e8;
+}
+.header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+.header .subtitle {
+    font-size: 13px;
+    color: #666666;
+    margin-top: 4px;
+}
+.theme-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #666666;
+}
+.theme-switcher select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #e8e8e8;
+    background: #ffffff;
+    color: #1a1a1a;
+    font-size: 13px;
+    cursor: pointer;
+}
+.domain-section {
+    margin-bottom: 32px;
+}
+.domain-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e8e8e8;
+}
+.domain-accent {
+    display: inline-block;
+    width: 4px;
+    height: 22px;
+    border-radius: 2px;
+    background: #59A14F;
+}
+.domain-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+}
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.kpi-card {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: box-shadow 0.2s;
+}
+.kpi-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.kpi-card .kpi-title {
+    font-size: 12px;
+    color: #666666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.kpi-card .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #4E79A7;
+    line-height: 1.2;
+}
+.kpi-card .kpi-sub {
+    font-size: 11px;
+    color: #666666;
+    margin-top: 4px;
+}
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+@media (max-width: 900px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+.chart-card {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 16px;
+    min-height: 320px;
+    transition: box-shadow 0.2s;
+}
+.chart-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.chart-card.chart-full-width {
+    grid-column: 1 / -1;
+    min-height: 420px;
+}
+.chart-card .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+}
+.chart-container {
+    width: 100%;
+    height: 280px;
+}
+.chart-full-width .chart-container {
+    height: 380px;
+}
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+.filter-bar label {
+    font-size: 13px;
+    color: #666666;
+    font-weight: 500;
+}
+.filter-bar input[type="date"] {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #e8e8e8;
+    background: #f8f9fa;
+    color: #1a1a1a;
+    font-size: 13px;
+}
+.filter-bar .filter-btn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid #e8e8e8;
+    background: #ffffff;
+    color: #1a1a1a;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.filter-bar .filter-btn:hover {
+    background: #e8e8e8;
+}
+.filter-bar .filter-btn.active {
+    background: #4E79A7;
+    color: #fff;
+    border-color: #4E79A7;
+}
+</style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div>
+            <h1>小红书KPI看板V3</h1>
+            <div class="subtitle">小红书车载应用分析-V2</div>
+        </div>
+        
+        <div class="theme-switcher">
+            <label for="theme-select">Theme:</label>
+            <select id="theme-select"><option value="ggplot2_dark">Ggplot2 Dark</option><option value="ggplot2_minimal" selected>Ggplot2 Minimal</option></select>
+        </div>
+    </div>
+    <div class="filter-bar" id="filter-bar">
+        <label>时间范围</label>
+        <input type="date" id="date-start" />
+        <span style="color:#666666">~</span>
+        <input type="date" id="date-end" />
+        <button class="filter-btn" data-range="7">近7天</button>
+        <button class="filter-btn" data-range="30">近30天</button>
+        <button class="filter-btn active" data-range="all">全部</button>
+    </div>
+    
+        <section class="domain-section" data-domain="overview" data-domain-label="APP总览">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">APP总览</h2>
+            </div>
+            <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">总事件数</div>
+                <div class="kpi-value">65722</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">累计活跃用户数</div>
+                <div class="kpi-value">297</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">APP人均打开次数</div>
+                <div class="kpi-value">221.3%</div>
+            </div></div>
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">日活跃用户数</div>
+                <div class="chart-container" id="chart-13" data-title="日活跃用户数" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "dau", "data": [5, 5, 13, 14, 23, 52, 35, 29, 24, 22, 23, 15, 15, 17, 21, 17, 23, 22, 14, 20, 18, 19, 23, 22, 18], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">APP活跃率</div>
+                <div class="chart-container" id="chart-14" data-title="APP活跃率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "app_active_rate", "data": [0.016835016835016835, 0.016835016835016835, 0.04377104377104377, 0.04713804713804714, 0.07744107744107744, 0.1750841750841751, 0.11784511784511785, 0.09764309764309764, 0.08080808080808081, 0.07407407407407407, 0.07744107744107744, 0.050505050505050504, 0.050505050505050504, 0.05723905723905724, 0.0707070707070707, 0.05723905723905724, 0.07744107744107744, 0.07407407407407407, 0.04713804713804714, 0.06734006734006734, 0.06060606060606061, 0.06397306397306397, 0.07744107744107744, 0.07407407407407407, 0.06060606060606061], "smooth": true}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="porsche" data-domain-label="Porsche+">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">Porsche+</h2>
+            </div>
+            <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">Porsche+活跃用户数</div>
+                <div class="kpi-value">297</div>
+            </div></div>
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">Porsche+板块活跃率</div>
+                <div class="chart-container" id="chart-15" data-title="Porsche+板块活跃率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "porsche_active_rate", "data": [1.0, 0.8, 1.0, 1.0, 1.0, 1.0, 0.9714285714285714, 0.9310344827586207, 1.0, 1.0, 0.9565217391304348, 0.9333333333333333, 1.0, 1.0, 1.0, 1.0, 0.9565217391304348, 0.9090909090909091, 1.0, 1.0, 1.0, 1.0, 0.9130434782608695, 0.9545454545454546, 1.0], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Porsche+页面平均时长(秒)</div>
+                <div class="chart-container" id="chart-16" data-title="Porsche+页面平均时长(秒)" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "porsche_avg_session_duration", "data": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Porsche+页面人均打开次数</div>
+                <div class="chart-container" id="chart-17" data-title="Porsche+页面人均打开次数" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": [{"type": "value"}], "series": [{"type": "bar", "name": "porsche_page_visits_per_user", "data": [61.2, 806.6, 71.23076923076923, 11.714285714285714, 27.73913043478261, 57.57692307692308, 21.942857142857143, 25.93103448275862, 30.166666666666668, 12.045454545454545, 8.130434782608695, 61.266666666666666, 34.46666666666667, 12.235294117647058, 69.57142857142857, 11.294117647058824, 30.91304347826087, 22.681818181818183, 6.071428571428571, 15.2, 33.833333333333336, 151.31578947368422, 81.65217391304348, 22.318181818181817, 8.555555555555555], "smooth": false}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="discovery" data-domain-label="发现页">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">发现页</h2>
+            </div>
+            <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">发现页活跃用户数</div>
+                <div class="kpi-value">297</div>
+            </div></div>
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">发现板块活跃率</div>
+                <div class="chart-container" id="chart-18" data-title="发现板块活跃率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "discovery_active_rate", "data": [1.0, 0.8, 1.0, 1.0, 1.0, 1.0, 0.9714285714285714, 1.0, 1.0, 1.0, 0.9565217391304348, 0.9333333333333333, 1.0, 1.0, 1.0, 1.0, 0.9565217391304348, 0.9090909090909091, 1.0, 1.0, 1.0, 1.0, 0.9565217391304348, 0.9545454545454546, 1.0], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">发现页面平均时长(秒)</div>
+                <div class="chart-container" id="chart-19" data-title="发现页面平均时长(秒)" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "discovery_avg_session_duration", "data": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "smooth": true}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="ai_travel_guide" data-domain-label="AI路书">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">AI路书</h2>
+            </div>
+            <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">AI路书生成用户数</div>
+                <div class="kpi-value">74</div>
+            </div></div>
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">AI路书生成活跃率</div>
+                <div class="chart-container" id="chart-20" data-title="AI路书生成活跃率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "ai_generate_penetration_rate", "data": [0.2, 0.2, 0.23076923076923078, 0.07142857142857142, 0.2608695652173913, 0.19230769230769232, 0.2571428571428571, 0.27586206896551724, 0.041666666666666664, 0.18181818181818182, 0.043478260869565216, 0.13333333333333333, 0.26666666666666666, 0.23529411764705882, 0.14285714285714285, 0.23529411764705882, 0.13043478260869565, 0.045454545454545456, 0.14285714285714285, 0.15, 0.2777777777777778, 0.3157894736842105, 0.21739130434782608, 0.13636363636363635, 0.16666666666666666], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">AI路书生成人均使用次数</div>
+                <div class="chart-container" id="chart-21" data-title="AI路书生成人均使用次数" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": [{"type": "value"}], "series": [{"type": "bar", "name": "ai_generate_per_capita_usage", "data": [12.0, 106.0, 1.3333333333333333, 7.0, 2.6666666666666665, 2.3, 2.888888888888889, 1.375, 1.0, 1.0, 1.0, 7.5, 2.5, 2.25, 1.3333333333333333, 1.5, 2.0, 1.0, 1.5, 1.0, 1.8, 3.3333333333333335, 5.0, 1.3333333333333333, 1.0], "smooth": false}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">AI路书生成使用率</div>
+                <div class="chart-container" id="chart-22" data-title="AI路书生成使用率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "ai_generate_usage_rate", "data": [0.01054481546572935, 0.01400819347165323, 0.002145922746781116, 0.004669779853235491, 0.007407407407407408, 0.0033788746878213602, 0.008079552517091361, 0.00575013068478829, 0.0005310674455655868, 0.0017094017094017094, 0.00042122999157540015, 0.006648936170212766, 0.0066844919786096255, 0.0074503311258278145, 0.001352265043948614, 0.0039656311962987445, 0.0024762690879075525, 0.0004578754578754579, 0.0025906735751295338, 0.0022338049143708115, 0.003952569169960474, 0.003729256013425322, 0.004855311711011847, 0.0017582417582417582, 0.0022123893805309734], "smooth": true}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="share_code" data-domain-label="分享码">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">分享码</h2>
+            </div>
+            <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">分享码生成用户数</div>
+                <div class="kpi-value">4</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">分享码使用用户数</div>
+                <div class="kpi-value">4</div>
+            </div></div>
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">分享码生成占比</div>
+                <div class="chart-container" id="chart-23" data-title="分享码生成占比" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "share_code_generation_rate", "data": [0.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06666666666666667, 0.06666666666666667, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.10526315789473684, 0.043478260869565216, 0.0, 0.0], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">分享码使用占比</div>
+                <div class="chart-container" id="chart-24" data-title="分享码使用占比" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "share_code_usage_rate", "data": [0.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06666666666666667, 0.06666666666666667, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.10526315789473684, 0.043478260869565216, 0.0, 0.0], "smooth": true}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="content_interaction" data-domain-label="内容互动">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">内容互动</h2>
+            </div>
+            <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">视频平均播放速度</div>
+                <div class="kpi-value">1.75</div>
+            </div></div>
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">笔记卡片点击率</div>
+                <div class="chart-container" id="chart-25" data-title="笔记卡片点击率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": [{"type": "value"}], "series": [{"type": "bar", "name": "click_through_rate_post_card", "data": [0.06770833333333333, 0.20436507936507936, 0.06459948320413436, 0.3230088495575221, 0.08561643835616438, 0.06487835308796007, 0.07341490545050056, 0.08896797153024912, 0.08385093167701864, 0.10874704491725769, 0.1710843373493976, 0.0625, 0.037102473498233215, 0.11610486891385768, 0.10208816705336426, 0.13372093023255813, 0.09813084112149532, 0.1322314049586777, 0.1388888888888889, 0.08413461538461539, 0.0844062947067239, 0.04160688665710186, 0.07201889020070838, 0.12770137524557956, 0.15234375], "smooth": false}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">点赞率</div>
+                <div class="chart-container" id="chart-26" data-title="点赞率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "like_rate", "data": [0.004878048780487805, 0.006589785831960461, 0.0048543689320388345, 0.006688963210702341, 0.0, 0.0035149384885764497, 0.0031088082901554403, 0.0, 0.0057306590257879654, 0.0021321961620469083, 0.0, 0.0, 0.0, 0.003355704697986577, 0.0, 0.007692307692307693, 0.0, 0.038929440389294405, 0.003484320557491289, 0.0, 0.0013192612137203166, 0.0006887052341597796, 0.0022026431718061676, 0.003484320557491289, 0.003389830508474576], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">收藏率</div>
+                <div class="chart-container" id="chart-27" data-title="收藏率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "save_rate", "data": [0.004878048780487805, 0.004942339373970346, 0.0048543689320388345, 0.006688963210702341, 0.0, 0.0, 0.0010362694300518134, 0.0016339869281045752, 0.0, 0.0021321961620469083, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0072992700729927005, 0.0, 0.0, 0.0, 0.0, 0.0022026431718061676, 0.0, 0.0], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">关注转化率</div>
+                <div class="chart-container" id="chart-28" data-title="关注转化率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "follow_rate", "data": [0.0625, 0.019230769230769232, 0.12, 0.04054054054054054, 0.05555555555555555, 0.08411214953271028, 0.07246376811594203, 0.11538461538461539, 0.0, 0.06382978723404255, 0.0, 0.1111111111111111, 0.12, 0.15151515151515152, 0.0, 0.14583333333333334, 0.05970149253731343, 0.04, 0.02857142857142857, 0.0, 0.0, 0.0, 0.029850746268656716, 0.014925373134328358, 0.0], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">视频播放率</div>
+                <div class="chart-container" id="chart-29" data-title="视频播放率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "bar", "name": "video_play_rate", "data": [0.0, 0.0, 0.0, 0.022018348623853212, 0.0, 0.0022624434389140274, 0.0018484288354898336, 0.014492753623188406, 0.0, 0.007712082262210797, 0.0039946737683089215, 0.004132231404958678, 0.0, 0.0, 0.00186219739292365, 0.0018315018315018315, 0.0025, 0.015384615384615385, 0.014669926650366748, 0.0, 0.004739336492890996, 0.01206896551724138, 0.0017331022530329288, 0.0030721966205837174, 0.0041753653444676405], "smooth": false}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">热门笔记互动排名</div>
+                <div class="chart-container" id="chart-33" data-title="热门笔记互动排名" data-option='{"yAxis": {"type": "category", "data": ["石狮｜感觉是目前top1好吃的！！！！！", "【深圳周边自驾1小时】东莞松山湖", "马代vlog🏝️", "上海韩国街隐藏攻略🔥超好吃的韩国超市🏪", "简单高级的双层卷帘门", "宇宙荒芜 山海幻境 而你眼神有光", "简单可爱的猫猫爬架", "波子迷，正式集结", "21岁人生的第一个十万", "重逢是始料未及 别来无恙也是你"]}, "xAxis": {"type": "value"}, "series": [{"type": "bar", "name": "interaction_count", "data": [2, 2, 2, 2, 2, 2, 2, 2, 3, 4]}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="retention" data-domain-label="留存分析">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">留存分析</h2>
+            </div>
+            
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">次日留存用户数</div>
+                <div class="chart-container" id="chart-31" data-title="次日留存用户数" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "retention_day1", "data": [2, 1, 2, 2, 3, 9, 8, 5, 4, 4, 1, 2, 3, 2, 5, 1, 5, 3, 3, 3, 3, 6, 3, 5, 0], "smooth": true}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="poi" data-domain-label="POI/路书">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">POI/路书</h2>
+            </div>
+            
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">POI交互率</div>
+                <div class="chart-container" id="chart-30" data-title="POI交互率" data-option='{"xAxis": {"type": "category", "data": ["2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12"]}, "yAxis": {"type": "value"}, "series": [{"type": "line", "name": "poi_interaction_rate", "data": [0.1546572934973638, 0.43227170609224264, 0.3873390557939914, 0.01801200800533689, 0.1050925925925926, 0.31820185103569854, 0.08638906152889994, 0.1170935703084161, 0.32342007434944237, 0.03803418803418803, 0.004633529907329402, 0.31560283687943264, 0.05548128342245989, 0.019867549668874173, 0.4557133198106829, 0.01520158625247852, 0.09162195625257945, 0.152014652014652, 0.013816925734024179, 0.08116157855547282, 0.08124725516029864, 0.30971471191497296, 0.2691784812584968, 0.13714285714285715, 0.008112094395280236], "smooth": true}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">热门旅行指南点击排名</div>
+                <div class="chart-container" id="chart-32" data-title="热门旅行指南点击排名" data-option='{"yAxis": {"type": "category", "data": ["冬天去东北还不错不错从喵喵喵111110", "新建行程011217174013", "黔灵山公园2.5小时全攻略", "从北京自驾海南万宁，终于到了", "朋友熬大夜做的上海攻略🗺️真心建议", "北京不绕路版游玩线路图攻略", "2.8-2.20一路向南，上海自驾潮汕、", "河北必去12大景点，这么近那么美周末到河", "上海周末自驾！一条线玩遍海/古镇/温泉🌊", "🏎️亚洲第一家保时捷快闪店📍上海！🆓冲～"]}, "xAxis": {"type": "value"}, "series": [{"type": "bar", "name": "click_count", "data": [9, 11, 13, 13, 13, 15, 15, 18, 18, 21]}]}'></div>
+            </div></div>
+        </section>
+
+        <section class="domain-section" data-domain="distribution" data-domain-label="分布分析">
+            <div class="domain-header">
+                <span class="domain-accent"></span>
+                <h2 class="domain-title">分布分析</h2>
+            </div>
+            
+            <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-title">事件类型分布</div>
+                <div class="chart-container" id="chart-9" data-title="事件类型分布" data-option='{"series": [{"type": "pie", "data": [{"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "PAGE_EXPOSURE", "value": "PAGE_EXPOSURE"}, {"name": "CLICK", "value": "CLICK"}], "radius": ["35%", "65%"], "center": ["55%", "55%"], "label": {"formatter": "{b}: {d}%"}, "emphasis": {"label": {"show": true, "fontSize": 14, "fontWeight": "bold"}}}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">页面分布</div>
+                <div class="chart-container" id="chart-10" data-title="页面分布" data-option='{"series": [{"type": "pie", "data": [{"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "路书", "value": "路书"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "个人页", "value": "个人页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "路书", "value": "路书"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "路书", "value": "路书"}, {"name": "路书", "value": "路书"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "路书", "value": "路书"}, {"name": "个人页", "value": "个人页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "路书", "value": "路书"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "个人页", "value": "个人页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "POI", "value": "POI"}, {"name": "路书", "value": "路书"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "个人页", "value": "个人页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "其他", "value": "其他"}, {"name": "发现页", "value": "发现页"}, {"name": "其他", "value": "其他"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "路书", "value": "路书"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "发现页", "value": "发现页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "路书", "value": "路书"}, {"name": "路书", "value": "路书"}, {"name": "其他", "value": "其他"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "其他", "value": "其他"}, {"name": "其他", "value": "其他"}, {"name": "发现页", "value": "发现页"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "POI", "value": "POI"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "其他", "value": "其他"}, {"name": "发现页", "value": "发现页"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "搜索", "value": "搜索"}, {"name": "POI", "value": "POI"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "POI", "value": "POI"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "其他", "value": "其他"}, {"name": "发现页", "value": "发现页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "个人页", "value": "个人页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "帖子详情", "value": "帖子详情"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "路书", "value": "路书"}, {"name": "路书", "value": "路书"}, {"name": "搜索", "value": "搜索"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "路书", "value": "路书"}, {"name": "搜索", "value": "搜索"}, {"name": "路书", "value": "路书"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "路书", "value": "路书"}, {"name": "搜索", "value": "搜索"}, {"name": "路书", "value": "路书"}, {"name": "路书", "value": "路书"}, {"name": "搜索", "value": "搜索"}, {"name": "个人页", "value": "个人页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "发现页", "value": "发现页"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "POI", "value": "POI"}, {"name": "搜索", "value": "搜索"}, {"name": "POI", "value": "POI"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "POI", "value": "POI"}, {"name": "发现页", "value": "发现页"}, {"name": "Porsche+", "value": "Porsche+"}, {"name": "发现页", "value": "发现页"}, {"name": "搜索", "value": "搜索"}, {"name": "帖子详情", "value": "帖子详情"}], "radius": ["35%", "65%"], "center": ["55%", "55%"], "label": {"formatter": "{b}: {d}%"}, "emphasis": {"label": {"show": true, "fontSize": 14, "fontWeight": "bold"}}}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">平台版本分布</div>
+                <div class="chart-container" id="chart-11" data-title="平台版本分布" data-option='{"series": [{"type": "pie", "data": [{"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "HCP3", "value": "HCP3"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}, {"name": "Asterix", "value": "Asterix"}], "radius": ["35%", "65%"], "center": ["55%", "55%"], "label": {"formatter": "{b}: {d}%"}, "emphasis": {"label": {"show": true, "fontSize": 14, "fontWeight": "bold"}}}]}'></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">屏幕分辨率分布</div>
+                <div class="chart-container" id="chart-12" data-title="屏幕分辨率分布" data-option='{"xAxis": {"type": "category", "data": ["1920*624", "1920*612", "1920*720", "1770*720", "1668*1472", "1868*720", "3200*2092", "1868*615", "1920*954", "1668*952", "2300*928", "1868*879", "2204*1024", "2300*1067", "1080*2141"]}, "yAxis": {"type": "value"}, "series": [{"type": "bar", "name": "count", "data": [35216, 12688, 8365, 3797, 3585, 1395, 266, 155, 50, 39, 37, 36, 24, 23, 15]}]}'></div>
+            </div></div>
+        </section>
+</div>
+<script>
+(function() {
+    var themeData = {"color": ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7", "#9C755F", "#BAB0AC"], "backgroundColor": "transparent", "textStyle": {"fontFamily": "'Inter', 'SF Pro Display', -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif", "fontSize": 12, "color": "#333"}, "title": {"left": "left", "top": 5, "textStyle": {"fontSize": 15, "fontWeight": 600, "color": "#1a1a1a", "fontFamily": "'Inter', 'SF Pro Display', -apple-system, 'Segoe UI', Roboto, sans-serif"}, "subtextStyle": {"fontSize": 12, "color": "#666"}}, "legend": {"top": 32, "left": "right", "orient": "horizontal", "itemWidth": 12, "itemHeight": 12, "itemGap": 16, "textStyle": {"fontSize": 11, "color": "#555"}, "icon": "roundRect"}, "tooltip": {"backgroundColor": "rgba(255, 255, 255, 0.96)", "borderColor": "#e0e0e0", "borderWidth": 1, "textStyle": {"color": "#333", "fontSize": 12}, "extraCssText": "box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 6px; padding: 8px 12px;"}, "grid": {"show": false, "top": 60, "bottom": 24, "left": 16, "right": 16, "containLabel": true}, "categoryAxis": {"axisLine": {"show": true, "lineStyle": {"color": "#ccc"}}, "axisTick": {"show": false}, "axisLabel": {"color": "#666", "fontSize": 11, "margin": 8}, "splitLine": {"show": false}, "splitArea": {"show": false}}, "valueAxis": {"axisLine": {"show": false}, "axisTick": {"show": false}, "axisLabel": {"color": "#888", "fontSize": 11, "margin": 8}, "splitLine": {"show": true, "lineStyle": {"color": "#e8e8e8", "type": "dashed", "width": 1}}, "splitArea": {"show": false}}, "line": {"itemStyle": {"borderWidth": 2}, "lineStyle": {"width": 2.5}, "symbolSize": 6, "symbol": "circle", "smooth": true}, "bar": {"itemStyle": {"borderRadius": [3, 3, 0, 0], "barBorderWidth": 0}, "barMaxWidth": 40, "barGap": "30%"}, "pie": {"itemStyle": {"borderColor": "#fff", "borderWidth": 2, "borderRadius": 4}, "label": {"fontSize": 11, "color": "#555"}}, "scatter": {"itemStyle": {"borderWidth": 0, "opacity": 0.75}, "symbolSize": 8}, "funnel": {"itemStyle": {"borderColor": "#fff", "borderWidth": 1, "borderRadius": 2}, "label": {"fontSize": 11, "color": "#555"}}};
+    echarts.registerTheme('dashboard-theme', themeData);
+    var charts = [];
+    var chartContainers = document.querySelectorAll('.chart-container');
+    var originalOptions = [];
+    chartContainers.forEach(function(el) {
+        var chart = echarts.init(el, 'dashboard-theme');
+        charts.push(chart);
+        var optionJson = el.getAttribute('data-option');
+        var chartTitle = el.getAttribute('data-title') || '';
+        var parsed = null;
+        if (optionJson) {
+            try {
+                parsed = JSON.parse(optionJson);
+                if (chartTitle && (!parsed.title || !parsed.title.text)) {
+                    parsed.title = parsed.title || {};
+                    parsed.title.text = chartTitle;
+                }
+                chart.setOption(parsed);
+            } catch(e) {
+                console.error('Chart option parse error:', e);
+            }
+        }
+        originalOptions.push(parsed);
+    });
+    window.addEventListener('resize', function() {
+        charts.forEach(function(c) { c.resize(); });
+    });
+    var themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+        themeSelect.addEventListener('change', function() {
+            var params = new URLSearchParams(window.location.search);
+            params.set('theme', this.value);
+            window.location.search = params.toString();
+        });
+    }
+
+    function isDateString(s) {
+        if (typeof s !== 'string') return false;
+        return /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s);
+    }
+
+    function parseDate(s) {
+        if (!s) return null;
+        var d = new Date(s.replace(/\//g, '-'));
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function applyDateFilter(startStr, endStr) {
+        var startDate = startStr ? parseDate(startStr) : null;
+        var endDate = endStr ? parseDate(endStr) : null;
+        if (endDate) endDate.setHours(23, 59, 59, 999);
+
+        charts.forEach(function(chart, idx) {
+            var opt = originalOptions[idx];
+            if (!opt) return;
+
+            var xAxis = opt.xAxis;
+            if (!xAxis || !xAxis.data || !Array.isArray(xAxis.data)) return;
+
+            var hasDate = xAxis.data.some(function(v) { return isDateString(String(v)); });
+            if (!hasDate) return;
+
+            var filteredIndices = [];
+            xAxis.data.forEach(function(val, i) {
+                var d = parseDate(String(val));
+                if (!d) { filteredIndices.push(i); return; }
+                if (startDate && d < startDate) return;
+                if (endDate && d > endDate) return;
+                filteredIndices.push(i);
+            });
+
+            var newOpt = JSON.parse(JSON.stringify(opt));
+            newOpt.xAxis.data = filteredIndices.map(function(i) { return xAxis.data[i]; });
+            if (newOpt.series) {
+                newOpt.series.forEach(function(s) {
+                    if (Array.isArray(s.data)) {
+                        s.data = filteredIndices.map(function(i) { return s.data[i]; });
+                    }
+                });
+            }
+            chart.setOption(newOpt, true);
+        });
+    }
+
+    var dateStart = document.getElementById('date-start');
+    var dateEnd = document.getElementById('date-end');
+    var filterBtns = document.querySelectorAll('.filter-btn');
+
+    filterBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            var range = btn.getAttribute('data-range');
+            if (range === 'all') {
+                dateStart.value = '';
+                dateEnd.value = '';
+                charts.forEach(function(chart, idx) {
+                    if (originalOptions[idx]) {
+                        chart.setOption(originalOptions[idx], true);
+                    }
+                });
+            } else {
+                var end = new Date();
+                var start = new Date();
+                start.setDate(end.getDate() - parseInt(range));
+                dateStart.value = start.toISOString().split('T')[0];
+                dateEnd.value = end.toISOString().split('T')[0];
+                applyDateFilter(dateStart.value, dateEnd.value);
+            }
+        });
+    });
+
+    dateStart.addEventListener('change', function() {
+        filterBtns.forEach(function(b) { b.classList.remove('active'); });
+        applyDateFilter(dateStart.value, dateEnd.value);
+    });
+    dateEnd.addEventListener('change', function() {
+        filterBtns.forEach(function(b) { b.classList.remove('active'); });
+        applyDateFilter(dateStart.value, dateEnd.value);
+    });
+})();
+</script>
+</body>
+</html>

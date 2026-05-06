@@ -1,0 +1,1030 @@
+{
+  "page_map": {
+    "discovery": "发现页",
+    "porsche": "Porsche+",
+    "post_detail": "帖子详情页",
+    "poi_detail": "POI详情页",
+    "profile": "个人页",
+    "search_homepage": "搜索首页",
+    "search_results": "搜索结果页",
+    "login": "登录页",
+    "navigation_bar": "导航栏",
+    "trival_guide": "路书页"
+  },
+  "element_map": {
+    "card": "卡片",
+    "button": "按钮",
+    "icon": "图标",
+    "tab": "标签页",
+    "image": "图片",
+    "video": "视频",
+    "poi": "POI",
+    "hashtag": "话题",
+    "nickname": "昵称",
+    "profile_picture": "头像",
+    "travel_guide": "旅行指南",
+    "ai_travel_guide": "AI路书",
+    "share_code": "分享码",
+    "map_poi": "地图POI",
+    "post_card": "帖子卡片",
+    "video_post": "视频帖子",
+    "pull_to_refresh": "下拉刷新",
+    "search": "搜索",
+    "mic": "麦克风"
+  },
+  "composite_pages": {
+    "post_detail": "帖子详情",
+    "poi_detail": "POI详情",
+    "search_homepage": "搜索首页",
+    "search_results_page": "搜索结果页",
+    "trival_guide": "路书",
+    "navigation_bar": "导航栏"
+  },
+  "composite_elements": {
+    "ai_travel_guide": "AI路书",
+    "post_card": "帖子卡片",
+    "map_poi": "地图POI",
+    "video_post": "视频帖子",
+    "travel_guide": "旅行指南",
+    "share_code": "分享码",
+    "profile_picture": "头像"
+  },
+  "alias_rules": [
+    {
+      "condition": {
+        "all_of": [
+          {
+            "contains": "discovery"
+          },
+          {
+            "contains": "post_card"
+          },
+          {
+            "contains": "click"
+          }
+        ]
+      },
+      "aliases": [
+        "发现页帖子卡片点击",
+        "发现页-笔记卡片点击"
+      ]
+    },
+    {
+      "condition": {
+        "all_of": [
+          {
+            "contains": "discovery"
+          },
+          {
+            "contains": "post_card"
+          },
+          {
+            "contains": "cardshow"
+          }
+        ]
+      },
+      "aliases": [
+        "发现页帖子卡片展示"
+      ]
+    },
+    {
+      "condition": {
+        "all_of": [
+          {
+            "contains": "porsche"
+          },
+          {
+            "contains": "map_poi"
+          },
+          {
+            "contains": "click"
+          }
+        ]
+      },
+      "aliases": [
+        "Porsche+地图POI卡片点击"
+      ]
+    },
+    {
+      "condition": {
+        "all_of": [
+          {
+            "contains": "post_detail"
+          },
+          {
+            "contains": "ai_travel_guide"
+          },
+          {
+            "contains": "click"
+          }
+        ]
+      },
+      "aliases": [
+        "帖子详情页AI路书按钮点击",
+        "AI路书生成入口点击"
+      ]
+    },
+    {
+      "condition": {
+        "all_of": [
+          {
+            "contains": "trival_guide"
+          },
+          {
+            "contains": "add_place"
+          },
+          {
+            "contains": "click"
+          }
+        ]
+      },
+      "aliases": [
+        "路书页添加地点点击"
+      ]
+    }
+  ],
+  "columns": {
+    "app_version": {
+      "business_name": "应用版本号",
+      "type": "string",
+      "role": "dimension",
+      "description": "应用版本号，标识客户端版本",
+      "derived": false,
+      "enum": [
+        "26.041",
+        "26.055",
+        "26.074",
+        "26.131",
+        "26.141",
+        "26.142",
+        "26.143",
+        "26.154",
+        "26.155",
+        "26.43.074",
+        "26.43.155",
+        "26.46.074",
+        "26.46.143",
+        "26.46.154",
+        "26.46.155"
+      ]
+    },
+    "deployment_environment": {
+      "business_name": "部署环境",
+      "type": "string",
+      "role": "dimension",
+      "description": "部署环境，如external等",
+      "derived": false,
+      "enum": []
+    },
+    "device_id": {
+      "business_name": "设备标识符",
+      "type": "string",
+      "role": "dimension",
+      "description": "设备唯一标识符",
+      "derived": false,
+      "enum": []
+    },
+    "os_version": {
+      "business_name": "安卓系统版本",
+      "type": "integer",
+      "role": "dimension",
+      "description": "设备安卓系统版本号",
+      "derived": false,
+      "enum": []
+    },
+    "platform": {
+      "business_name": "平台版本",
+      "type": "string",
+      "role": "dimension",
+      "description": "平台版本，如Asterix或HCP3",
+      "derived": false,
+      "enum": [
+        "Asterix",
+        "HCP3"
+      ]
+    },
+    "service_name": {
+      "business_name": "服务名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "应用服务名称，如com.jidouauto.rednote.asterix",
+      "derived": false,
+      "enum": [
+        "com.jidouauto.rednote.asterix",
+        "com.jidouauto.rednote.hcp3"
+      ]
+    },
+    "telemetry_sdk_language": {
+      "business_name": "遥测SDK语言",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测SDK使用的编程语言",
+      "derived": false,
+      "enum": []
+    },
+    "telemetry_sdk_name": {
+      "business_name": "遥测SDK名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测SDK名称，如opentelemetry",
+      "derived": false,
+      "enum": []
+    },
+    "telemetry_sdk_version": {
+      "business_name": "遥测SDK版本",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测SDK版本号",
+      "derived": false,
+      "enum": []
+    },
+    "scope_name": {
+      "business_name": "范围名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测范围名称，通常为应用包名",
+      "derived": false,
+      "enum": [
+        "com.jidouauto.rednote.asterix",
+        "com.jidouauto.rednote.hcp3"
+      ]
+    },
+    "trace_id": {
+      "business_name": "Trace ID",
+      "type": "string",
+      "role": "dimension",
+      "description": "分布式追踪的Trace标识",
+      "derived": false,
+      "enum": []
+    },
+    "span_id": {
+      "business_name": "Span ID",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测Span标识",
+      "derived": false,
+      "enum": []
+    },
+    "span_flags": {
+      "business_name": "Span标志",
+      "type": "integer",
+      "role": "dimension",
+      "description": "Span标志位",
+      "derived": false,
+      "enum": []
+    },
+    "span_name": {
+      "business_name": "触点事件名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "触点事件名称，具体事件由下划线分隔的页面_元素_动作组成",
+      "derived": false,
+      "enum": []
+    },
+    "span_kind": {
+      "business_name": "Span类型",
+      "type": "integer",
+      "role": "dimension",
+      "description": "Span类型，1表示内部Span",
+      "derived": false,
+      "enum": []
+    },
+    "start_time_nano": {
+      "business_name": "触点事件开始时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "事件开始时间，格式为YYYY-MM-DD HH:MM:SS",
+      "derived": false,
+      "enum": []
+    },
+    "end_time_nano": {
+      "business_name": "触点事件结束时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "事件结束时间，格式为YYYY-MM-DD HH:MM:SS",
+      "derived": false,
+      "enum": []
+    },
+    "reduser_id": {
+      "business_name": "用户页小红书号",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户的小红书账号ID，用于标识用户",
+      "derived": false,
+      "enum": []
+    },
+    "resource_attributes": {
+      "business_name": "资源属性",
+      "type": "string",
+      "role": "dimension",
+      "description": "资源属性，通常为应用包名",
+      "derived": false,
+      "enum": [
+        "com.jidouauto.rednote.asterix",
+        "com.jidouauto.rednote.hcp3"
+      ]
+    },
+    "screen_size": {
+      "business_name": "屏幕分辨率",
+      "type": "string",
+      "role": "dimension",
+      "description": "设备屏幕分辨率，如1920*624",
+      "derived": false,
+      "enum": []
+    },
+    "display_id": {
+      "business_name": "标识主副屏",
+      "type": "float",
+      "role": "dimension",
+      "description": "标识显示屏幕的ID，0.0为主屏，非0为副屏",
+      "derived": false,
+      "enum": []
+    },
+    "user_ip": {
+      "business_name": "用户页IP归属地",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户IP归属地，如上海、北京等",
+      "derived": false,
+      "enum": []
+    },
+    "event_type": {
+      "business_name": "事件类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "事件类型，CLICK或PAGE_EXPOSURE",
+      "derived": false,
+      "enum": [
+        "CLICK",
+        "PAGE_EXPOSURE"
+      ]
+    },
+    "page_start_time": {
+      "business_name": "页面可见时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "页面可见的开始时间",
+      "derived": false,
+      "enum": []
+    },
+    "page_end_time": {
+      "business_name": "页面停止展示时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "页面停止展示的时间",
+      "derived": false,
+      "enum": []
+    },
+    "referer_page": {
+      "business_name": "笔记来源",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记来源页面，如discovery_page等",
+      "derived": false,
+      "enum": [
+        "discovery_page",
+        "map_view",
+        "note_detail_page",
+        "poi_detail_page",
+        "poi_search_results_p",
+        "porsche_page",
+        "profile_collection_l",
+        "profile_liked_list",
+        "profile_post_list",
+        "profile_roadbook_not",
+        "search_results_page"
+      ]
+    },
+    "rednote_profile_type": {
+      "business_name": "小红书个人页类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "个人页类型，self为自己，other为他人",
+      "derived": false,
+      "enum": [
+        "self",
+        "other"
+      ]
+    },
+    "rednote_search_result_tab_title": {
+      "business_name": "小红书搜索结果Tab名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "搜索结果页Tab标签",
+      "derived": false,
+      "enum": [
+        "全部",
+        "图文",
+        "视频"
+      ]
+    },
+    "rednote_user_logging_status": {
+      "business_name": "小红书用户登录状态",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户登录状态，如登录成功、等待扫描等",
+      "derived": false,
+      "enum": [
+        "⼩红书 APP 扫码成功（未按登录）",
+        "二维码过期",
+        "登录成功",
+        "等待扫描"
+      ]
+    },
+    "rednote_post_num": {
+      "business_name": "小红书笔记是第几个",
+      "type": "float",
+      "role": "dimension",
+      "description": "用户当前浏览的笔记在列表中的序号（从1开始）",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_post_title": {
+      "business_name": "小红书笔记标题",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记标题文本",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_post_type": {
+      "business_name": "小红书笔记类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记类型，normal为图文，video为视频",
+      "derived": false,
+      "enum": [
+        "normal",
+        "video"
+      ]
+    },
+    "rednote_post_is_like": {
+      "business_name": "小红书笔记是否喜欢",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记点赞状态，liked/true为已点赞，not_liked/false为未点赞",
+      "derived": false,
+      "enum": [
+        "liked",
+        "not_liked",
+        "true",
+        "false"
+      ]
+    },
+    "rednote_post_follow": {
+      "business_name": "小红书是否关注",
+      "type": "string",
+      "role": "dimension",
+      "description": "关注状态，true/none表示从未关注变为已关注，false/follows表示已关注变为未关注",
+      "derived": false,
+      "enum": [
+        "true",
+        "none",
+        "false",
+        "follows"
+      ]
+    },
+    "rednote_post_is_operational_rec": {
+      "business_name": "小红书笔记是否为运营推荐",
+      "type": "float",
+      "role": "dimension",
+      "description": "是否为运营推荐笔记，0表示否，1表示是",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_post_is_recuser": {
+      "business_name": "小红书笔记是否为推荐账号内容",
+      "type": "float",
+      "role": "dimension",
+      "description": "是否为推荐账号下的内容，0表示否，1表示是",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_post_hashtag_title": {
+      "business_name": "小红书笔记Hashtag名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记关联的话题标签",
+      "derived": false,
+      "enum": [
+        "一家不错的地方",
+        "上脸就是那种微醺的干枯玫瑰色",
+        "博兴",
+        "咖啡店推荐",
+        "喝茶晒太阳",
+        "在北京的冬天",
+        "如果冬天有味道",
+        "尽享在路上",
+        "明日方舟终末地",
+        "明日方舟终末地主题店",
+        "晒太阳喝咖啡",
+        "武汉打卡",
+        "眼妆",
+        "绘画",
+        "这很保时捷",
+        "郑州",
+        "铲屎姑娘"
+      ]
+    },
+    "rednote_post_is_save": {
+      "business_name": "小红书笔记是否收藏",
+      "type": "string",
+      "role": "dimension",
+      "description": "收藏状态，saved表示已收藏变为未收藏，not_saved表示未收藏变为已收藏",
+      "derived": false,
+      "enum": [
+        "saved",
+        "not_saved"
+      ]
+    },
+    "rednote_poi_map_fullscreen": {
+      "business_name": "POI地图全屏",
+      "type": "float",
+      "role": "dimension",
+      "description": "是否全屏展示POI地图，0为非全屏，1为全屏",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_poi_title": {
+      "business_name": "POI标题",
+      "type": "string",
+      "role": "dimension",
+      "description": "POI点名称",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_poi_type": {
+      "business_name": "POI类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "POI分类标签",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_poi_type_name": {
+      "business_name": "POI类型名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "POI类型的中文名称",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_video_post_is_play": {
+      "business_name": "视频播放状态",
+      "type": "float",
+      "role": "dimension",
+      "description": "视频是否正在播放，0为否，1为是",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_video_post_autoplay_is_open": {
+      "business_name": "视频自动播放开关",
+      "type": "float",
+      "role": "dimension",
+      "description": "视频自动播放是否开启，0为关闭，1为开启",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_video_post_play_speed": {
+      "business_name": "视频播放速度",
+      "type": "float",
+      "role": "dimension",
+      "description": "视频播放倍速，如1.0、1.5、2.0",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_travel_guide_id": {
+      "business_name": "旅行指南ID",
+      "type": "float",
+      "role": "dimension",
+      "description": "旅行指南的唯一标识",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_travel_guide_title": {
+      "business_name": "旅行指南标题",
+      "type": "string",
+      "role": "dimension",
+      "description": "旅行指南的标题",
+      "derived": false,
+      "enum": []
+    },
+    "rednote_travel_post_is_success": {
+      "business_name": "旅行帖子生成成功",
+      "type": "float",
+      "role": "dimension",
+      "description": "旅行帖子是否生成成功，0为失败，1为成功",
+      "derived": false,
+      "enum": []
+    },
+    "event_date": {
+      "business_name": "事件日期",
+      "type": "date",
+      "role": "dimension",
+      "description": "从start_time_nano提取的日期",
+      "derived": true,
+      "derived_from": "start_time_nano",
+      "derivation_logic": "date"
+    },
+    "event_hour": {
+      "business_name": "事件小时",
+      "type": "integer",
+      "role": "dimension",
+      "description": "从start_time_nano提取的小时",
+      "derived": true,
+      "derived_from": "start_time_nano",
+      "derivation_logic": "hour"
+    }
+  },
+  "events": {
+    "Profile_page_travel_guide_tab_click": {},
+    "discovery_page_pageshow": {
+      "business_name": "discovery_page_pageshow"
+    },
+    "discovery_page_pageslide": {},
+    "discovery_page_post_card_cardshow": {},
+    "discovery_page_post_card_click": {},
+    "discovery_page_post_like_click": {},
+    "discovery_page_pull_to_refresh": {},
+    "discovery_page_search_click": {},
+    "discovery_page_search_mic_click": {},
+    "login_page_QRCode_Authentication": {},
+    "login_page_pageshow": {},
+    "navigation_bar_discovery_tab_click": {},
+    "navigation_bar_discovery_tab_page_refresh_click": {},
+    "navigation_bar_discovery_tab_scroll_to_top_click": {},
+    "navigation_bar_porsche_tab_click": {},
+    "navigation_bar_porsche_tab_page_refresh_click": {},
+    "navigation_bar_porsche_tab_scroll_to_top_click": {},
+    "navigation_bar_profile_icon_click": {},
+    "other_profile_page_follow_button_click": {},
+    "poi_detail_page_navigation_button_click": {},
+    "poi_detail_page_navigation_popup_cancel_click": {},
+    "poi_detail_page_navigation_popup_confirm_click": {},
+    "poi_detail_page_pageshow": {},
+    "poi_detail_page_post_card_cardshow": {},
+    "poi_detail_page_post_card_click": {},
+    "poi_detail_page_tel_btn_click": {},
+    "porsche_page_Map_POI_Category_cardshow": {},
+    "porsche_page_Map_POI_Category_click": {},
+    "porsche_page_Map_poi_Category_entry_click": {},
+    "porsche_page_Map_poi_card_cardshow": {},
+    "porsche_page_Map_poi_card_click": {},
+    "porsche_page_map_map_zoom_in": {},
+    "porsche_page_map_map_zoom_out": {},
+    "porsche_page_map_onFullscreen_Entry_Click": {},
+    "porsche_page_map_onFullscreen_Exit_Click": {},
+    "porsche_page_map_return_to_my_location_click": {},
+    "porsche_page_pageshow": {},
+    "porsche_page_pageslide": {},
+    "porsche_page_pull_to_refresh": {},
+    "porsche_page_recommend_account_cardclick": {},
+    "porsche_page_recommend_account_cardshow": {},
+    "porsche_page_recommend_account_follow_button_click": {},
+    "porsche_page_recommend_post_card_cardshow": {},
+    "porsche_page_recommend_post_card_click": {},
+    "porsche_page_search_click": {},
+    "porsche_page_search_mic_click": {},
+    "post_detail_page_POI_button_click": {},
+    "post_detail_page_POI_button_show": {},
+    "post_detail_page_Profile_Picture_Click": {},
+    "post_detail_page_ai_travel_guide_button_click": {},
+    "post_detail_page_ai_travel_guide_button_show": {},
+    "post_detail_page_back_button_click": {},
+    "post_detail_page_body_image_click": {},
+    "post_detail_page_body_image_swipe_for_next": {},
+    "post_detail_page_body_video_autoplay_next_click": {},
+    "post_detail_page_body_video_fullscreen_play_Exit_click": {},
+    "post_detail_page_body_video_fullscreen_play_click": {},
+    "post_detail_page_body_video_play_icon_click": {},
+    "post_detail_page_body_video_speed_change_click": {},
+    "post_detail_page_body_video_swipe_for_the_next_post": {},
+    "post_detail_page_comment_like_click": {},
+    "post_detail_page_follow_button_click": {},
+    "post_detail_page_generated_travel_guide_button_click": {},
+    "post_detail_page_generated_travel_guide_button_show": {},
+    "post_detail_page_hashtag_button_click": {},
+    "post_detail_page_nickname_click": {},
+    "post_detail_page_pageshow": {},
+    "post_detail_page_post_like_click": {},
+    "post_detail_page_save_button_click": {},
+    "profile_page_like_tab_post_card_carshow": {},
+    "profile_page_like_tab_post_card_click": {},
+    "profile_page_liked_tab_click": {},
+    "profile_page_pageshow": {},
+    "profile_page_post_tab_click": {},
+    "profile_page_post_tab_post_card_carshow": {},
+    "profile_page_post_tab_post_card_click": {},
+    "profile_page_post_tab_post_like_click": {},
+    "profile_page_save_tab_click": {},
+    "profile_page_save_tab_post_card_carshow": {},
+    "profile_page_save_tab_post_card_click": {},
+    "profile_page_save_tab_post_like_click": {},
+    "profile_page_setting_clear_cache_button_click": {},
+    "profile_page_setting_click": {},
+    "profile_page_setting_sign_out_button_click": {},
+    "profile_page_travel_guide_tab_add_trip_entry_click": {},
+    "profile_page_travel_guide_tab_add_trip_popup_close_button_click": {},
+    "profile_page_travel_guide_tab_all_tab_click": {},
+    "profile_page_travel_guide_tab_all_tab_trip_card_carshow": {},
+    "profile_page_travel_guide_tab_all_tab_trip_card_click": {},
+    "profile_page_travel_guide_tab_all_tab_trip_card_view_details_click": {},
+    "profile_page_travel_guide_tab_create_trip_click": {},
+    "profile_page_travel_guide_tab_share_code_trip_add_click": {},
+    "profile_page_travel_guide_tab_share_code_trip_add_close_button_click": {},
+    "profile_page_travel_guide_tab_share_code_trip_add_confirm_button_click": {},
+    "profile_page_travel_guide_tab_trip_card_cardshow": {},
+    "profile_page_travel_guide_tab_trip_card_click": {},
+    "profile_page_travel_guide_tab_trip_tab_click": {},
+    "search_homepage_pageshow": {},
+    "search_homepage_search_history_query_delete_all_click": {},
+    "search_homepage_search_history_query_delete_entry_click": {},
+    "search_homepage_search_history_query_item_click": {},
+    "search_homepage_search_history_query_item_delete_click": {},
+    "search_homepage_search_history_query_item_show": {},
+    "search_results_page_all_tab_switch_click": {},
+    "search_results_page_image_tab_switch_click": {},
+    "search_results_page_pageshow": {},
+    "search_results_page_post_card_carshow": {},
+    "search_results_page_post_card_click": {},
+    "search_results_page_video_tab_switch_click": {},
+    "trival_guide_page_back_button_click": {},
+    "trival_guide_page_back_to_original_post_click": {},
+    "trival_guide_page_detail_tab_add_date_button_click": {},
+    "trival_guide_page_detail_tab_add_place_card_click": {},
+    "trival_guide_page_detail_tab_add_place_entry_click": {},
+    "trival_guide_page_detail_tab_add_place_page_back_click": {},
+    "trival_guide_page_detail_tab_add_place_page_search_icon_click": {},
+    "trival_guide_page_detail_tab_add_place_page_search_result_card_click": {},
+    "trival_guide_page_detail_tab_add_place_search_close_click": {},
+    "trival_guide_page_detail_tab_click": {},
+    "trival_guide_page_detail_tab_date_switch_click": {},
+    "trival_guide_page_detail_tab_delete_date_button_click": {},
+    "trival_guide_page_detail_tab_poi_navigation_button_click": {},
+    "trival_guide_page_detail_tab_poi_navigation_popup_cancel_click": {},
+    "trival_guide_page_detail_tab_poi_navigation_popup_confirm_click": {},
+    "trival_guide_page_detail_tab_poi_post_search_button_click": {},
+    "trival_guide_page_overview_tab_click": {},
+    "trival_guide_page_overview_tab_complete_trip_click": {},
+    "trival_guide_page_pageshow": {},
+    "trival_guide_page_share_icon_click": {},
+    "trival_guide_page_trip_title_edit_cancel_save_click": {},
+    "trival_guide_page_trip_title_edit_click": {},
+    "trival_guide_page_trip_title_edit_save_click": {}
+  },
+  "metrics": {
+    "total_events": {
+      "business_name": "总事件数",
+      "metric_type": "count",
+      "sql": "COUNT(*)",
+      "keywords": "事件总量",
+      "description": "统计周期内所有事件的总数量",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_installs": {
+      "business_name": "APP装机量",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name IN ('login_page_pageshow', 'discovery_page_pageshow'))",
+      "keywords": "装机量,安装",
+      "description": "统计周期内打开过APP的用户数（KPI1.2/1.3口径：login_page_pageshow或discovery_page_pageshow）",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_active_users": {
+      "business_name": "APP活跃人数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id)",
+      "keywords": "DAU, 活跃用户, 活跃人数",
+      "description": "统计周期内至少一次有效APP操作的活跃用户数（KPI1.6口径：排除无效数据——仅1条discovery_page_pageshow且曝光时长<5s的用户）",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_new_users": {
+      "business_name": "APP新增用户人数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE event_date = (SELECT MIN(e2.event_date) FROM events e2 WHERE e2.reduser_id = events.reduser_id))",
+      "keywords": "新增用户, 新用户",
+      "description": "统计周期内首次出现的用户数",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_avg_usage_duration": {
+      "business_name": "APP人均使用时长",
+      "metric_type": "duration",
+      "sql": "AVG(EXTRACT(EPOCH FROM (end_time_nano::TIMESTAMP - start_time_nano::TIMESTAMP))) / 60.0",
+      "keywords": "使用时长, 人均时长",
+      "description": "APP用户的平均使用时长（分钟），基于KPI1.5曝光时长计算口径",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_install_growth_rate": {
+      "business_name": "APP装机增长率",
+      "metric_type": "rate",
+      "sql": "0",
+      "keywords": "装机增长率",
+      "description": "装机量环比增长率，需按时间维度计算（当日装机量-前日装机量）/前日装机量",
+      "chart_hint": "line",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览",
+      "requires_lag": true
+    },
+    "app_active_rate": {
+      "business_name": "APP活跃率",
+      "metric_type": "rate",
+      "sql": "COUNT(DISTINCT reduser_id) * 1.0 / (SELECT COUNT(DISTINCT reduser_id) FROM events)",
+      "keywords": "活跃率, APP",
+      "description": "KPI1.6口径：排除无效数据（仅1条discovery_page_pageshow且曝光时长<5s）后的活跃用户数/总用户数",
+      "chart_hint": "line",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_user_growth_rate": {
+      "business_name": "APP用户增长率",
+      "metric_type": "rate",
+      "sql": "0",
+      "keywords": "用户增长率",
+      "description": "新增用户环比增长率，需按时间维度计算",
+      "chart_hint": "line",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览",
+      "requires_lag": true
+    },
+    "app_valid_login_users": {
+      "business_name": "APP有效登录人数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name = 'discovery_page_pageshow')",
+      "keywords": "有效登录, 登录人数",
+      "description": "统计周期内出现discovery_page_pageshow事件的去重用户数（有效登录=发现页出现）",
+      "chart_hint": "bar_line",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_valid_login_rate": {
+      "business_name": "APP有效登录率",
+      "metric_type": "rate",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name = 'discovery_page_pageshow') * 1.0 / NULLIF(COUNT(DISTINCT reduser_id), 0)",
+      "keywords": "有效登录率, 登录率",
+      "description": "有效登录用户数/APP活跃用户数",
+      "chart_hint": "line",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "core_function_penetration": {
+      "business_name": "核心功能渗透率",
+      "metric_type": "rate",
+      "sql": "COUNT(DISTINCT CASE WHEN span_name ILIKE '%ai_travel_guide_button_click%' OR span_name ILIKE '%generated_travel_guide_button_click%' OR span_name ILIKE '%map_map%' OR span_name ILIKE '%Map_poi%' OR span_name ILIKE '%Map_POI%' OR span_name ILIKE '%navigation_button_click%' OR span_name ILIKE '%navigation_popup_confirm%' THEN reduser_id END) * 1.0 / NULLIF(COUNT(DISTINCT reduser_id), 0)",
+      "keywords": "核心功能, 渗透率",
+      "description": "使用过核心功能（AI路书/Porsche+点赞收藏/地图操作/导航）的用户占总体用户的比例",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "app_open_count_per_user": {
+      "business_name": "APP人均打开次数",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name IN ('login_page_pageshow', 'discovery_page_pageshow')) / NULLIF(COUNT(DISTINCT reduser_id), 0)",
+      "keywords": "打开次数, 人均",
+      "description": "KPI1.4口径：APP打开次数总和/APP打开用户总和（每天最多记1次）",
+      "chart_hint": "kpi_card",
+      "business_domain": "overview",
+      "business_domain_label": "APP总览"
+    },
+    "porsche_active_users": {
+      "business_name": "Porsche+活跃用户数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name ILIKE '%porsche_page%')",
+      "keywords": "Porsche+, 活跃",
+      "description": "KPI2.2口径：访问过Porsche+页面的活跃用户数（排除无效数据）",
+      "chart_hint": "kpi_card",
+      "business_domain": "porsche",
+      "business_domain_label": "Porsche+"
+    },
+    "porsche_active_rate": {
+      "business_name": "Porsche+板块活跃率",
+      "metric_type": "rate",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name ILIKE '%porsche_page%') * 1.0 / NULLIF(COUNT(DISTINCT reduser_id), 0)",
+      "keywords": "Porsche+, 活跃率",
+      "description": "KPI2.2口径：Porsche+活跃用户数/APP总活跃用户数",
+      "chart_hint": "line",
+      "business_domain": "porsche",
+      "business_domain_label": "Porsche+"
+    },
+    "porsche_active_growth_rate": {
+      "business_name": "Porsche+活跃人数增长率",
+      "metric_type": "rate",
+      "sql": "0",
+      "keywords": "Porsche+, 增长率",
+      "description": "Porsche+活跃用户环比增长率，需按时间维度计算",
+      "chart_hint": "line",
+      "business_domain": "porsche",
+      "business_domain_label": "Porsche+",
+      "requires_lag": true
+    },
+    "operational_post_ctr": {
+      "business_name": "运营位帖子点击率",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name ILIKE '%recommend_post_card_click%') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE span_name ILIKE '%recommend_post_card_cardshow%'), 0)",
+      "keywords": "运营位, 点击率",
+      "description": "运营位帖子点击次数/运营位帖子曝光次数",
+      "chart_hint": "kpi_card",
+      "business_domain": "porsche",
+      "business_domain_label": "Porsche+"
+    },
+    "porsche_post_ctr": {
+      "business_name": "Porsche+页面帖子点击率",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name = 'porsche_page_recommend_post_card_click') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE span_name = 'porsche_page_recommend_post_card_cardshow'), 0)",
+      "keywords": "Porsche+, 帖子点击率",
+      "description": "Porsche+页面帖子点击次数/帖子曝光次数",
+      "chart_hint": "kpi_card",
+      "business_domain": "porsche",
+      "business_domain_label": "Porsche+"
+    },
+    "ai_guide_gen_users": {
+      "business_name": "AI路书生成用户数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name = 'post_detail_page_ai_travel_guide_button_click')",
+      "keywords": "AI路书, 生成用户",
+      "description": "KPI1.1口径：完成首次AI路书生成点击的用户数",
+      "chart_hint": "kpi_card",
+      "business_domain": "ai_travel_guide",
+      "business_domain_label": "AI路书"
+    },
+    "ai_guide_conversion_rate": {
+      "business_name": "AI路书生成转化率",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name = 'post_detail_page_ai_travel_guide_button_click') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE span_name = 'post_detail_page_ai_travel_guide_button_show'), 0)",
+      "keywords": "AI路书, 转化率",
+      "description": "AI路书生成点击次数/AI路书生成曝光次数",
+      "chart_hint": "kpi_card",
+      "business_domain": "ai_travel_guide",
+      "business_domain_label": "AI路书"
+    },
+    "share_code_generation_rate_v2": {
+      "business_name": "AI路书分享码生成率",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name = 'trival_guide_page_share_icon_click') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE span_name IN ('profile_page_travel_guide_tab_share_code_trip_add_click', 'post_detail_page_ai_travel_guide_button_click')), 0)",
+      "keywords": "分享码, 生成率",
+      "description": "KPI5.1口径：分享码生成点击次数/(AI分享码下载点击次数+生成AI路书点击次数)",
+      "chart_hint": "kpi_card",
+      "business_domain": "share_code",
+      "business_domain_label": "分享码"
+    },
+    "share_code_gen_users_v2": {
+      "business_name": "AI路书分享码生成用户数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name = 'trival_guide_page_share_icon_click')",
+      "keywords": "分享码, 生成用户",
+      "description": "分享码生成按钮被点击的用户数量总数",
+      "chart_hint": "kpi_card",
+      "business_domain": "share_code",
+      "business_domain_label": "分享码"
+    },
+    "share_code_download_users": {
+      "business_name": "AI路书分享码下载用户数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT reduser_id) FILTER (WHERE span_name = 'profile_page_travel_guide_tab_share_code_trip_add_confirm_button_click')",
+      "keywords": "分享码, 下载用户",
+      "description": "KPI5.2口径：AI路书下载确认按钮被点击的用户数量总数",
+      "chart_hint": "kpi_card",
+      "business_domain": "share_code",
+      "business_domain_label": "分享码"
+    },
+    "click_through_rate_post_card": {
+      "business_name": "笔记卡片点击率",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name ILIKE '%post_card_click%') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE span_name ILIKE '%post_card_cardshow%'), 0)",
+      "keywords": "笔记, 点击率",
+      "description": "笔记卡片点击次数除以卡片展示次数",
+      "chart_hint": "bar_line",
+      "business_domain": "content_interaction",
+      "business_domain_label": "内容互动"
+    },
+    "retention_day1": {
+      "business_name": "次日留存用户数",
+      "metric_type": "count",
+      "sql": "COUNT(DISTINCT a.reduser_id) FILTER (WHERE a.next_day_active)",
+      "keywords": "留存",
+      "description": "留存计算需使用L2分析模板",
+      "chart_hint": "line",
+      "business_domain": "retention",
+      "business_domain_label": "用户留存"
+    },
+    "poi_interaction_rate": {
+      "business_name": "POI交互率",
+      "metric_type": "rate",
+      "sql": "COUNT(*) FILTER (WHERE span_name ILIKE '%poi%') * 1.0 / NULLIF(COUNT(*), 0)",
+      "keywords": "POI, 交互",
+      "description": "所有POI相关事件占总事件的比例",
+      "chart_hint": "line",
+      "business_domain": "poi",
+      "business_domain_label": "POI/路书"
+    }
+  }
+}

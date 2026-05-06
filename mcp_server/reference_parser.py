@@ -9,10 +9,7 @@ from dataclasses import dataclass, field
 
 from mcp_server.project_model import FileClassification, ReferenceContent
 from mcp_server.file_classifier import _detect_encoding
-
-DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = os.environ.get("BI_MODEL", "deepseek-chat")
+from mcp_server import llm_client
 
 MAX_ITERATIONS = 3
 PASS_THRESHOLD = 0.85
@@ -295,27 +292,14 @@ class KPIValidator:
 
 
 def _call_llm(prompt: str, system_msg: str = "You are a data analyst expert. Respond with valid JSON only.") -> str:
-    import requests
-
-    url = f"{DEEPSEEK_BASE_URL}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": DEEPSEEK_MODEL,
-        "messages": [
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": prompt},
-        ],
-        "max_tokens": 4096,
-        "temperature": 0.2,
-    }
-
-    resp = requests.post(url, headers=headers, json=payload, timeout=45)
-    if resp.status_code != 200:
-        raise Exception(f"LLM API error: {resp.status_code}")
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    return llm_client.call_llm(
+        prompt=prompt,
+        system_msg=system_msg,
+        max_tokens=4096,
+        temperature=0.2,
+        timeout=45,
+        strip_markdown=False,
+    )
 
 
 def _extract_text(filepath: str) -> str:
@@ -372,7 +356,7 @@ def _format_validation_errors(issues: list[ValidationIssue]) -> str:
 
 class ReferenceParser:
     def __init__(self, llm_available: bool = True, raw_schema_columns: list[str] = None):
-        self.llm_available = llm_available and bool(DEEPSEEK_API_KEY)
+        self.llm_available = llm_available and llm_client.is_available()
         self.raw_schema_columns = raw_schema_columns or []
         self.extraction_log: list[ExtractionLog] = []
 

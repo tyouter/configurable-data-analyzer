@@ -14,6 +14,7 @@ Usage:
   python mcp_server/cli.py dashboard-list
   python mcp_server/cli.py dashboard-create <name>
   python mcp_server/cli.py dashboard-save-chart -d <dashboard> -t <title> [-c bar|line|pie|table] <sql>
+  python mcp_server/cli.py dashboard-export -d <dashboard> [--theme ggplot2_minimal|ggplot2_dark] [--open]
   python mcp_server/cli.py serve [--transport stdio|sse] [--port PORT]
 """
 
@@ -114,7 +115,7 @@ def cmd_info(args):
         return 1
 
     dm = _session.get_dm(project.id)
-    semantic = project.semantic_layer or {}
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR) or {}
 
     print(f"\n  Project: {project.name}")
     print(f"  ID:      {project.id}")
@@ -160,7 +161,7 @@ def cmd_delete(args):
 
 def cmd_query(args):
     project, dm = _require_project()
-    semantic = project.semantic_layer
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR)
 
     from mcp_server.server import _build_dynamic_l1_query
 
@@ -243,7 +244,7 @@ def cmd_context(args):
         print("  No active project. Use 'switch' first.")
         return 1
 
-    semantic = project.semantic_layer or {}
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR) or {}
     section = args.section or "all"
 
     if section in ("metrics", "all"):
@@ -332,6 +333,39 @@ def cmd_dashboard_save_chart(args):
     return 0
 
 
+def cmd_dashboard_export(args):
+    project = _session.get_current_project()
+    if not project:
+        print("  ERROR: No active project. Use 'switch' or 'create' first.")
+        return 1
+
+    from mcp_server.dashboard_html import export_dashboard_html
+    from mcp_server.themes import list_themes
+
+    theme = args.theme or "ggplot2_minimal"
+    available = list_themes()
+    if theme not in available:
+        print(f"  ERROR: Unknown theme '{theme}'. Available: {available}")
+        return 1
+
+    try:
+        html_path = export_dashboard_html(
+            projects_dir=PROJECTS_DIR,
+            project_id=project.id,
+            dashboard_name=args.dashboard,
+            theme=theme,
+        )
+        print(f"  Dashboard exported: {html_path}")
+        if args.open:
+            import webbrowser
+            webbrowser.open(f"file://{os.path.abspath(html_path)}")
+            print("  Opened in browser.")
+        return 0
+    except ValueError as e:
+        print(f"  ERROR: {e}")
+        return 1
+
+
 def cmd_serve(args):
     from mcp_server.server import mcp
     mcp.run(transport=args.transport)
@@ -396,6 +430,11 @@ def main():
     p_dash_save.add_argument("--chart-type", "-c", default="bar", help="Chart type: bar/line/pie/table")
     p_dash_save.add_argument("sql", help="SQL query")
 
+    p_dash_export = sub.add_parser("dashboard-export", help="Export dashboard to self-contained HTML")
+    p_dash_export.add_argument("-d", "--dashboard", required=True, help="Dashboard name")
+    p_dash_export.add_argument("--theme", "-t", default="ggplot2_minimal", help="Theme: ggplot2_minimal / ggplot2_dark")
+    p_dash_export.add_argument("--open", action="store_true", help="Open in browser after export")
+
     p_serve = sub.add_parser("serve", help="Start MCP Server")
     p_serve.add_argument("--transport", "-t", default="stdio", choices=["stdio", "sse"])
     p_serve.add_argument("--port", "-p", type=int, default=8000)
@@ -418,6 +457,7 @@ def main():
         "dashboard-list": cmd_dashboard_list,
         "dashboard-create": cmd_dashboard_create,
         "dashboard-save-chart": cmd_dashboard_save_chart,
+        "dashboard-export": cmd_dashboard_export,
         "serve": cmd_serve,
     }
 

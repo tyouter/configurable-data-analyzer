@@ -1,0 +1,559 @@
+{
+  "page_map": {
+    "search_homepage": "搜索首页",
+    "discovery": "发现页",
+    "porsche_plus": "Porsche+版块",
+    "post_detail": "笔记详情页",
+    "ai_travel_guide": "AI路书",
+    "map_view": "地图视图"
+  },
+  "element_map": {
+    "search_history_query_item": "搜索历史查询项",
+    "post_card": "笔记卡片",
+    "ai_travel_guide_generate_button": "生成按钮",
+    "share_code_button": "分享码按钮"
+  },
+  "composite_pages": {
+    "search_homepage": "搜索首页",
+    "post_detail": "笔记详情页",
+    "ai_travel_guide": "AI路书"
+  },
+  "composite_elements": {
+    "post_card": "笔记卡片",
+    "ai_travel_guide": "AI路书",
+    "share_code": "分享码"
+  },
+  "alias_rules": [
+    {
+      "condition": {
+        "all_of": [
+          "discovery",
+          "post_card",
+          "click"
+        ]
+      },
+      "aliases": [
+        "发现页笔记卡片点击"
+      ]
+    },
+    {
+      "condition": {
+        "contains": "ai_travel_guide"
+      },
+      "aliases": [
+        "AI路书相关事件"
+      ]
+    },
+    {
+      "condition": {
+        "all_of": [
+          "porsche_plus",
+          "enter"
+        ]
+      },
+      "aliases": [
+        "Porsche+进入"
+      ]
+    }
+  ],
+  "columns": {
+    "app_version": {
+      "business_name": "应用版本号",
+      "type": "string",
+      "role": "dimension",
+      "description": "应用版本号",
+      "derived": false
+    },
+    "deployment_environment": {
+      "business_name": "部署环境",
+      "type": "string",
+      "role": "dimension",
+      "description": "部署环境",
+      "derived": false
+    },
+    "device_id": {
+      "business_name": "设备标识符",
+      "type": "string",
+      "role": "dimension",
+      "description": "设备标识符",
+      "derived": false
+    },
+    "os_version": {
+      "business_name": "安卓系统版本",
+      "type": "integer",
+      "role": "dimension",
+      "description": "安卓系统版本",
+      "derived": false
+    },
+    "platform": {
+      "business_name": "平台版本",
+      "type": "string",
+      "role": "dimension",
+      "description": "平台版本",
+      "derived": false,
+      "enum": [
+        "Asterix"
+      ]
+    },
+    "service_name": {
+      "business_name": "服务名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "服务名称",
+      "derived": false
+    },
+    "telemetry_sdk_language": {
+      "business_name": "遥测SDK语言",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测SDK语言",
+      "derived": false
+    },
+    "telemetry_sdk_name": {
+      "business_name": "遥测SDK名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测SDK名称",
+      "derived": false
+    },
+    "telemetry_sdk_version": {
+      "business_name": "遥测SDK版本",
+      "type": "string",
+      "role": "dimension",
+      "description": "遥测SDK版本",
+      "derived": false
+    },
+    "scope_name": {
+      "business_name": "埋点作用域名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "埋点作用域名称",
+      "derived": false
+    },
+    "trace_id": {
+      "business_name": "分布式追踪ID",
+      "type": "string",
+      "role": "dimension",
+      "description": "分布式追踪ID",
+      "derived": false
+    },
+    "span_id": {
+      "business_name": "Span ID",
+      "type": "string",
+      "role": "dimension",
+      "description": "Span ID",
+      "derived": false
+    },
+    "span_flags": {
+      "business_name": "Span标志",
+      "type": "integer",
+      "role": "dimension",
+      "description": "Span标志",
+      "derived": false
+    },
+    "span_name": {
+      "business_name": "触点事件名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "触点事件名称，格式通常为页面_元素_动作",
+      "derived": false
+    },
+    "span_kind": {
+      "business_name": "Span类型",
+      "type": "integer",
+      "role": "dimension",
+      "description": "Span类型",
+      "derived": false
+    },
+    "start_time_nano": {
+      "business_name": "触点事件开始时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "触点事件开始时间",
+      "derived": false
+    },
+    "end_time_nano": {
+      "business_name": "触点事件结束时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "触点事件结束时间",
+      "derived": false
+    },
+    "reduser_id": {
+      "business_name": "用户页小红书号",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户在小红书体系内的唯一标识",
+      "derived": false
+    },
+    "resource_attributes": {
+      "business_name": "资源属性",
+      "type": "string",
+      "role": "dimension",
+      "description": "资源属性",
+      "derived": false
+    },
+    "screen_size": {
+      "business_name": "屏幕分辨率",
+      "type": "string",
+      "role": "dimension",
+      "description": "屏幕分辨率，格式为宽*高",
+      "derived": false
+    },
+    "display_id": {
+      "business_name": "标识主副屏",
+      "type": "float",
+      "role": "dimension",
+      "description": "标识主副屏（0为主屏，1为副屏）",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "user_ip": {
+      "business_name": "用户页IP归属地",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户页IP归属地",
+      "derived": false
+    },
+    "event_type": {
+      "business_name": "事件类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "事件类型，如CLICK、PAGE_EXPOSURE等",
+      "derived": false,
+      "enum": [
+        "CLICK",
+        "PAGE_EXPOSURE"
+      ]
+    },
+    "page_start_time": {
+      "business_name": "页面可见时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "页面开始可见的时间点",
+      "derived": false
+    },
+    "page_end_time": {
+      "business_name": "页面停止展示时间",
+      "type": "timestamp",
+      "role": "dimension",
+      "description": "页面结束展示的时间点",
+      "derived": false
+    },
+    "referer_page": {
+      "business_name": "笔记来源",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记来源页面，如map_view等",
+      "derived": false
+    },
+    "rednote_profile_type": {
+      "business_name": "小红书个人页类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "小红书个人页类型，如self、other等",
+      "derived": false
+    },
+    "rednote_search_result_tab_title": {
+      "business_name": "小红书搜索结果Tab名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "小红书搜索结果Tab名称，例如“全部”",
+      "derived": false
+    },
+    "rednote_user_logging_status": {
+      "business_name": "小红书用户登录状态",
+      "type": "string",
+      "role": "dimension",
+      "description": "小红书用户的登录状态",
+      "derived": false
+    },
+    "rednote_post_num": {
+      "business_name": "小红书笔记序号",
+      "type": "float",
+      "role": "dimension",
+      "description": "小红书笔记在当前列表中是第几个，从1开始统计",
+      "derived": false
+    },
+    "rednote_post_title": {
+      "business_name": "小红书笔记标题",
+      "type": "string",
+      "role": "dimension",
+      "description": "小红书笔记的标题",
+      "derived": false
+    },
+    "rednote_post_type": {
+      "business_name": "小红书笔记类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "小红书笔记的类型，如normal",
+      "derived": false
+    },
+    "rednote_post_is_like": {
+      "business_name": "小红书笔记是否喜欢",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户是否喜欢该笔记",
+      "derived": false,
+      "enum": [
+        "liked",
+        "not_liked"
+      ]
+    },
+    "rednote_post_follow": {
+      "business_name": "小红书是否关注",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户与笔记作者的关系状态",
+      "derived": false,
+      "enum": [
+        "true",
+        "none",
+        "false",
+        "follows"
+      ]
+    },
+    "rednote_post_is_operational_rec": {
+      "business_name": "小红书笔记是否为推荐",
+      "type": "float",
+      "role": "dimension",
+      "description": "笔记是否为运营推荐，1是0否",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "rednote_post_is_recuser": {
+      "business_name": "小红书笔记是否为推荐账号内容",
+      "type": "float",
+      "role": "dimension",
+      "description": "笔记是否为推荐账号的内容，1是0否",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "rednote_post_hashtag_title": {
+      "business_name": "小红书笔记Hashtag名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "笔记关联的Hashtag",
+      "derived": false
+    },
+    "rednote_post_is_save": {
+      "business_name": "小红书笔记是否收藏",
+      "type": "string",
+      "role": "dimension",
+      "description": "用户是否收藏该笔记",
+      "derived": false,
+      "enum": [
+        "saved",
+        "not_saved"
+      ]
+    },
+    "rednote_poi_map_fullscreen": {
+      "business_name": "POI地图是否全屏",
+      "type": "float",
+      "role": "dimension",
+      "description": "POI地图是否处于全屏状态",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "rednote_poi_title": {
+      "business_name": "POI名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "地点POI的名称",
+      "derived": false
+    },
+    "rednote_poi_type": {
+      "business_name": "POI类型",
+      "type": "string",
+      "role": "dimension",
+      "description": "地点POI的类型，如咖啡馆、餐厅等",
+      "derived": false
+    },
+    "rednote_poi_type_name": {
+      "business_name": "POI类型名称",
+      "type": "string",
+      "role": "dimension",
+      "description": "地点POI的具体类型名称",
+      "derived": false
+    },
+    "rednote_video_post_is_play": {
+      "business_name": "视频笔记是否播放",
+      "type": "float",
+      "role": "dimension",
+      "description": "视频笔记是否被播放，1是0否",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "rednote_video_post_autoplay_is_open": {
+      "business_name": "视频自动播放是否开启",
+      "type": "float",
+      "role": "dimension",
+      "description": "视频笔记自动播放开关状态",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "rednote_video_post_play_speed": {
+      "business_name": "视频播放速度",
+      "type": "float",
+      "role": "dimension",
+      "description": "视频笔记的播放倍速",
+      "derived": false
+    },
+    "rednote_travel_guide_id": {
+      "business_name": "旅行指南ID",
+      "type": "float",
+      "role": "dimension",
+      "description": "AI路书（旅行指南）的ID",
+      "derived": false
+    },
+    "rednote_travel_guide_title": {
+      "business_name": "旅行指南标题",
+      "type": "string",
+      "role": "dimension",
+      "description": "AI路书的标题",
+      "derived": false
+    },
+    "rednote_travel_post_is_success": {
+      "business_name": "路书生成是否成功",
+      "type": "float",
+      "role": "dimension",
+      "description": "旅行指南帖子是否成功生成，1成功0失败",
+      "derived": false,
+      "enum": [
+        0.0,
+        1.0
+      ]
+    },
+    "event_date": {
+      "business_name": "事件日期",
+      "type": "date",
+      "role": "dimension",
+      "description": "从start_time_nano提取的日期",
+      "derived": true,
+      "derived_from": "start_time_nano",
+      "derivation_logic": "date"
+    },
+    "event_hour": {
+      "business_name": "事件小时",
+      "type": "integer",
+      "role": "dimension",
+      "description": "从start_time_nano提取的小时",
+      "derived": true,
+      "derived_from": "start_time_nano",
+      "derivation_logic": "hour"
+    }
+  },
+  "events": {
+    "app_open": {},
+    "discovery_page_view": {},
+    "porsche_plus_page_view": {},
+    "ai_travel_guide_generate_click": {},
+    "share_code_generate_click": {},
+    "share_code_scan_click": {},
+    "search_homepage_search_history_query_item_delete_click": {}
+  },
+  "metrics": {
+    "first_ai_guide_user_count": {
+      "business_name": "首次使用AI生成路书客户数量",
+      "sql": "COUNT(DISTINCT CASE WHEN span_name ILIKE '%ai_travel_guide%generate%' THEN reduser_id END)",
+      "keywords": "AI路书,首次使用,客户数",
+      "description": "完成首次AI路书生成为的用户数量之和（功能上线/推广期重点统计）。口径：统计周期内，生成过AI路书的用户去重计数，近似代表首次（因首次需全历史判断，此处简化为任一生成事件）"
+    },
+    "app_opens_per_user": {
+      "business_name": "APP人均打开次数",
+      "sql": "CAST(COUNT(CASE WHEN span_name = 'app_open' THEN 1 END) AS FLOAT) / NULLIF(COUNT(DISTINCT reduser_id), 0)",
+      "keywords": "人均,打开次数,APP",
+      "description": "统计周期内所有用户的APP打开次数总和除以用户数（打开次数需基于app_open事件，且每天最多记为1次）。口径：人均 = 总打开次数 / 去重用户数"
+    },
+    "app_active_rate": {
+      "business_name": "APP活跃率",
+      "sql": "CAST(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END) AS FLOAT) / NULLIF(COUNT(DISTINCT reduser_id), 0)",
+      "keywords": "活跃率,APP,发现页,Porsche+",
+      "description": "特定统计周期内，活跃用户数（至少触发发现页或Porsche+版块事件的用户）除以总用户数量。口径：活跃定义为符合发现页或Porsche+版块事件的用户"
+    },
+    "porsche_active_rate": {
+      "business_name": "Porsche + 版块活跃率",
+      "sql": "CAST(COUNT(DISTINCT CASE WHEN span_name ILIKE '%porsche_plus%' THEN reduser_id END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "Porsche+,活跃率,版块",
+      "description": "统计周期内，触发Porsche+版块事件的用户数除以APP活跃用户数。口径：分母为符合发现页或Porsche+版块事件的活跃用户数"
+    },
+    "porsche_avg_session_duration": {
+      "business_name": "Porsche + 页面平均时长",
+      "sql": "AVG(CASE WHEN span_name ILIKE '%porsche_plus%' AND page_start_time IS NOT NULL AND page_end_time IS NOT NULL THEN DATE_DIFF('second', page_start_time::TIMESTAMP, page_end_time::TIMESTAMP) END)",
+      "keywords": "Porsche+,页面平均时长,访问时长",
+      "description": "统计周期内，Porsche+页面所有访问会话的总时长除以会话总次数。口径：平均时长 = 总时长（秒） / 会话数，会话由page_start_time与page_end_time间隔计算"
+    },
+    "porsche_views_per_active_user": {
+      "business_name": "Porsche + 页面人均打开次数",
+      "sql": "CAST(COUNT(CASE WHEN span_name ILIKE '%porsche_plus%' THEN 1 END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "Porsche+,人均打开次数",
+      "description": "统计周期内，Porsche+页面打开总次数除以APP活跃用户数。口径：分母为符合发现页或Porsche+版块事件的活跃用户数"
+    },
+    "discovery_active_rate": {
+      "business_name": "发现板块活跃率",
+      "sql": "CAST(COUNT(DISTINCT CASE WHEN span_name ILIKE '%discovery%' THEN reduser_id END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "发现板块,活跃率",
+      "description": "统计周期内，触发发现页事件的用户数除以APP活跃用户数。口径：分母为符合发现页或Porsche+版块事件的活跃用户数"
+    },
+    "discovery_avg_session_duration": {
+      "business_name": "发现页面平均时长",
+      "sql": "AVG(CASE WHEN span_name ILIKE '%discovery%' AND page_start_time IS NOT NULL AND page_end_time IS NOT NULL THEN DATE_DIFF('second', page_start_time::TIMESTAMP, page_end_time::TIMESTAMP) END)",
+      "keywords": "发现页,平均时长",
+      "description": "统计周期内，发现页面所有访问会话的总时长除以会话总次数。口径：平均时长 = 总时长（秒） / 会话数"
+    },
+    "discovery_views_per_active_user": {
+      "business_name": "发现页面人均打开次数",
+      "sql": "CAST(COUNT(CASE WHEN span_name ILIKE '%discovery%' THEN 1 END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "发现页,人均打开次数",
+      "description": "统计周期内，发现页面打开总次数除以APP活跃用户数。口径：分母为符合发现页或Porsche+版块事件的活跃用户数"
+    },
+    "ai_active_rate": {
+      "business_name": "AI 路书生成活跃率",
+      "sql": "CAST(COUNT(DISTINCT CASE WHEN span_name ILIKE '%ai_travel_guide%' THEN reduser_id END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "AI路书,活跃率",
+      "description": "点击AI路书生成事件的用户数除以APP活跃用户数。口径：分子为点击用户数，分母同APP活跃率中的活跃用户数"
+    },
+    "ai_generations_per_ai_user": {
+      "business_name": "AI 路书生成人均使用次数",
+      "sql": "CAST(COUNT(CASE WHEN span_name ILIKE '%ai_travel_guide%' THEN 1 END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN span_name ILIKE '%ai_travel_guide%' THEN reduser_id END), 0)",
+      "keywords": "AI路书,人均使用次数",
+      "description": "统计周期内，AI路书生成总事件数除以使用过AI路书功能的用户数。口径：分母为AI路书生成事件的去重用户数"
+    },
+    "ai_usage_rate": {
+      "business_name": "AI 路书生成使用率",
+      "sql": "CAST(COUNT(CASE WHEN span_name ILIKE '%ai_travel_guide%' THEN 1 END) AS FLOAT) / NULLIF(COUNT(CASE WHEN span_name = 'app_open' THEN 1 END), 0)",
+      "keywords": "AI路书,使用率",
+      "description": "统计周期内，AI路书生成事件数除以APP总使用次数（app_open事件数，每天最多记一次）。口径：分母为APP打开次数总和（每天最多记为1次）"
+    },
+    "share_code_generation_per_active_user": {
+      "business_name": "分享码生成占比",
+      "sql": "CAST(COUNT(DISTINCT CASE WHEN span_name ILIKE '%share_code%generate%' THEN reduser_id END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "分享码,生成,占比",
+      "description": "统计周期内，生成分享码的用户数除以APP活跃用户数。口径：分母为符合发现页或Porsche+版块事件的活跃用户数"
+    },
+    "share_code_usage_per_active_user": {
+      "business_name": "分享码使用占比",
+      "sql": "CAST(COUNT(DISTINCT CASE WHEN span_name ILIKE '%share_code%use%' THEN reduser_id END) AS FLOAT) / NULLIF(COUNT(DISTINCT CASE WHEN (span_name ILIKE '%discovery%' OR span_name ILIKE '%porsche_plus%') THEN reduser_id END), 0)",
+      "keywords": "分享码,使用,占比",
+      "description": "统计周期内，使用分享码的用户数除以APP活跃用户数。口径：分母为符合发现页或Porsche+版块事件的活跃用户数"
+    }
+  }
+}

@@ -16,6 +16,7 @@ class RetentionParams:
     day_offsets: list[int] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    event_column: str = "span_name"
 
     def __post_init__(self):
         if self.day_offsets is None:
@@ -28,6 +29,7 @@ class FunnelParams:
     within_days: int = 7
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    event_column: str = "span_name"
 
 
 @dataclass
@@ -62,7 +64,7 @@ def build_retention_sql(params: RetentionParams, table: str = "events") -> str:
             reduser_id,
             event_date AS cohort_date
         FROM {table}
-        WHERE event_name = '{params.anchor_event}'
+        WHERE {params.event_column} = '{params.anchor_event}'
         {date_filter}
         GROUP BY reduser_id, event_date
     )"""
@@ -78,7 +80,7 @@ def build_retention_sql(params: RetentionParams, table: str = "events") -> str:
             INNER JOIN {table} e
                 ON c.reduser_id = e.reduser_id
                 AND e.event_date = c.cohort_date + INTERVAL '{n}' DAY
-                AND e.event_name = '{params.return_event}'
+                AND e.{params.event_column} = '{params.return_event}'
             GROUP BY c.cohort_date
         )""")
 
@@ -141,7 +143,7 @@ def build_funnel_sql(params: FunnelParams, table: str = "events") -> str:
             reduser_id,
             MIN(event_date) AS step_{i}_date
         FROM {table}
-        WHERE event_name = '{step}'
+        WHERE {params.event_column} = '{step}'
         {date_filter}
         GROUP BY reduser_id
     )""")

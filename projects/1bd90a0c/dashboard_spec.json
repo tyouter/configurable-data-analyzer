@@ -1,0 +1,431 @@
+{
+  "version": "1.0",
+  "name": "小红书KPI看板",
+  "description": "基于 Rednote dashboard V1.0 5-30 requirements.xlsx 定义的33个图表规范",
+  "global_filters": [
+    {"field": "event_date", "type": "date_range", "label": "时间范围"},
+    {"field": "platform", "type": "select", "label": "Platform", "options": ["Asterix", "HCP3"]},
+    {"field": "app_version", "type": "multi_select", "label": "app_version"},
+    {"field": "os_version", "type": "multi_select", "label": "os_version"},
+    {"field": "screen_size", "type": "multi_select", "label": "screen_size"},
+    {"field": "display_id", "type": "select", "label": "标识主副屏", "options": ["0.0"]},
+    {"field": "user_ip", "type": "multi_select", "label": "IP归属地"}
+  ],
+  "categories": [
+    {"id": "total_summary", "label": "Total summary", "order": 1},
+    {"id": "trend", "label": "Trend", "order": 2},
+    {"id": "profile", "label": "Profile", "order": 3},
+    {"id": "function", "label": "Function", "order": 4},
+    {"id": "porsche", "label": "Porsche+ 种草", "order": 5},
+    {"id": "conversion", "label": "拔草", "order": 6},
+    {"id": "ranking", "label": "Ranking", "order": 7}
+  ],
+  "charts": [
+    {
+      "chart_id": "chart_01",
+      "name": "APP 装机量",
+      "category": "total_summary",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "查看某段时间APP装机的总数",
+      "metric_ref": "app_installs",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_02",
+      "name": "APP 活跃人数",
+      "category": "total_summary",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "查看某段时间APP活跃的总用户数量",
+      "metric_ref": "app_active_users",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_03",
+      "name": "APP 新增用户人数",
+      "category": "total_summary",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "查看某段时间内 APP 的新增用户的总数量",
+      "metric_ref": "app_new_users",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_04",
+      "name": "APP 人均使用时长",
+      "category": "total_summary",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer_minutes",
+      "description": "APP用户的平均使用时长，按天/周/月三个维度查看",
+      "metric_ref": "app_avg_usage_duration",
+      "dimensions": [],
+      "filters": [{"field": "event_date", "granularity": "day/week/month"}]
+    },
+    {
+      "chart_id": "chart_05",
+      "name": "APP 装机量趋势",
+      "category": "trend",
+      "chart_type": "bar_line",
+      "description": "查看每天/每周/每月，装机量的趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_installs", "series_type": "bar", "label": "装机量"},
+        {"metric_ref": "app_install_growth_rate", "series_type": "line", "label": "装机增长率"}
+      ],
+      "legend": {"selectable": true, "items": ["装机量", "装机增长率"]},
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_06",
+      "name": "APP 装机增长率趋势",
+      "category": "trend",
+      "chart_type": "line",
+      "description": "查看每天/每周/每月，装机增长率的趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_install_growth_rate", "series_type": "line", "label": "装机增长率"}
+      ],
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_07",
+      "name": "APP 活跃人数趋势",
+      "category": "trend",
+      "chart_type": "bar_line",
+      "description": "查看每天/每周/每月，APP活跃的用户数量趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_active_users", "series_type": "bar", "label": "活跃人数"},
+        {"metric_ref": "app_active_rate", "series_type": "line", "label": "活跃率"}
+      ],
+      "legend": {"selectable": true, "items": ["活跃人数", "活跃率"]},
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_08",
+      "name": "APP 活跃率趋势",
+      "category": "trend",
+      "chart_type": "line",
+      "description": "查看每天/每周/每月，APP活跃的用户活跃率趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_active_rate", "series_type": "line", "label": "活跃率"}
+      ],
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_09",
+      "name": "APP 新增用户人数趋势",
+      "category": "trend",
+      "chart_type": "bar_line",
+      "description": "查看每天/每周/每月，APP新增用户人数的趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_new_users", "series_type": "bar", "label": "新增用户人数"},
+        {"metric_ref": "app_user_growth_rate", "series_type": "line", "label": "用户增长率"}
+      ],
+      "legend": {"selectable": true, "items": ["新增用户人数", "用户增长率"]},
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_10",
+      "name": "APP 用户增长率趋势",
+      "category": "trend",
+      "chart_type": "line",
+      "description": "查看每天/每周/每月，APP用户增长率的趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_user_growth_rate", "series_type": "line", "label": "用户增长率"}
+      ],
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_11",
+      "name": "APP 有效登录人数趋势",
+      "category": "trend",
+      "chart_type": "bar_line",
+      "description": "查看某段时间APP有效登录用户（发现页出现）占比",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_valid_login_users", "series_type": "bar", "label": "有效登录人数"},
+        {"metric_ref": "app_valid_login_rate", "series_type": "line", "label": "有效登录率"}
+      ],
+      "legend": {"selectable": true, "items": ["有效登录人数", "有效登录率"]},
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_12",
+      "name": "APP 有效登录率趋势",
+      "category": "trend",
+      "chart_type": "line",
+      "description": "查看每天/每周/每月，APP 登录用户占比的趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "app_valid_login_rate", "series_type": "line", "label": "有效登录率"}
+      ],
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_13",
+      "name": "活跃用户（高，中，低）分布",
+      "category": "profile",
+      "chart_type": "boxplot",
+      "description": "查看某段时间段内用户产生的总事件次数统计其分布，按中位数，上下4分位",
+      "custom_sql": "SELECT reduser_id, COUNT(*) as event_cnt FROM events GROUP BY reduser_id ORDER BY event_cnt",
+      "x_axis": {"label": "用户活跃度"},
+      "y_axis": {"label": "事件次数", "statistics": ["min", "p25", "median", "p75", "max"]},
+      "filters": []
+    },
+    {
+      "chart_id": "chart_14",
+      "name": "核心功能渗透率",
+      "category": "function",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "查看某段时间段内核心功能使用用户占总体用户的比例（AI路书all，Porsche+页面点赞收藏，地图操作all，发起导航）",
+      "metric_ref": "core_function_penetration",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_15",
+      "name": "APP 活跃用户留存率 3/7/14天",
+      "category": "function",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "查看活跃用户在3，7，14天三个时间窗口下的留存率",
+      "analysis_type": "retention",
+      "analysis_params": {
+        "anchor_event": "login_page_pageshow",
+        "return_event": "login_page_pageshow",
+        "day_offsets": [3, 7, 14]
+      },
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_16",
+      "name": "核心功能用户留存率 3/7/14天",
+      "category": "function",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "查看核心功能使用用户在3，7，14天三个时间窗口下的留存率",
+      "analysis_type": "retention",
+      "analysis_params": {
+        "anchor_event": "post_detail_page_ai_travel_guide_button_click",
+        "return_event": "login_page_pageshow",
+        "day_offsets": [3, 7, 14]
+      },
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_17",
+      "name": "Porsche+页活跃人数",
+      "category": "porsche",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "查看某段时间Porsche+页活跃人数的总数",
+      "metric_ref": "porsche_active_users",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_18",
+      "name": "Porsche+页活跃率趋势",
+      "category": "porsche",
+      "chart_type": "bar_line",
+      "description": "查看每天/每周/每月，Porsche+活跃的用户数量趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "porsche_active_users", "series_type": "bar", "label": "活跃人数"},
+        {"metric_ref": "porsche_active_rate", "series_type": "line", "label": "活跃率"},
+        {"metric_ref": "porsche_active_growth_rate", "series_type": "line", "label": "增长率"}
+      ],
+      "legend": {"selectable": true, "items": ["活跃人数", "活跃率", "增长率"]},
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_19",
+      "name": "Porsche+页活跃人数趋势",
+      "category": "porsche",
+      "chart_type": "line",
+      "description": "查看每天/每周/每月，Porsche+活跃的用户活跃率趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "porsche_active_rate", "series_type": "line", "label": "活跃率"}
+      ],
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_20",
+      "name": "Porsche+页活跃人数增长率趋势",
+      "category": "porsche",
+      "chart_type": "line",
+      "description": "查看每天/每周/每月，Porsche+活跃的用户增长率趋势",
+      "x_axis": {"field": "event_date", "label": "时间"},
+      "y_axis": [
+        {"metric_ref": "porsche_active_growth_rate", "series_type": "line", "label": "增长率"}
+      ],
+      "dimensions": ["event_date"],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_21",
+      "name": "Porsche+页帖子顺位分布（按人数）",
+      "category": "porsche",
+      "chart_type": "bar",
+      "description": "查看Porsche+页面不同的位置帖子被浏览的量的分布，即热帖的位置分布",
+      "custom_sql": "SELECT CAST(rednote_post_num AS INT) as position, COUNT(DISTINCT reduser_id) as user_count FROM events WHERE span_name ILIKE '%porsche_page%post_card%' AND rednote_post_num IS NOT NULL GROUP BY position ORDER BY position",
+      "x_axis": {"field": "position", "label": "帖子位置序号"},
+      "y_axis": {"field": "user_count", "label": "人数"},
+      "filters": []
+    },
+    {
+      "chart_id": "chart_22",
+      "name": "运营位帖子点击率",
+      "category": "porsche",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "某段时间内运营位帖子的点击率（点击量/曝光量）",
+      "metric_ref": "operational_post_ctr",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_23",
+      "name": "Porsche+页面的帖子点击率",
+      "category": "porsche",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "某段时间内Porsche+帖子的点击率（点击量/曝光量）",
+      "metric_ref": "porsche_post_ctr",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_24",
+      "name": "导航来源",
+      "category": "conversion",
+      "chart_type": "pie",
+      "description": "路书详情->导航 & POI详情->导航 这两条导航路径的来源分布，按次数统计",
+      "custom_sql": "SELECT CASE WHEN span_name = 'trival_guide_page_detail_tab_poi_navigation_button_click' THEN '路书详情->导航' WHEN span_name = 'poi_detail_page_navigation_button_click' THEN 'POI详情->导航' ELSE '其他' END as source, COUNT(*) as cnt FROM events WHERE span_name IN ('trival_guide_page_detail_tab_poi_navigation_button_click', 'poi_detail_page_navigation_button_click') GROUP BY source ORDER BY cnt DESC",
+      "x_axis": {},
+      "y_axis": {},
+      "filters": []
+    },
+    {
+      "chart_id": "chart_25",
+      "name": "POI 详情来源",
+      "category": "conversion",
+      "chart_type": "pie",
+      "description": "Porsche+地图->POI详情 & 帖子->POI详情，这两条POI详情页访问路径的来源分布，按次数统计",
+      "custom_sql": "SELECT CASE WHEN referer_page = 'map_view' THEN 'Porsche+地图->POI详情' WHEN referer_page = 'note_detail_page' THEN '帖子->POI详情' WHEN referer_page = 'poi_search_results_p' THEN 'POI搜索->POI详情' ELSE COALESCE(referer_page, '其他') END as source, COUNT(*) as cnt FROM events WHERE span_name = 'poi_detail_page_pageshow' AND referer_page IS NOT NULL AND referer_page != '' GROUP BY source ORDER BY cnt DESC",
+      "x_axis": {},
+      "y_axis": {},
+      "filters": []
+    },
+    {
+      "chart_id": "chart_26",
+      "name": "AI 路书来源",
+      "category": "conversion",
+      "chart_type": "pie",
+      "description": "点击生成AI路书 & 从分享码下载",
+      "custom_sql": "SELECT CASE WHEN span_name = 'post_detail_page_ai_travel_guide_button_click' THEN '点击生成AI路书' WHEN span_name = 'profile_page_travel_guide_tab_share_code_trip_add_confirm_button_click' THEN '从分享码下载' ELSE '其他' END as source, COUNT(*) as cnt FROM events WHERE span_name IN ('post_detail_page_ai_travel_guide_button_click', 'profile_page_travel_guide_tab_share_code_trip_add_confirm_button_click') GROUP BY source ORDER BY cnt DESC",
+      "x_axis": {},
+      "y_axis": {},
+      "filters": []
+    },
+    {
+      "chart_id": "chart_27",
+      "name": "点击AI路书生成转化率",
+      "category": "conversion",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "某段时间内，AI路书生成点击次数/AI路书生成曝光次数",
+      "metric_ref": "ai_guide_conversion_rate",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_28",
+      "name": "AI路书分享码生成率",
+      "category": "conversion",
+      "chart_type": "kpi_card",
+      "kpi_format": "percent_1dp",
+      "description": "某段时间内，分享码生成点击次数/(AI分享码下载点击次数+生成AI路书点击次数)",
+      "metric_ref": "share_code_generation_rate_v2",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_29",
+      "name": "AI路书生成用户数量",
+      "category": "conversion",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "某段时间内，AI路书生成按钮被点击的用户数量总数",
+      "metric_ref": "ai_guide_gen_users",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_30",
+      "name": "AI路书分享码生成用户数量",
+      "category": "conversion",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "某段时间内，AI路书分享码生成按钮被点击的用户数量总数",
+      "metric_ref": "share_code_gen_users_v2",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_31",
+      "name": "AI路书分享码下载用户数量",
+      "category": "conversion",
+      "chart_type": "kpi_card",
+      "kpi_format": "integer",
+      "description": "某段时间内，AI路书下载确认按钮被点击的用户数量总数",
+      "metric_ref": "share_code_download_users",
+      "dimensions": [],
+      "filters": []
+    },
+    {
+      "chart_id": "chart_32",
+      "name": "热门POI TOP10 Ranking",
+      "category": "ranking",
+      "chart_type": "ranking_bar",
+      "description": "某段时间内所有被访问的POI按照类型统计其被访问次数的排名前10",
+      "custom_sql": "SELECT rednote_poi_title, COUNT(*) as visit_count FROM events WHERE span_name ILIKE '%poi%' AND rednote_poi_title IS NOT NULL AND rednote_poi_title != '' GROUP BY rednote_poi_title ORDER BY visit_count DESC LIMIT 10",
+      "x_axis": {"field": "rank", "label": "Rank"},
+      "y_axis": {"field": "visit_count", "label": "被访问次数"},
+      "filters": []
+    },
+    {
+      "chart_id": "chart_33",
+      "name": "热门城市 TOP10 Ranking",
+      "category": "ranking",
+      "chart_type": "ranking_bar",
+      "description": "某段时间内所有按照IP城市统计的事件次数的排名前10",
+      "custom_sql": "SELECT user_ip as city, COUNT(*) as event_count FROM events WHERE user_ip IS NOT NULL AND user_ip != '' GROUP BY user_ip ORDER BY event_count DESC LIMIT 10",
+      "x_axis": {"field": "rank", "label": "Rank"},
+      "y_axis": {"field": "event_count", "label": "事件总数"},
+      "filters": []
+    }
+  ]
+}

@@ -16,25 +16,29 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                    MCP Protocol Layer                        │
 │              `mcp_server/server.py` (FastMCP)                │
-│         19 tools: project mgmt, query, chart, dashboard      │
+│         24 tools: project mgmt, query, chart, dashboard      │
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Service Layer                             │
 ├────────────────┬──────────────────┬─────────────────────────┤
-│ ProjectModel   │ SemanticGenerator│  AnalysisTemplates      │
-│ `project_      │ `semantic_       │  `analysis_             │
-│  model.py`     │  generator.py`   │  templates.py`          │
-│ CRUD + DuckDB  │ LLM API calls    │  Retention/Funnel/      │
-│ Data loading   │ Schema analysis  │  Period-over-Period     │
+│ ProjectModel   │ SemanticGenerator │  AnalysisTemplates      │
+│ `project_      │ `semantic_        │  `analysis_             │
+│  model.py`     │  generator.py`    │  templates.py`          │
+│ CRUD + DuckDB  │ LLM API calls     │  Retention/Funnel/      │
+│ Data loading   │ Schema analysis   │  Period-over-Period     │
+│ Pipeline state │ Domain tagging    │                         │
 └───────┬────────┴────────┬─────────┴─────────────────────────┘
         │                  │
         ▼                  ▼
-┌────────────────┐  ┌──────────────────┐
-│  DuckDB        │  │  DeepSeek API    │
-│  (per-project) │  │  (LLM inference) │
-└────────────────┘  └──────────────────┘
+┌────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│  DuckDB        │  │  DeepSeek API    │  │ SemanticValidator│
+│  (per-project) │  │  (LLM inference) │  │ `semantic_       │
+│                │  │                  │  │  validator.py`   │
+└────────────────┘  └──────────────────┘  │ SQL+Quality+     │
+                                           │ Coverage checks  │
+                                           └──────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -52,11 +56,16 @@
 | ProjectSession | Current project state, per-request context | `mcp_server/server.py` (inline) |
 | ProjectStore | Project CRUD, YAML persistence | `mcp_server/project_model.py` |
 | ProjectDataManager | DuckDB loading, SQL execution, data export | `mcp_server/project_model.py` |
-| SemanticGenerator | LLM-assisted semantic layer generation | `mcp_server/semantic_generator.py` |
+| SemanticGenerator | LLM-assisted semantic layer generation, domain tagging | `mcp_server/semantic_generator.py` |
 | SemanticQuery | SQL validation and safety checks | `mcp_server/semantic_query.py` |
+| SemanticValidator | SQL executability, data quality, coverage verification | `mcp_server/semantic_validator.py` |
 | AnalysisTemplates | L2 analysis patterns (retention, funnel, etc.) | `mcp_server/analysis_templates.py` |
-| ChartRenderer | ECharts option generation, chart type suggestion | `mcp_server/chart_renderer.py` |
-| DashboardStore | Dashboard CRUD, chart persistence | `mcp_server/dashboard_store.py` |
+| ChartRenderer | ECharts option generation, chart type suggestion, funnel conversion | `mcp_server/chart_renderer.py` |
+| DashboardStore | Dashboard CRUD, chart persistence, encoding fix, quality check | `mcp_server/dashboard_store.py` |
+| DashboardHtml | Dashboard HTML rendering, domain grouping, time filter, dark mode | `mcp_server/dashboard_html.py` |
+| FileClassifier | File type classification (data vs reference) | `mcp_server/file_classifier.py` |
+| DataAuditor | Data quality auditing | `mcp_server/data_auditor.py` |
+| ReferenceParser | Reference document parsing (KPI definitions, data dictionaries) | `mcp_server/reference_parser.py` |
 | CLI | Terminal interface mirroring MCP tools | `mcp_server/cli.py` |
 
 ## Pattern Overview
@@ -75,7 +84,7 @@
 **MCP Tool Layer:**
 - Purpose: Expose business capabilities as MCP tools
 - Location: `mcp_server/server.py`
-- Contains: 19 `@mcp.tool()` decorated functions
+- Contains: 24 `@mcp.tool()` decorated functions
 - Depends on: All service modules
 - Used by: Hermes Agent, Claude Desktop, CLI
 
@@ -107,9 +116,13 @@
 
 1. User calls `create_project(name, data_files)` (`server.py:create_project`)
 2. Files copied to project directory (`project_model.py:ProjectStore.create_project`)
-3. ALL files loaded into DuckDB via `pd.concat` (`project_model.py:_load_from_source`)
-4. LLM generates semantic layer (`semantic_generator.py:generate_semantic_layer`)
-5. Project config saved as YAML (`project_model.py:ProjectStore.save_project`)
+3. Pipeline enters INGEST stage: files classified, data loaded into DuckDB, reference docs parsed
+4. Pipeline advances through ALIGN → MAP → VERIFY → BUILD → SERVE stages
+5. Each stage has checkpoint persistence (`.pipeline_state.json`)
+6. User can review/modify at ALIGN (data understanding) and MAP (semantic layer) stages
+7. VERIFY stage runs SQL executability + data quality + coverage checks
+8. BUILD stage generates semantic layer with business_domain tags
+9. SERVE stage renders Dashboard with domain grouping and time filter
 
 **State Management:**
 - Global `_session` singleton in `server.py` (module-level)
@@ -159,17 +172,15 @@
 
 ## Anti-Patterns
 
-### Blind Data Concatenation
+### ~~Blind Data Concatenation~~ (FIXED in Phase 1)
 
-**What happens:** `ProjectDataManager._load_from_source()` concatenates ALL imported files with `pd.concat`, regardless of file type (data vs. documentation).
-**Why it's wrong:** Non-data files (KPI definitions, data dictionaries, requirement docs) get treated as tabular data and produce garbage rows.
-**Do this instead:** Classify files before loading — separate data files from reference documents, only load data files into DuckDB.
+**What was wrong:** `ProjectDataManager._load_from_source()` concatenated ALL imported files with `pd.concat`, regardless of file type.
+**Fix:** `FileClassifier` separates data files from reference documents; only data files loaded into DuckDB.
 
-### Missing load_dotenv()
+### ~~Missing load_dotenv()~~ (FIXED in Phase 4)
 
-**What happens:** `server.py` imports `os.environ.get("DEEPSEEK_API_KEY")` but never calls `load_dotenv()`.
-**Why it's wrong:** In Docker environments, `.env` file is not automatically loaded, causing `DEEPSEEK_API_KEY` to be None.
-**Do this instead:** Add `from dotenv import load_dotenv; load_dotenv()` at server startup.
+**What was wrong:** `server.py` imported `os.environ.get("DEEPSEEK_API_KEY")` but never called `load_dotenv()`.
+**Fix:** Added `from dotenv import load_dotenv; load_dotenv()` at server startup.
 
 ## Error Handling
 
@@ -188,4 +199,4 @@
 
 ---
 
-*Architecture analysis: 2026-04-30*
+*Architecture analysis: 2026-04-30 — Updated 2026-05-04 (Milestone 2 completed)*

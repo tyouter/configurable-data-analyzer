@@ -1,0 +1,151 @@
+{
+  "color": [
+    "#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F",
+    "#EDC948", "#B07AA1", "#FF9DA7", "#9C755F", "#BAB0AC"
+  ],
+  "backgroundColor": "transparent",
+  "textStyle": {
+    "fontFamily": "'Inter', 'SF Pro Display', -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "fontSize": 12,
+    "color": "#333"
+  },
+  "title": {
+    "left": "left",
+    "top": 5,
+    "textStyle": {
+      "fontSize": 15,
+      "fontWeight": 600,
+      "color": "#1a1a1a",
+      "fontFamily": "'Inter', 'SF Pro Display', -apple-system, 'Segoe UI', Roboto, sans-serif"
+    },
+    "subtextStyle": {
+      "fontSize": 12,
+      "color": "#666"
+    }
+  },
+  "legend": {
+    "top": 32,
+    "left": "right",
+    "orient": "horizontal",
+    "itemWidth": 12,
+    "itemHeight": 12,
+    "itemGap": 16,
+    "textStyle": {
+      "fontSize": 11,
+      "color": "#555"
+    },
+    "icon": "roundRect"
+  },
+  "tooltip": {
+    "backgroundColor": "rgba(255, 255, 255, 0.96)",
+    "borderColor": "#e0e0e0",
+    "borderWidth": 1,
+    "textStyle": {
+      "color": "#333",
+      "fontSize": 12
+    },
+    "extraCssText": "box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 6px; padding: 8px 12px;"
+  },
+  "grid": {
+    "show": false,
+    "top": 60,
+    "bottom": 24,
+    "left": 16,
+    "right": 16,
+    "containLabel": true
+  },
+  "categoryAxis": {
+    "axisLine": {
+      "show": true,
+      "lineStyle": {
+        "color": "#ccc"
+      }
+    },
+    "axisTick": {
+      "show": false
+    },
+    "axisLabel": {
+      "color": "#666",
+      "fontSize": 11,
+      "margin": 8
+    },
+    "splitLine": {
+      "show": false
+    },
+    "splitArea": {
+      "show": false
+    }
+  },
+  "valueAxis": {
+    "axisLine": {
+      "show": false
+    },
+    "axisTick": {
+      "show": false
+    },
+    "axisLabel": {
+      "color": "#888",
+      "fontSize": 11,
+      "margin": 8
+    },
+    "splitLine": {
+      "show": true,
+      "lineStyle": {
+        "color": "#e8e8e8",
+        "type": "dashed",
+        "width": 1
+      }
+    },
+    "splitArea": {
+      "show": false
+    }
+  },
+  "line": {
+    "itemStyle": {
+      "borderWidth": 2
+    },
+    "lineStyle": {
+      "width": 2.5
+    },
+    "symbolSize": 6,
+    "symbol": "circle",
+    "smooth": true
+  },
+  "bar": {
+    "itemStyle": {
+      "borderRadius": [3, 3, 0, 0],
+      "barBorderWidth": 0
+    },
+    "barMaxWidth": 40,
+    "barGap": "30%"
+  },
+  "pie": {
+    "itemStyle": {
+      "borderColor": "#fff",
+      "borderWidth": 2,
+      "borderRadius": 4
+    },
+    "label": {
+      "fontSize": 11,
+      "color": "#555"
+    }
+  },
+  "scatter": {
+    "itemStyle": {
+      "borderWidth": 0,
+      "opacity": 0.75
+    },
+    "symbolSize": 8
+  },
+  "funnel": {
+    "itemStyle": {
+      "borderColor": "#fff",
+      "borderWidth": 1,
+      "borderRadius": 2
+    },
+    "label": {
+      "fontSize": 11,
+      "color": "#555"
+    }
+  }
+}

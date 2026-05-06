@@ -6,10 +6,7 @@ import pandas as pd
 from typing import Optional
 
 from mcp_server.project_model import FileClassification
-
-DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = os.environ.get("BI_MODEL", "deepseek-chat")
+from mcp_server import llm_client
 
 CLASSIFICATION_PROMPT = """你是一个数据分析专家。请判断以下文件是「原始数据文件」还是「参考文档」。
 
@@ -35,27 +32,14 @@ _REQ_KEYWORDS = ["需求", "requirement", "prd", "规划", "目标"]
 
 
 def _call_llm(prompt: str) -> str:
-    import requests
-
-    url = f"{DEEPSEEK_BASE_URL}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": DEEPSEEK_MODEL,
-        "messages": [
-            {"role": "system", "content": "You are a data classification expert. Respond with valid JSON only."},
-            {"role": "user", "content": prompt},
-        ],
-        "max_tokens": 256,
-        "temperature": 0.1,
-    }
-
-    resp = requests.post(url, headers=headers, json=payload, timeout=30)
-    if resp.status_code != 200:
-        raise Exception(f"LLM API error: {resp.status_code}")
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    return llm_client.call_llm(
+        prompt=prompt,
+        system_msg="You are a data classification expert. Respond with valid JSON only.",
+        max_tokens=256,
+        temperature=0.1,
+        timeout=30,
+        strip_markdown=False,
+    )
 
 
 def _detect_encoding(filepath: str) -> str:
@@ -121,7 +105,7 @@ def _read_data_sample(filepath: str, n_rows: int = 5) -> Optional[dict]:
 
 class FileClassifier:
     def __init__(self, llm_available: bool = True):
-        self.llm_available = llm_available and bool(DEEPSEEK_API_KEY)
+        self.llm_available = llm_available and llm_client.is_available()
 
     def classify_all(self, file_paths: list[str]) -> list[FileClassification]:
         results = []

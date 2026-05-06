@@ -19,6 +19,7 @@ from mcp_server.project_model import (
     ProjectStore,
     ProjectSession,
     ProjectDataManager,
+    PROJECTS_DIR,
 )
 from mcp_server.semantic_generator import (
     generate_basic_semantic_layer,
@@ -273,17 +274,17 @@ def test_migrated_rednote_project():
 
     print(f"  Project: {project.name}")
     print(f"  Type: {project.project_type}")
-    print(f"  Metrics: {len(project.semantic_layer.get('metrics', {}))}")
-    print(f"  Events: {len(project.semantic_layer.get('event_definitions', {}))}")
-    print(f"  Columns: {len(project.semantic_layer.get('columns', {}))}")
+    print(f"  Metrics: {len(project.get_full_semantic_layer(PROJECTS_DIR).get('metrics', {}))}")
+    print(f"  Events: {len(project.get_full_semantic_layer(PROJECTS_DIR).get('event_definitions', {}))}")
+    print(f"  Columns: {len(project.get_full_semantic_layer(PROJECTS_DIR).get('columns', {}))}")
 
     assert project.project_type == "behavior_analysis"
-    assert len(project.semantic_layer.get("metrics", {})) > 0
-    assert len(project.semantic_layer.get("event_definitions", {})) > 0
+    assert len(project.get_full_semantic_layer(PROJECTS_DIR).get("metrics", {})) > 0
+    assert len(project.get_full_semantic_layer(PROJECTS_DIR).get("event_definitions", {})) > 0
     print("  [PASS] Rednote project has valid semantic layer")
 
     sql, err = _build_dynamic_l1_query(
-        semantic_layer=project.semantic_layer,
+        semantic_layer=project.get_full_semantic_layer(PROJECTS_DIR),
         metric="dau",
         dimensions=["event_date"],
         filters=[{"field": "page_root", "op": "eq", "value": "discovery"}],

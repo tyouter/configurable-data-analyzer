@@ -13,16 +13,14 @@ import os
 import sys
 import json
 import re
+from typing import Optional
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
 from mcp_server.project_model import Project, ProjectStore, ProjectDataManager
-
-DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = os.environ.get("BI_MODEL", "deepseek-chat")
+from mcp_server import llm_client
 
 SCHEMA_ANALYSIS_PROMPT = """You are a senior data analyst. Analyze the following dataset schema and generate a comprehensive semantic layer definition.
 
@@ -41,11 +39,15 @@ Total columns: {total_columns}
 ## Basic Statistics
 {statistics}
 
+## Low-Cardinality Column Values (IMPORTANT - use these for SQL patterns)
+{low_card_values}
+
 ## Task
-Generate a semantic layer definition in YAML format with the following sections:
+Generate a semantic layer definition in JSON format with the following sections:
 
 1. **table_name**: A descriptive table name
 2. **columns**: For each column, provide:
+   - column_name: The EXACT original column name from the schema (e.g., "reduser_id", "span_name", "start_time")
    - business_name: Chinese business name (中文业务名称)
    - type: data type (string/integer/float/date/timestamp/boolean)
    - role: dimension or measure
@@ -53,13 +55,18 @@ Generate a semantic layer definition in YAML format with the following sections:
    - derived: true if this is a computed column (set to false for raw columns)
    - enum: list of possible values if cardinality < 20 (optional)
 
-3. **metrics**: Define 5-15 key business metrics. For each:
+3. **metrics**: Define 15-35 key business metrics covering all analytical dimensions. For each:
+   - name: A short English identifier (e.g., "dau", "total_events", "porsche_conversion_rate")
    - business_name: Chinese metric name
-   - sql: DuckDB SQL expression for this metric
+   - metric_type: One of "count" (absolute count), "rate" (percentage/ratio), "duration" (time), "distribution" (breakdown), "ranking" (top-N)
+   - business_domain: Business domain this metric belongs to. Group related metrics into domains like: "overview" (总览), "engagement" (互动), "retention" (留存), "conversion" (转化), "revenue" (收入), "feature_X" (功能X), "distribution" (分布). Use English identifiers. Metrics about the same feature/page should share the same domain.
+   - sql: DuckDB SQL AGGREGATE expression for this metric. CRITICAL: You MUST use the EXACT values from the Low-Cardinality Column Values section above for ILIKE patterns. For example, if the event names contain "porsche_page_Map_POI_Category_click", use ILIKE '%porsche%' NOT ILIKE '%porsche_plus%'. Do NOT invent event name patterns - only use patterns that match the actual values listed. Do NOT use subqueries, placeholders like {{date}}, or reference the table name. Use only column names from the schema.
    - keywords: Chinese keywords that users might use to ask about this metric
    - description: How this metric is calculated (Chinese)
+   - chart_hint: Suggested chart type - one of "kpi_card" (single value), "line" (trend), "bar_line" (combo bar+line), "pie" (proportion), "bar" (comparison), "ranking_bar" (horizontal bar for top-N)
 
 4. **event_definitions** (only for behavior_analysis type): If the data contains event-like rows with an event name column, define each event type:
+   - event_name: The EXACT event name value from the data (e.g., "discovery_page_post_card_click")
    - business_name: Chinese event name
    - description: What this event means
    - category: Event category
@@ -71,6 +78,13 @@ Generate a semantic layer definition in YAML format with the following sections:
 
 7. **project_type_suggestion**: Based on the data, suggest the most appropriate project type from: behavior_analysis, business_report, time_series, generic
 
+8. **semantic_config** (only for behavior_analysis type): If the data has an event name column with underscore-separated names (e.g., "page_element_action"), provide a mapping configuration:
+   - page_map: Map page identifiers to Chinese names (e.g., {"discovery": "发现页", "post_detail": "帖子详情页"})
+   - element_map: Map element identifiers to Chinese names (e.g., {"card": "卡片", "ai_travel_guide": "AI路书"})
+   - composite_pages: Multi-segment page names (e.g., {"post_detail": "帖子详情页", "search_homepage": "搜索首页"})
+   - composite_elements: Multi-segment element names (e.g., {"post_card": "帖子卡片", "ai_travel_guide": "AI路书"})
+   - alias_rules: Alias generation rules, each with "condition" ({"all_of": [...]} or {"contains": "..."}) and "aliases" (list of Chinese names)
+
 ## Important Guidelines
 - All business names and descriptions should be in Chinese
 - Metrics should cover common analytical patterns: counts, averages, rates, trends
@@ -80,7 +94,7 @@ Generate a semantic layer definition in YAML format with the following sections:
 - If there's a column that looks like a duration or time span, suggest avg/percentile metrics
 - Keywords should include both Chinese and English terms users might use
 
-Respond with valid YAML only, no markdown fences."""
+Respond with valid JSON only, no markdown fences."""
 
 SCHEMA_ANALYSIS_PROMPT_WITH_REFS = """You are a senior data analyst. Analyze the following dataset schema and generate a comprehensive semantic layer definition.
 
@@ -99,14 +113,18 @@ Total columns: {total_columns}
 ## Basic Statistics
 {statistics}
 
+## Low-Cardinality Column Values (IMPORTANT - use these for SQL patterns)
+{low_card_values}
+
 ## Reference Documents (IMPORTANT - use these as constraints)
 {reference_context}
 
 ## Task
-Generate a semantic layer definition in YAML format with the following sections:
+Generate a semantic layer definition in JSON format with the following sections:
 
 1. **table_name**: A descriptive table name
 2. **columns**: For each column, provide:
+   - column_name: The EXACT original column name from the schema (e.g., "reduser_id", "span_name", "start_time")
    - business_name: Chinese business name
    - type: data type (string/integer/float/date/timestamp/boolean)
    - role: dimension or measure
@@ -114,17 +132,29 @@ Generate a semantic layer definition in YAML format with the following sections:
    - derived: true if this is a computed column
    - enum: list of possible values if cardinality < 20
 
-3. **metrics**: Define metrics based on BOTH the data schema AND the KPI definitions from reference documents. For each metric:
+3. **metrics**: Define 20-40 metrics based on BOTH the data schema AND the KPI definitions from reference documents. Cover ALL sections mentioned in the reference docs (summary, trends, function penetration, retention, Porsche+, conversion, ranking, etc.). For each metric:
+   - name: A short English identifier (e.g., "dau", "porsche_active_rate", "ai_travel_guide_conversion")
    - business_name: Chinese metric name (use names from KPI definitions if available)
-   - sql: DuckDB SQL expression (MUST use column names from the schema above)
+   - metric_type: One of "count" (absolute count), "rate" (percentage/ratio), "duration" (time), "distribution" (breakdown), "ranking" (top-N)
+   - business_domain: Business domain this metric belongs to. Group related metrics into domains like: "overview" (总览), "engagement" (互动), "retention" (留存), "conversion" (转化), "revenue" (收入), "feature_X" (功能X), "distribution" (分布). Use English identifiers. Metrics about the same feature/page should share the same domain.
+   - sql: DuckDB SQL AGGREGATE expression. CRITICAL: You MUST use the EXACT values from the Low-Cardinality Column Values section above for ILIKE patterns. For example, if the event names contain "porsche_page_Map_POI_Category_click", use ILIKE '%porsche%' NOT ILIKE '%porsche_plus%'. Do NOT invent event name patterns - only use patterns that match the actual values listed. Do NOT use subqueries, placeholders like {{date}}, or reference the table name.
    - keywords: Chinese keywords for this metric
    - description: How this metric is calculated (include KPI caliber/口径 from reference docs)
+   - chart_hint: Suggested chart type - one of "kpi_card" (single value), "line" (trend), "bar_line" (combo bar+line), "pie" (proportion), "bar" (comparison), "ranking_bar" (horizontal bar for top-N)
 
-4. **event_definitions** (only for behavior_analysis type): Define events based on the event definitions from reference documents.
+4. **event_definitions** (only for behavior_analysis type): Define events based on the event definitions from reference documents. For each:
+   - event_name: The EXACT event name value from the data (e.g., "discovery_page_post_card_click")
 
 5. **examples**: 5-10 example queries users might ask, in Chinese.
 
 6. **rules**: Data analysis rules including any business rules from reference documents.
+
+7. **semantic_config** (only for behavior_analysis type): If the data has an event name column with underscore-separated names (e.g., "page_element_action"), provide a mapping configuration:
+   - page_map: Map page identifiers to Chinese names (e.g., {"discovery": "发现页", "post_detail": "帖子详情页"})
+   - element_map: Map element identifiers to Chinese names (e.g., {"card": "卡片", "ai_travel_guide": "AI路书"})
+   - composite_pages: Multi-segment page names (e.g., {"post_detail": "帖子详情页", "search_homepage": "搜索首页"})
+   - composite_elements: Multi-segment element names (e.g., {"post_card": "帖子卡片", "ai_travel_guide": "AI路书"})
+   - alias_rules: Alias generation rules, each with "condition" ({"all_of": [...]} or {"contains": "..."}) and "aliases" (list of Chinese names)
 
 ## Critical Rules
 - You MUST use the KPI definitions from reference documents as the primary source for metrics
@@ -133,7 +163,7 @@ Generate a semantic layer definition in YAML format with the following sections:
 - Preserve the exact business names and caliber descriptions from the reference documents
 - All business names and descriptions should be in Chinese
 
-Respond with valid YAML only, no markdown fences."""
+Respond with valid JSON only, no markdown fences."""
 
 
 TYPE_TEMPLATES = {
@@ -188,21 +218,47 @@ TYPE_TEMPLATES = {
 def _analyze_schema(dm: ProjectDataManager) -> dict:
     schema_info = dm.get_schema_info()
     columns_detail = []
+    low_card_uniques = {}
+
     for col in schema_info:
-        line = f"- {col['column']} ({col['dtype']}, nulls={col['null_count']}): sample={col['sample']}"
+        col_name = col['column']
+        sample_str = str(col['sample'])[:100]
+        line = f"- {col_name} ({col['dtype']}, nulls={col['null_count']}): sample={sample_str}"
         columns_detail.append(line)
+
+        if dm.df is not None and col_name in dm.df.columns:
+            if col['dtype'] == 'object' or col['dtype'] == 'string':
+                unique_vals = dm.df[col_name].dropna().unique()
+                n_unique = len(unique_vals)
+                if 2 <= n_unique <= 200:
+                    sorted_vals = sorted([str(v) for v in unique_vals])
+                    low_card_uniques[col_name] = sorted_vals
 
     sample_data = ""
     if dm.df is not None:
-        sample_rows = dm.df.head(3).to_dict(orient="records")
+        sample_rows = dm.df.head(2).to_dict(orient="records")
         sample_data = json.dumps(sample_rows, ensure_ascii=False, default=str, indent=2)
+        if len(sample_data) > 3000:
+            sample_data = sample_data[:3000] + "\n... (truncated)"
 
     statistics = ""
     if dm.df is not None:
         numeric_cols = dm.df.select_dtypes(include=["number"]).columns.tolist()
         if numeric_cols:
             stats = dm.df[numeric_cols].describe().to_string()
+            if len(stats) > 2000:
+                stats = stats[:2000] + "\n... (truncated)"
             statistics = stats
+
+    low_card_detail = ""
+    if low_card_uniques:
+        parts = []
+        for col_name, vals in low_card_uniques.items():
+            val_str = ", ".join(vals[:150])
+            if len(vals) > 150:
+                val_str += f", ... ({len(vals)} total)"
+            parts.append(f"- {col_name} ({len(vals)} unique values): [{val_str}]")
+        low_card_detail = "\n".join(parts)
 
     return {
         "total_rows": dm.meta.get("total_rows", 0),
@@ -210,42 +266,427 @@ def _analyze_schema(dm: ProjectDataManager) -> dict:
         "columns_detail": "\n".join(columns_detail),
         "sample_data": sample_data,
         "statistics": statistics,
+        "low_cardinality_values": low_card_detail,
     }
+
+
+def _repair_truncated_json(content: str) -> Optional[dict]:
+    import re
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    s = content.rstrip()
+    s = re.sub(r',\s*$', '', s)
+
+    in_str = False
+    escape = False
+    for ch in s:
+        if escape:
+            escape = False
+            continue
+        if ch == '\\':
+            escape = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+
+    if in_str:
+        last_quote = s.rfind('"')
+        if last_quote > 0:
+            s = s[:last_quote]
+            in_str = False
+
+    s = re.sub(r',\s*$', '', s)
+
+    open_b = s.count('{') - s.count('}')
+    open_br = s.count('[') - s.count(']')
+
+    if open_br > 0:
+        s += ']' * open_br
+    if open_b > 0:
+        s += '}' * open_b
+
+    try:
+        result = json.loads(s)
+        return result
+    except json.JSONDecodeError:
+        pass
+
+    last_brace = s.rfind('}')
+    if last_brace > 0:
+        candidate = s[:last_brace + 1]
+        open_b2 = candidate.count('{') - candidate.count('}')
+        open_br2 = candidate.count('[') - candidate.count(']')
+        if open_br2 > 0:
+            candidate += ']' * open_br2
+        if open_b2 > 0:
+            candidate += '}' * open_b2
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+    return None
 
 
 def _call_llm(prompt: str) -> str:
-    import requests
+    return llm_client.call_llm(
+        prompt=prompt,
+        system_msg="You are a data analyst expert. Respond with valid JSON only, no markdown fences.",
+        max_tokens=32768,
+        temperature=0.3,
+        timeout=180,
+        strip_markdown=True,
+    )
 
-    if not DEEPSEEK_API_KEY:
-        raise ValueError("DEEPSEEK_API_KEY environment variable is required for semantic layer generation")
 
-    url = f"{DEEPSEEK_BASE_URL}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-        "Content-Type": "application/json",
+_DEFAULT_SEMANTIC_CONFIG = {
+    "action_type_map": {
+        "show": "曝光",
+        "click": "点击",
+        "cardshow": "卡片曝光",
+        "carshow": "卡片曝光",
+        "pageshow": "页面浏览",
+        "pageview": "页面浏览",
+        "pageslide": "页面滑动",
+        "swipe": "滑动",
+        "scroll": "滚动",
+        "submit": "提交",
+        "confirm": "确认",
+        "cancel": "取消",
+        "close": "关闭",
+        "delete": "删除",
+        "save": "保存",
+        "share": "分享",
+        "download": "下载",
+        "upload": "上传",
+        "play": "播放",
+        "pause": "暂停",
+        "refresh": "刷新",
+        "search": "搜索",
+        "generate": "生成",
+        "add": "添加",
+        "create": "创建",
+        "edit": "编辑",
+        "update": "更新",
+        "select": "选择",
+        "switch": "切换",
+        "login": "登录",
+        "logout": "登出",
+        "register": "注册",
+        "auth": "认证",
+    },
+    "page_map": {},
+    "element_map": {
+        "card": "卡片",
+        "button": "按钮",
+        "icon": "图标",
+        "tab": "标签页",
+        "link": "链接",
+        "image": "图片",
+        "video": "视频",
+        "body": "内容区",
+        "header": "头部",
+        "footer": "底部",
+        "sidebar": "侧边栏",
+        "popup": "弹窗",
+        "modal": "弹窗",
+        "dialog": "对话框",
+        "form": "表单",
+        "input": "输入框",
+        "map": "地图",
+        "category": "分类",
+        "account": "账号",
+    },
+    "composite_pages": {},
+    "composite_elements": {},
+    "dedup_words": ["卡片", "按钮", "图标", "标签", "弹窗", "链接"],
+    "alias_rules": [],
+    "category_rules": {
+        "exposure": ["show", "cardshow", "carshow", "pageshow", "pageview"],
+        "interaction": ["click", "confirm", "submit"],
+        "navigation": ["pageslide", "swipe", "scroll", "pull_to_refresh"],
+        "conversion": ["save", "share", "download", "generate", "create", "add"],
+        "authentication": ["login", "register", "auth"],
+    },
+}
+
+
+def load_semantic_config(project_dir: str) -> dict:
+    config_path = os.path.join(project_dir, "semantic_config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            project_config = json.load(f)
+        merged = json.loads(json.dumps(_DEFAULT_SEMANTIC_CONFIG))
+        for key in ("action_type_map", "page_map", "element_map",
+                     "composite_pages", "composite_elements",
+                     "dedup_words", "alias_rules", "category_rules"):
+            if key in project_config:
+                if isinstance(merged.get(key), dict) and isinstance(project_config[key], dict):
+                    merged[key].update(project_config[key])
+                else:
+                    merged[key] = project_config[key]
+        return merged
+    return json.loads(json.dumps(_DEFAULT_SEMANTIC_CONFIG))
+
+
+def _parse_event_name(event_name: str, config: dict = None) -> dict:
+    if config is None:
+        config = _DEFAULT_SEMANTIC_CONFIG
+
+    action_type_map = config.get("action_type_map", {})
+    page_map = config.get("page_map", {})
+    element_map = config.get("element_map", {})
+    composite_pages = config.get("composite_pages", {})
+    composite_elements = config.get("composite_elements", {})
+    dedup_words = config.get("dedup_words", [])
+    alias_rules = config.get("alias_rules", [])
+    category_rules = config.get("category_rules", {})
+
+    parts = event_name.split("_")
+    parts_lower = [p.lower() for p in parts]
+
+    action_type = ""
+    page = ""
+    element = ""
+
+    for i, p in enumerate(parts_lower):
+        if p in action_type_map:
+            action_type = p
+
+    for i, p in enumerate(parts_lower):
+        if p in page_map and not page:
+            page = p
+
+    max_composite_len = max(
+        max((k.count("_") + 1 for k in composite_pages), default=1),
+        max((k.count("_") + 1 for k in composite_elements), default=1),
+    )
+    for seg_len in range(max_composite_len, 1, -1):
+        for i in range(len(parts_lower) - seg_len + 1):
+            composite = "_".join(parts_lower[i:i + seg_len])
+            if composite in composite_pages and not page:
+                page = composite
+
+    for seg_len in range(max_composite_len, 1, -1):
+        for i in range(len(parts_lower) - seg_len + 1):
+            composite = "_".join(parts_lower[i:i + seg_len])
+            if composite in composite_elements and not element:
+                element = composite
+
+    for i, p in enumerate(parts_lower):
+        if p in element_map and not element:
+            element = p
+
+    action_cn = action_type_map.get(action_type, action_type)
+    page_cn = page_map.get(page, page) or (parts_lower[0] if parts_lower else "")
+    element_cn = element_map.get(element, element)
+
+    if element_cn and action_cn and element_cn in action_cn:
+        action_cn = action_cn.replace(element_cn, "")
+    elif element_cn and action_cn:
+        for word in dedup_words:
+            if element_cn.endswith(word) and action_cn.startswith(word):
+                action_cn = action_cn[len(word):]
+                break
+    if page_cn and element_cn and page_cn == element_cn:
+        element_cn = ""
+
+    if action_cn and page_cn and element_cn:
+        business_name = f"{page_cn}{element_cn}{action_cn}"
+    elif action_cn and page_cn:
+        business_name = f"{page_cn}{action_cn}"
+    elif action_cn and element_cn:
+        business_name = f"{element_cn}{action_cn}"
+    elif action_cn:
+        business_name = action_cn
+    else:
+        business_name = event_name
+
+    category = "unknown"
+    for cat_name, action_list in category_rules.items():
+        if action_type in action_list:
+            category = cat_name
+            break
+
+    aliases = []
+    name_lower = event_name.lower()
+    for rule in alias_rules:
+        cond = rule.get("condition", {})
+        matched = True
+        if "all_of" in cond:
+            matched = all(w in parts_lower for w in cond["all_of"])
+        if "contains" in cond:
+            matched = cond["contains"] in name_lower
+        if matched:
+            aliases.extend(rule.get("aliases", []))
+
+    description = f"{business_name}"
+    if action_type and page_cn:
+        description = f"在{page_cn}上的{element_cn or '元素'}{action_cn}事件"
+
+    return {
+        "business_name": business_name,
+        "description": description,
+        "category": category,
+        "aliases": aliases,
+        "action_type": action_type,
+        "page": page,
+        "element": element,
     }
-    payload = {
-        "model": DEEPSEEK_MODEL,
-        "messages": [
-            {"role": "system", "content": "You are a data analyst expert. Respond with valid YAML only."},
-            {"role": "user", "content": prompt},
-        ],
-        "max_tokens": 4096,
-        "temperature": 0.3,
-    }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=60)
-    if response.status_code != 200:
-        raise Exception(f"LLM API error: {response.status_code} - {response.text[:500]}")
 
-    result = response.json()
-    content = result["choices"][0]["message"]["content"]
+def _generate_conversion_metrics(
+    metrics: dict,
+    event_name_col: str,
+    event_list: list,
+    event_definitions: dict,
+) -> None:
+    show_events = {}
+    click_events = {}
 
-    if content.startswith("```"):
-        content = re.sub(r"^```(?:yaml)?\s*\n?", "", content)
-        content = re.sub(r"\n?```\s*$", "", content)
+    for evt in event_list:
+        evt_str = str(evt)
+        parsed = event_definitions.get(evt_str, {})
+        action = parsed.get("action_type", "")
+        category = parsed.get("category", "")
+        page = parsed.get("page", "")
+        element = parsed.get("element", "")
 
-    return content.strip()
+        if category == "exposure" and action in ("show", "cardshow", "carshow"):
+            key = f"{page}_{element}" if element else page
+            show_events[key] = evt_str
+        elif category == "interaction" and action == "click":
+            key = f"{page}_{element}" if element else page
+            click_events[key] = evt_str
+
+    matched_keys = set(show_events.keys()) & set(click_events.keys())
+
+    for key in matched_keys:
+        show_evt = show_events[key]
+        click_evt = click_events[key]
+
+        show_parsed = event_definitions.get(show_evt, {})
+        click_parsed = event_definitions.get(click_evt, {})
+
+        show_bn = show_parsed.get("business_name", show_evt)
+        click_bn = click_parsed.get("business_name", click_evt)
+
+        safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', key.lower())
+        metric_name = f"{safe_key}_conversion_rate"
+
+        if metric_name in metrics:
+            continue
+
+        metrics[metric_name] = {
+            "business_name": f"{click_bn}转化率",
+            "sql": (
+                f"CAST(COUNT(CASE WHEN {event_name_col} = '{click_evt}' THEN 1 END) AS DOUBLE)"
+                f" / NULLIF(COUNT(CASE WHEN {event_name_col} = '{show_evt}' THEN 1 END), 0)"
+                f" * 100"
+            ),
+            "keywords": ["转化率", click_bn, show_bn, "conversion"],
+            "description": f"{click_bn}次数 / {show_bn}次数 × 100",
+        }
+
+    confirm_events = {}
+    for evt in event_list:
+        evt_str = str(evt)
+        parsed = event_definitions.get(evt_str, {})
+        action = parsed.get("action_type", "")
+        if action == "confirm":
+            page = parsed.get("page", "")
+            element = parsed.get("element", "")
+            key = f"{page}_{element}" if element else page
+            confirm_events[key] = evt_str
+
+    for key in set(click_events.keys()) & set(confirm_events.keys()):
+        click_evt = click_events[key]
+        confirm_evt = confirm_events[key]
+
+        click_parsed = event_definitions.get(click_evt, {})
+        confirm_parsed = event_definitions.get(confirm_evt, {})
+
+        safe_key = re.sub(r'[^a-zA-Z0-9_]', '_', key.lower())
+        metric_name = f"{safe_key}_confirm_rate"
+
+        if metric_name in metrics:
+            continue
+
+        metrics[metric_name] = {
+            "business_name": f"{confirm_parsed.get('business_name', confirm_evt)}确认率",
+            "sql": (
+                f"CAST(COUNT(CASE WHEN {event_name_col} = '{confirm_evt}' THEN 1 END) AS DOUBLE)"
+                f" / NULLIF(COUNT(CASE WHEN {event_name_col} = '{click_evt}' THEN 1 END), 0)"
+                f" * 100"
+            ),
+            "keywords": ["确认率", click_parsed.get("business_name", ""), "confirm rate"],
+            "description": f"确认次数 / 点击次数 × 100",
+        }
+
+
+def _save_semantic_config(project_dir: str, llm_config: dict) -> None:
+    existing = {}
+    config_path = os.path.join(project_dir, "semantic_config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+
+    for key in ("page_map", "element_map", "composite_pages", "composite_elements", "alias_rules"):
+        if key in llm_config:
+            if isinstance(llm_config[key], dict) and isinstance(existing.get(key), dict):
+                existing.setdefault(key, {}).update(llm_config[key])
+            else:
+                existing[key] = llm_config[key]
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+
+    print(f"[SemanticGen] Saved semantic_config.json to {project_dir}")
+
+
+def _extract_dimensions(columns: dict) -> dict:
+    dimensions = {}
+    for col_name, col_info in columns.items():
+        if col_info.get("role") == "dimension" and not col_info.get("derived"):
+            dimensions[col_name] = {
+                "business_name": col_info.get("business_name", col_name),
+                "type": col_info.get("type", "string"),
+                "description": col_info.get("description", ""),
+            }
+    return dimensions
+
+
+def _save_full_semantic_config(project_dir: str, semantic: dict) -> None:
+    config = {}
+
+    config_path = os.path.join(project_dir, "semantic_config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+    if semantic.get("columns"):
+        config["columns"] = semantic["columns"]
+    if semantic.get("event_definitions"):
+        config["events"] = semantic["event_definitions"]
+    if semantic.get("metrics"):
+        config["metrics"] = semantic["metrics"]
+    if semantic.get("columns"):
+        config["dimensions"] = _extract_dimensions(semantic["columns"])
+
+    if "semantic_config" in semantic:
+        for key in ("page_map", "element_map", "composite_pages",
+                     "composite_elements", "alias_rules", "category_rules",
+                     "dedup_words", "action_type_map"):
+            if key in semantic["semantic_config"]:
+                config[key] = semantic["semantic_config"][key]
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+
+    print(f"[SemanticGen] Saved full semantic_config.json to {project_dir}")
 
 
 def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "generic") -> dict:
@@ -253,6 +694,8 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
     Generate a basic semantic layer without LLM (rule-based).
     Used as fallback when LLM is not available.
     """
+    config = load_semantic_config(dm.project_dir)
+
     schema_info = dm.get_schema_info()
     columns = {}
     metrics = {}
@@ -356,7 +799,7 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
             event_strs = [str(e) for e in dm.df[event_name_col].dropna().unique()]
         elif dm.con is not None:
             try:
-                table_name = dm.project.semantic_layer.get("table_name", "events")
+                table_name = dm.get_full_semantic_layer().get("table_name", "events")
                 rows = dm.con.execute(
                     f'SELECT DISTINCT "{event_name_col}" FROM {table_name} WHERE "{event_name_col}" IS NOT NULL LIMIT 200'
                 ).fetchall()
@@ -514,7 +957,7 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
             unique_event_list = dm.df[event_name_col].dropna().unique()[:50]
         elif dm.con is not None:
             try:
-                table_name = dm.project.semantic_layer.get("table_name", "events")
+                table_name = dm.get_full_semantic_layer().get("table_name", "events")
                 rows = dm.con.execute(
                     f'SELECT DISTINCT "{event_name_col}" FROM {table_name} WHERE "{event_name_col}" IS NOT NULL LIMIT 50'
                 ).fetchall()
@@ -523,12 +966,21 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
                 pass
         for evt in unique_event_list:
             evt_str = str(evt)
+            parsed = _parse_event_name(evt_str, config)
             event_definitions[evt_str] = {
-                "business_name": evt_str,
-                "description": f"事件类型: {evt_str}",
-                "category": "auto_detected",
-                "aliases": [],
+                "business_name": parsed["business_name"],
+                "description": parsed["description"],
+                "category": parsed["category"],
+                "aliases": parsed["aliases"],
+                "action_type": parsed["action_type"],
+                "page": parsed["page"],
+                "element": parsed["element"],
             }
+
+        if project_type == "behavior_analysis":
+            _generate_conversion_metrics(
+                metrics, event_name_col, unique_event_list, event_definitions
+            )
 
     examples = []
     if timestamp_col:
@@ -553,7 +1005,7 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
 
     table_name = "events"
 
-    return {
+    semantic = {
         "table_name": table_name,
         "columns": columns,
         "metrics": metrics,
@@ -562,6 +1014,11 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
         "rules": rules,
     }
 
+    _save_full_semantic_config(dm.project_dir, semantic)
+    semantic["config_file"] = "semantic_config.json"
+
+    return semantic
+
 
 def generate_semantic_layer_with_llm(dm: ProjectDataManager, project_type: str = "generic", reference_context: str = "") -> dict:
     """
@@ -569,48 +1026,127 @@ def generate_semantic_layer_with_llm(dm: ProjectDataManager, project_type: str =
     Falls back to rule-based generation if LLM is unavailable.
     """
     schema = _analyze_schema(dm)
+    table_name = dm.get_full_semantic_layer().get("table_name", "events")
+
+    low_card = schema.get("low_cardinality_values", "")
 
     if reference_context:
-        prompt = SCHEMA_ANALYSIS_PROMPT_WITH_REFS.format(
-            table_name=dm.project.semantic_layer.get("table_name", "events"),
-            project_type=project_type,
-            total_rows=schema["total_rows"],
-            total_columns=schema["total_columns"],
-            columns_detail=schema["columns_detail"],
-            sample_data=schema["sample_data"],
-            statistics=schema["statistics"],
-            reference_context=reference_context,
-        )
+        prompt = SCHEMA_ANALYSIS_PROMPT_WITH_REFS.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card).replace("{reference_context}", reference_context)
     else:
-        prompt = SCHEMA_ANALYSIS_PROMPT.format(
-            table_name=dm.project.semantic_layer.get("table_name", "events"),
-            project_type=project_type,
-            total_rows=schema["total_rows"],
-            total_columns=schema["total_columns"],
-            columns_detail=schema["columns_detail"],
-            sample_data=schema["sample_data"],
-            statistics=schema["statistics"],
-        )
+        prompt = SCHEMA_ANALYSIS_PROMPT.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card)
 
     try:
         yaml_content = _call_llm(prompt)
-        import yaml
-        semantic = yaml.safe_load(yaml_content)
+        print(f"[SemanticGen] LLM returned {len(yaml_content)} chars")
+        print(f"[SemanticGen] First 500 chars: {yaml_content[:500]}")
+
+        content = yaml_content.strip()
+        if content.startswith("```"):
+            content = re.sub(r"^```(?:json)?\s*\n?", "", content)
+            content = re.sub(r"\n?```\s*$", "", content)
+            content = content.strip()
+
+        content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', ' ', content)
+
+        try:
+            semantic = json.loads(content)
+        except json.JSONDecodeError as je:
+            print(f"[SemanticGen] JSON parse failed: {je}")
+            repaired = _repair_truncated_json(content)
+            if repaired is not None:
+                semantic = repaired
+                print("[SemanticGen] JSON repaired from truncated output")
+            else:
+                for _ in range(3):
+                    content += "}"
+                    try:
+                        semantic = json.loads(content)
+                        print("[SemanticGen] JSON repaired by closing braces")
+                        break
+                    except json.JSONDecodeError:
+                        continue
+                else:
+                    raise RuntimeError(f"[SemanticGen] JSON repair failed: {je}")
 
         if not isinstance(semantic, dict):
-            raise ValueError("LLM did not return a valid YAML dict")
+            print(f"[SemanticGen] Parsed type: {type(semantic)}, value: {str(semantic)[:200]}")
+            raise ValueError("LLM did not return a valid JSON dict")
 
         required_keys = ["table_name", "columns", "metrics"]
         for key in required_keys:
             if key not in semantic:
                 raise ValueError(f"LLM output missing required key: {key}")
 
+        semantic["table_name"] = "events"
+
+        if isinstance(semantic.get("columns"), list):
+            cols_dict = {}
+            for col in semantic["columns"]:
+                col_name = col.pop("column_name", None) or col.pop("name", None) or col.get("business_name", "")
+                if col_name:
+                    cols_dict[col_name] = col
+            semantic["columns"] = cols_dict
+
+        if isinstance(semantic.get("metrics"), list):
+            metrics_dict = {}
+            for i, m in enumerate(semantic["metrics"]):
+                metric_name = m.pop("name", None) or m.pop("metric_name", None) or m.get("business_name", "")
+                safe_name = re.sub(r'[^a-zA-Z0-9\u4e00-\u9fff_]', '_', metric_name) if metric_name else f"metric_{i}"
+                if safe_name in metrics_dict:
+                    safe_name = f"{safe_name}_{i}"
+                if safe_name:
+                    metrics_dict[safe_name] = m
+            semantic["metrics"] = metrics_dict
+
+        if isinstance(semantic.get("event_definitions"), list):
+            events_dict = {}
+            for e in semantic["event_definitions"]:
+                evt_name = e.pop("event_name", None) or e.pop("name", None) or e.get("business_name", "")
+                if evt_name:
+                    events_dict[evt_name] = e
+            semantic["event_definitions"] = events_dict
+
+        columns = semantic.get("columns", {})
+        has_event_date = any("event_date" in str(k) or "日期" in str(v.get("business_name", "")) for k, v in (columns.items() if isinstance(columns, dict) else []))
+        has_event_hour = any("event_hour" in str(k) or "小时" in str(v.get("business_name", "")) for k, v in (columns.items() if isinstance(columns, dict) else []))
+
+        time_cols = [k for k, v in (columns.items() if isinstance(columns, dict) else []) if "time" in k.lower() or "时间" in str(v.get("business_name", ""))]
+        if time_cols and not has_event_date:
+            src_col = time_cols[0]
+            columns["event_date"] = {
+                "business_name": "事件日期",
+                "type": "date",
+                "role": "dimension",
+                "description": f"从{src_col}提取的日期",
+                "derived": True,
+                "derived_from": src_col,
+                "derivation_logic": "date",
+            }
+        if time_cols and not has_event_hour:
+            src_col = time_cols[0]
+            columns["event_hour"] = {
+                "business_name": "事件小时",
+                "type": "integer",
+                "role": "dimension",
+                "description": f"从{src_col}提取的小时",
+                "derived": True,
+                "derived_from": src_col,
+                "derivation_logic": "hour",
+            }
+        semantic["columns"] = columns
+
+        if "semantic_config" in semantic and project_type == "behavior_analysis":
+            llm_config = semantic.pop("semantic_config")
+            _save_semantic_config(dm.project_dir, llm_config)
+
+        _save_full_semantic_config(dm.project_dir, semantic)
+
+        semantic["config_file"] = "semantic_config.json"
+
         return semantic
 
     except Exception as e:
-        print(f"[SemanticGen] LLM generation failed: {e}")
-        print("[SemanticGen] Falling back to rule-based generation")
-        return generate_basic_semantic_layer(dm, project_type)
+        raise RuntimeError(f"[SemanticGen] LLM generation failed: {e}") from e
 
 
 def generate_semantic_layer(
@@ -621,12 +1157,14 @@ def generate_semantic_layer(
 ) -> dict:
     """
     Generate semantic layer for a project.
-    If use_llm=True and DEEPSEEK_API_KEY is available, uses LLM.
-    Otherwise falls back to rule-based generation.
+    Requires LLM (DEEPSEEK_API_KEY). Raises RuntimeError if unavailable.
     """
-    if use_llm and DEEPSEEK_API_KEY:
-        return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
-    return generate_basic_semantic_layer(dm, project_type)
+    if not llm_client.is_available():
+        raise RuntimeError(
+            "LLM is not available (API key not set). "
+            "Semantic layer generation requires LLM."
+        )
+    return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
 
 
 def detect_project_type(dm: ProjectDataManager) -> str:

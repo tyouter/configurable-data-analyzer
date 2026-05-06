@@ -1,0 +1,24 @@
+id: 1bd90a0c
+name: 小红书车载应用分析-V2
+project_type: behavior_analysis
+data_source:
+  files:
+  - rednote20260319-20260412.xlsx
+  format: xlsx
+semantic_layer:
+  table_name: events
+  config_file: semantic_config.json
+semantic_layer_dirty: false
+created_at: '2026-05-02T20:38:38.080758'
+updated_at: '2026-05-04T21:11:40.607084'
+meta:
+  analysis_goals:
+  - 小红书车载应用用户行为分析
+  - 核心KPI指标监控（DAU、活跃率、留存率、转化率）
+  - Porsche+版块和发现页使用分析
+  - AI路书功能使用和转化分析
+  - 分享码功能分析
+  confirmed_ref_files:
+  - Rednote tracking data stracture_20260331.xlsx
+  - rednote KPI definition_20260323.xlsx
+  - Rednote dashboard V1.0 5-30 requirements.xlsx

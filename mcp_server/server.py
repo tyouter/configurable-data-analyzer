@@ -553,10 +553,28 @@ def _create_phase_build(
     use_llm: bool,
     project_type: Optional[str],
 ) -> dict:
+    r1 = _pipeline_load_data(project_id, project_type)
+    if "error" in r1:
+        return r1
+
+    r2 = _pipeline_create_derived(project_id)
+    if "error" in r2:
+        return r2
+
+    r3 = _pipeline_gen_semantic(project_id, use_llm)
+    if "error" in r3:
+        return r3
+
+    r4 = _pipeline_save_semantic(project_id)
+    return r4
+
+
+def _pipeline_load_data(project_id: str, project_type: Optional[str]) -> dict:
     from datetime import datetime
+    from mcp_server.project_model import PipelineState
 
     if not project_id:
-        return {"error": "project_id is required for action=build"}
+        return {"error": "project_id is required"}
 
     create_state = _session.store.load_create_state(project_id)
     if not create_state:
@@ -589,35 +607,180 @@ def _create_phase_build(
         detected = detect_project_type(dm)
         project.project_type = detected
 
-    semantic = generate_semantic_layer(
-        dm,
-        project_type=project.project_type,
-        use_llm=use_llm,
-        reference_context=_build_reference_context(create_state),
+    pipeline_state = PipelineState(
+        project_id=project_id,
+        current_step="load_data",
+        completed_steps=["load_data"],
+        step_results={
+            "load_data": {
+                "tables": [project.semantic_layer.get("table_name", "events")],
+                "rows": dm.meta.get("total_rows", 0),
+                "columns": dm.meta.get("columns", []),
+            }
+        },
+        created_at=datetime.now().isoformat(),
+        updated_at=datetime.now().isoformat(),
     )
-    project.semantic_layer = semantic
+    _session.store.save_pipeline_state(project_id, pipeline_state)
 
-    if create_state.analysis_goals:
-        project.meta["analysis_goals"] = create_state.analysis_goals
-    project.meta["confirmed_ref_files"] = create_state.confirmed_ref_files
+    return {
+        "step": "load_data",
+        "status": "completed",
+        "project_id": project.id,
+        "total_rows": dm.meta.get("total_rows", 0),
+        "total_columns": dm.meta.get("total_columns", 0),
+        "next_step": "create_derived",
+    }
+
+
+def _pipeline_create_derived(project_id: str) -> dict:
+    from mcp_server.project_model import PipelineState
+
+    pipeline_state = _session.store.load_pipeline_state(project_id)
+    if not pipeline_state or not pipeline_state.is_step_completed("load_data"):
+        return {"error": "load_data step must complete first"}
+
+    dm = _session.get_dm(project_id)
+    created = dm.create_derived_columns()
+
+    pipeline_state.advance("create_derived", {"derived_columns": list(created.keys())})
+    _session.store.save_pipeline_state(project_id, pipeline_state)
+
+    return {
+        "step": "create_derived",
+        "status": "completed",
+        "project_id": project_id,
+        "derived_columns": created,
+        "next_step": "gen_semantic",
+    }
+
+
+def _pipeline_gen_semantic(project_id: str, use_llm: bool) -> dict:
+    from mcp_server.project_model import PipelineState
+
+    pipeline_state = _session.store.load_pipeline_state(project_id)
+    if not pipeline_state or not pipeline_state.is_step_completed("create_derived"):
+        return {"error": "create_derived step must complete first"}
+
+    project = _session.store.get_project(project_id)
+    dm = _session.get_dm(project_id)
+
+    create_state = _session.store.load_create_state(project_id)
+    reference_context = _build_reference_context(create_state) if create_state else ""
+
+    try:
+        semantic = generate_semantic_layer(
+            dm,
+            project_type=project.project_type,
+            use_llm=use_llm,
+            reference_context=reference_context,
+        )
+    except RuntimeError as e:
+        return {"step": "gen_semantic", "status": "failed", "error": str(e)}
+
+    project.semantic_layer = {
+        "table_name": semantic.get("table_name", "events"),
+        "config_file": semantic.get("config_file", "semantic_config.json"),
+    }
+    _session.store.save_project(project)
+
+    dm.invalidate_semantic_cache()
+
+    pipeline_state.advance("gen_semantic", {
+        "metrics_count": len(semantic.get("metrics", {})),
+        "events_count": len(semantic.get("event_definitions", {})),
+        "columns_count": len(semantic.get("columns", {})),
+    })
+    _session.store.save_pipeline_state(project_id, pipeline_state)
+
+    from mcp_server.semantic_validator import SemanticValidator
+    full_sl = project.get_full_semantic_layer(PROJECTS_DIR)
+    validator = SemanticValidator(dm, full_sl)
+    validation = validator.validate_all()
+
+    report_path = os.path.join(PROJECTS_DIR, project.id, "validation_report.json")
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(validation, f, ensure_ascii=False, indent=2, default=str)
+
+    return {
+        "step": "gen_semantic",
+        "status": "completed",
+        "project_id": project_id,
+        "metrics_count": len(semantic.get("metrics", {})),
+        "events_count": len(semantic.get("event_definitions", {})),
+        "validation_summary": validation.get("summary", {}),
+        "next_step": "save_semantic",
+    }
+
+
+def _pipeline_save_semantic(project_id: str) -> dict:
+    from mcp_server.project_model import PipelineState
+
+    pipeline_state = _session.store.load_pipeline_state(project_id)
+    if not pipeline_state or not pipeline_state.is_step_completed("gen_semantic"):
+        return {"error": "gen_semantic step must complete first"}
+
+    project = _session.store.get_project(project_id)
+    create_state = _session.store.load_create_state(project_id)
+
+    if create_state:
+        if create_state.analysis_goals:
+            project.meta["analysis_goals"] = create_state.analysis_goals
+        project.meta["confirmed_ref_files"] = create_state.confirmed_ref_files
 
     _session.store.save_project(project)
     _session.store.delete_create_state(project_id)
+    _session.store.delete_pipeline_state(project_id)
 
+    _session.unload_project(project.id)
     _session.switch_project(project.id)
 
+    full_sl = project.get_full_semantic_layer(PROJECTS_DIR)
+
     return {
-        "state": "COMPLETED",
+        "step": "save_semantic",
+        "status": "completed",
         "project_id": project.id,
         "name": project.name,
         "project_type": project.project_type,
         "data_files": project.data_source.get("files", []),
-        "total_rows": dm.meta.get("total_rows", 0),
-        "total_columns": dm.meta.get("total_columns", 0),
-        "metrics_count": len(semantic.get("metrics", {})),
-        "events_count": len(semantic.get("event_definitions", {})),
-        "semantic_source": "llm" if (use_llm and os.environ.get("DEEPSEEK_API_KEY")) else "rule_based",
+        "metrics_count": len(full_sl.get("metrics", {})),
+        "events_count": len(full_sl.get("event_definitions", {})),
+        "semantic_source": "llm",
+        "state": "COMPLETED",
     }
+
+
+@mcp.tool()
+def execute_pipeline_step(
+    project_id: str,
+    step: str,
+    use_llm: bool = True,
+    project_type: Optional[str] = None,
+) -> dict:
+    """
+    执行 Pipeline 单个步骤。支持断点续做和独立重试。
+
+    步骤顺序：load_data → create_derived → gen_semantic → save_semantic
+
+    Args:
+        project_id: 项目ID
+        step: 要执行的步骤 (load_data/create_derived/gen_semantic/save_semantic)
+        use_llm: 是否使用LLM（gen_semantic步骤有效）
+        project_type: 项目类型（load_data步骤有效）
+    """
+    valid_steps = {"load_data", "create_derived", "gen_semantic", "save_semantic"}
+    if step not in valid_steps:
+        return {"error": f"Invalid step '{step}'. Valid: {sorted(valid_steps)}"}
+
+    if step == "load_data":
+        return _pipeline_load_data(project_id, project_type)
+    elif step == "create_derived":
+        return _pipeline_create_derived(project_id)
+    elif step == "gen_semantic":
+        return _pipeline_gen_semantic(project_id, use_llm)
+    elif step == "save_semantic":
+        return _pipeline_save_semantic(project_id)
 
 
 def _build_reference_context(create_state: CreateProjectState) -> str:
@@ -756,7 +919,7 @@ def switch_project(project_id: str) -> dict:
             "name": project.name,
             "project_type": project.project_type,
             "total_rows": dm.meta.get("total_rows", 0) if dm else 0,
-            "metrics_count": len(project.semantic_layer.get("metrics", {})),
+            "metrics_count": len(project.get_full_semantic_layer(PROJECTS_DIR).get("metrics", {})),
         }
     except ValueError as e:
         return {"error": str(e)}
@@ -777,8 +940,8 @@ def get_current_project() -> dict:
         "data_source": project.data_source,
         "total_rows": dm.meta.get("total_rows", 0) if dm else 0,
         "total_columns": dm.meta.get("total_columns", 0) if dm else 0,
-        "metrics_count": len(project.semantic_layer.get("metrics", {})),
-        "events_count": len(project.semantic_layer.get("event_definitions", {})),
+        "metrics_count": len(project.get_full_semantic_layer(PROJECTS_DIR).get("metrics", {})),
+        "events_count": len(project.get_full_semantic_layer(PROJECTS_DIR).get("event_definitions", {})),
         "created_at": project.created_at,
         "updated_at": project.updated_at,
     }
@@ -818,15 +981,21 @@ def regenerate_semantic_layer(use_llm: bool = True) -> dict:
             project_type=project.project_type,
             use_llm=use_llm,
         )
-        project.semantic_layer = semantic
+        project.semantic_layer = {
+            "table_name": semantic.get("table_name", "events"),
+            "config_file": semantic.get("config_file", "semantic_config.json"),
+        }
+        project.semantic_layer_dirty = False
         _session.store.save_project(project)
+
+        dm.invalidate_semantic_cache()
 
         return {
             "project_id": project.id,
             "metrics_count": len(semantic.get("metrics", {})),
             "events_count": len(semantic.get("event_definitions", {})),
             "columns_count": len(semantic.get("columns", {})),
-            "semantic_source": "llm" if (use_llm and os.environ.get("DEEPSEEK_API_KEY")) else "rule_based",
+            "semantic_source": "llm",
         }
     except Exception as e:
         return {"error": f"Failed to regenerate semantic layer: {str(e)}"}
@@ -872,7 +1041,7 @@ def semantic_query(
     except ValueError as e:
         return {"error": str(e)}
 
-    semantic_layer = project.semantic_layer
+    semantic_layer = project.get_full_semantic_layer(PROJECTS_DIR)
 
     if level == "L1":
         if not metric:
@@ -915,7 +1084,7 @@ def semantic_query(
         chart_type = suggest_chart_type(data, f"{metric or ''} {analysis_type or ''}")
         chart_option = build_echarts_option(chart_type, data, metric or analysis_type or "Query Result")
 
-        return {
+        result = {
             "project_id": project.id,
             "sql": sql,
             "data": data,
@@ -923,6 +1092,20 @@ def semantic_query(
             "chart_type": chart_type,
             "chart_option": chart_option,
         }
+
+        if metric and metric in semantic_layer.get("metrics", {}):
+            m_info = semantic_layer["metrics"][metric]
+            result["metric_type"] = m_info.get("metric_type", "")
+            result["chart_hint"] = m_info.get("chart_hint", "")
+
+        if not data:
+            result["data_quality_warning"] = (
+                "Query returned 0 rows. The metric or filter may not match any data. "
+                "Use 'get_semantic_context' to check available metrics, "
+                "or 'explore_column_values' to check actual data values."
+            )
+
+        return result
     except Exception as e:
         return {
             "project_id": project.id,
@@ -969,7 +1152,7 @@ def raw_sql(sql: str, limit: int = 2000) -> dict:
         chart_type = suggest_chart_type(data)
         chart_option = build_echarts_option(chart_type, data, "Raw SQL Result")
 
-        return {
+        result = {
             "project_id": project.id,
             "sql": sql,
             "data": data,
@@ -977,6 +1160,24 @@ def raw_sql(sql: str, limit: int = 2000) -> dict:
             "chart_type": chart_type,
             "chart_option": chart_option,
         }
+
+        if not data:
+            result["data_quality_warning"] = (
+                "Query returned 0 rows. Your WHERE clause or LIKE pattern may not match any data. "
+                "Use 'explore_column_values' tool to check actual values in your data."
+            )
+        else:
+            all_null = all(
+                v is None for row in data for v in (row.values() if isinstance(row, dict) else [row])
+            )
+            if all_null:
+                result["data_quality_warning"] = (
+                    "All returned values are NULL. This usually means your SQL filter "
+                    "(e.g., LIKE pattern) does not match any actual data values. "
+                    "Use 'explore_column_values' tool to check actual values."
+                )
+
+        return result
     except Exception as e:
         return {
             "project_id": project.id,
@@ -993,17 +1194,103 @@ def raw_sql(sql: str, limit: int = 2000) -> dict:
 @mcp.tool()
 def render_chart(
     data: list[dict],
-    chart_type: str,
-    title: str,
+    chart_type: str = "",
+    title: str = "",
+    metric_type: str = "",
+    chart_hint: str = "",
 ) -> dict:
     """
     根据查询数据生成ECharts图表配置。
 
     Args:
         data: 查询结果数据（列表的字典）
-        chart_type: 图表类型 line/bar/pie/funnel/scatter/table
+        chart_type: 图表类型 line/bar/pie/funnel/scatter/table/kpi_card/bar_line/ranking_bar。留空则自动推断。
         title: 图表标题
+        metric_type: 指标类型 count/rate/duration/distribution/ranking，辅助图表类型推断
+        chart_hint: 语义层建议的图表类型 kpi_card/line/bar_line/pie/bar/ranking_bar，优先级最高
     """
+    if chart_hint:
+        chart_type_map = {
+            "kpi_card": "kpi_card",
+            "bar_line": "bar_line",
+            "ranking_bar": "ranking_bar",
+            "boxplot": "boxplot",
+        }
+        if chart_hint in ("line", "bar", "pie", "funnel", "scatter", "table"):
+            chart_type = chart_hint
+        else:
+            resolved = chart_type_map.get(chart_hint, "")
+            if resolved:
+                chart_type = resolved
+
+    if not chart_type:
+        if metric_type == "rate" and data and len(data) <= 1:
+            chart_type = "kpi_card"
+        elif metric_type == "count" and data and len(data) <= 1:
+            chart_type = "kpi_card"
+        elif metric_type == "duration" and data and len(data) <= 1:
+            chart_type = "kpi_card"
+        elif metric_type == "distribution":
+            chart_type = "pie"
+        elif metric_type == "ranking":
+            chart_type = "ranking_bar"
+        elif metric_type == "rate":
+            chart_type = "line"
+        else:
+            from mcp_server.chart_renderer import suggest_chart_type
+            chart_type = suggest_chart_type(data, title)
+
+    if chart_type == "kpi_card":
+        if data:
+            keys = list(data[0].keys())
+            rate_keys = [k for k in keys if "rate" in k.lower()]
+            if rate_keys and len(data) > 1:
+                best_row = None
+                for row in reversed(data):
+                    if any(row.get(rk) is not None for rk in rate_keys):
+                        best_row = row
+                        break
+                if best_row is None:
+                    best_row = data[-1]
+                sub_parts = []
+                for rk in rate_keys:
+                    v = best_row.get(rk)
+                    if v is not None:
+                        if isinstance(v, float):
+                            if abs(v) <= 1:
+                                sub_parts.append(f"{rk}: {v * 100:.1f}%")
+                            else:
+                                sub_parts.append(f"{rk}: {v:.1f}%")
+                        else:
+                            sub_parts.append(f"{rk}: {v}")
+                val_key = rate_keys[0]
+                val = best_row.get(val_key)
+                if isinstance(val, float):
+                    val = round(val, 4)
+                sub_text = " | ".join(sub_parts[1:]) if len(sub_parts) > 1 else ""
+                return {
+                    "chart_type": "kpi_card",
+                    "chart_option": {
+                        "title": {"text": title},
+                        "value": val,
+                        "metric_type": metric_type or "rate",
+                        "sub_text": sub_text,
+                    },
+                }
+            val_key = keys[-1] if len(keys) > 1 else keys[0]
+            val = data[-1].get(val_key)
+            if isinstance(val, float):
+                val = round(val, 4)
+            return {
+                "chart_type": "kpi_card",
+                "chart_option": {
+                    "title": {"text": title},
+                    "value": val,
+                    "metric_type": metric_type,
+                },
+            }
+        return {"chart_type": "kpi_card", "chart_option": {"title": {"text": title}, "value": None}}
+
     if chart_type == "table":
         return {"chart_type": "table", "chart_option": None, "data": data}
 
@@ -1035,7 +1322,7 @@ def get_semantic_context(section: Optional[str] = None) -> dict:
     except ValueError as e:
         return {"error": str(e)}
 
-    semantic = project.semantic_layer
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR)
     section = section or "all"
 
     if section == "metrics":
@@ -1045,6 +1332,10 @@ def get_semantic_context(section: Optional[str] = None) -> dict:
                 "id": name,
                 "business_name": info.get("business_name", name),
                 "sql": info.get("sql", ""),
+                "metric_type": info.get("metric_type", ""),
+                "business_domain": info.get("business_domain", ""),
+                "business_domain_label": info.get("business_domain_label", ""),
+                "chart_hint": info.get("chart_hint", ""),
                 "keywords": info.get("keywords", []),
                 "description": info.get("description", ""),
             })
@@ -1094,6 +1385,8 @@ def get_semantic_context(section: Optional[str] = None) -> dict:
             metrics.append({
                 "id": name,
                 "business_name": info.get("business_name", name),
+                "metric_type": info.get("metric_type", ""),
+                "chart_hint": info.get("chart_hint", ""),
                 "keywords": info.get("keywords", []),
                 "description": info.get("description", ""),
             })
@@ -1141,6 +1434,83 @@ def get_semantic_context(section: Optional[str] = None) -> dict:
         return {"error": f"Unknown section: {section}. Valid: metrics, dimensions, events, analysis_templates, schema, all"}
 
 
+@mcp.tool()
+def explore_column_values(
+    column: str,
+    pattern: Optional[str] = None,
+    limit: int = 50,
+) -> dict:
+    """
+    探索某列的实际值分布，用于编写正确的 SQL 过滤条件。
+    在编写 LIKE/IN 等 WHERE 子句前，务必先调用此工具确认实际值。
+
+    Args:
+        column: 列名（如 span_name, page_root, event_type）
+        pattern: 可选的模糊搜索模式（SQL LIKE 语法，如 '%travel_guide%'）
+        limit: 返回值数量上限（默认50，最大200）
+    """
+    try:
+        project, dm = _require_project()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    table_name = project.get_full_semantic_layer(PROJECTS_DIR).get("table_name", "events")
+
+    columns = project.get_full_semantic_layer(PROJECTS_DIR).get("columns", {})
+    if column not in columns:
+        available = sorted(columns.keys())
+        return {"error": f"Column '{column}' not found. Available columns: {available[:30]}"}
+
+    limit = min(limit, 200)
+
+    try:
+        if pattern:
+            sql = (
+                f'SELECT "{column}", COUNT(*) AS cnt '
+                f'FROM {table_name} '
+                f'WHERE "{column}" LIKE \'{pattern}\' '
+                f'GROUP BY "{column}" '
+                f'ORDER BY cnt DESC '
+                f'LIMIT {limit}'
+            )
+        else:
+            sql = (
+                f'SELECT "{column}", COUNT(*) AS cnt '
+                f'FROM {table_name} '
+                f'GROUP BY "{column}" '
+                f'ORDER BY cnt DESC '
+                f'LIMIT {limit}'
+            )
+
+        data = dm.execute(sql)
+        data = _serialize_data(data)
+
+        result = {
+            "project_id": project.id,
+            "column": column,
+            "pattern": pattern,
+            "values": data,
+            "total_distinct": len(data),
+        }
+
+        if not data and pattern:
+            sql_no_filter = (
+                f'SELECT DISTINCT "{column}" FROM {table_name} '
+                f'LIMIT 10'
+            )
+            suggestions = dm.execute(sql_no_filter)
+            suggestions = _serialize_data(suggestions)
+            result["hint"] = (
+                f"No values match pattern '{pattern}'. "
+                f"Here are some actual values in this column for reference: "
+                f"{[r.get(column, '') for r in suggestions[:10]]}"
+            )
+
+        return result
+    except Exception as e:
+        return {"error": f"Failed to explore column values: {str(e)}"}
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Tools: Dashboard CRUD
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1178,9 +1548,28 @@ def save_chart_to_dashboard(dashboard_name: str, chart: dict) -> dict:
 
     Args:
         dashboard_name: Dashboard名称
-        chart: 图表数据，包含 chart_type, chart_option, title, sql 等
+        chart: 图表数据，包含 chart_type, chart_option, title, sql, business_domain 等
     """
     project, _ = _require_project()
+
+    if not chart.get("business_domain"):
+        full = project.get_full_semantic_layer(PROJECTS_DIR)
+        metrics = full.get("metrics", {})
+        chart_title = chart.get("title", "")
+        if not chart_title:
+            opt = chart.get("chart_option", {})
+            if isinstance(opt, dict):
+                t = opt.get("title", {})
+                if isinstance(t, dict):
+                    chart_title = t.get("text", "")
+                elif isinstance(t, str):
+                    chart_title = t
+        for m_name, m_def in metrics.items():
+            if m_def.get("business_name") == chart_title or m_name == chart_title:
+                chart["business_domain"] = m_def.get("business_domain", "")
+                chart["business_domain_label"] = m_def.get("business_domain_label", "")
+                break
+
     result = dashboard_store.save_chart(PROJECTS_DIR, project.id, dashboard_name, chart)
     return result
 
@@ -1219,9 +1608,247 @@ def delete_dashboard(dashboard_id: str) -> dict:
     return {"ok": True, "deleted_id": dashboard_id, "deleted_name": dash.get("name")}
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Resource: project semantic layer
-# ═══════════════════════════════════════════════════════════════════════════
+@mcp.tool()
+def export_dashboard(
+    dashboard_name: str,
+    theme: str = "ggplot2_minimal",
+) -> dict:
+    """
+    将当前项目的 Dashboard 导出为自包含 HTML 文件，可在浏览器中直接打开。
+
+    Args:
+        dashboard_name: Dashboard 名称
+        theme: 主题名称，可选 ggplot2_minimal（亮色）或 ggplot2_dark（暗色）
+    """
+    from mcp_server.dashboard_html import export_dashboard_html
+    from mcp_server.themes import list_themes
+
+    project, _ = _require_project()
+
+    available = list_themes()
+    if theme not in available:
+        return {"error": f"Unknown theme '{theme}'. Available: {available}"}
+
+    try:
+        html_path = export_dashboard_html(
+            projects_dir=PROJECTS_DIR,
+            project_id=project.id,
+            dashboard_name=dashboard_name,
+            theme=theme,
+        )
+        return {
+            "status": "exported",
+            "html_path": html_path,
+            "dashboard_name": dashboard_name,
+            "theme": theme,
+            "message": f"Dashboard 已导出为 HTML: {html_path}",
+        }
+    except ValueError as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def generate_dashboard_from_spec(
+    spec_path: str = "",
+    dashboard_name: str = "",
+    theme: str = "ggplot2_minimal",
+) -> dict:
+    """
+    根据 dashboard_spec.json 自动生成完整 Dashboard，逐个图表执行查询并渲染。
+    这是项目配置注入的核心：spec 定义了需求，MCP server 负责执行查询和渲染。
+
+    Args:
+        spec_path: dashboard_spec.json 的路径（默认使用当前项目的 dashboard_spec.json）
+        dashboard_name: Dashboard 名称（默认使用 spec 中的 name）
+        theme: 主题名称，可选 ggplot2_minimal 或 ggplot2_dark
+    """
+    project, dm = _require_project()
+    if not dm.con:
+        dm.load()
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR)
+    metrics = semantic.get("metrics", {})
+    table_name = semantic.get("table_name", "events")
+
+    if not spec_path:
+        spec_path = os.path.join(PROJECTS_DIR, project.id, "dashboard_spec.json")
+    if not os.path.exists(spec_path):
+        return {"error": f"dashboard_spec.json not found at {spec_path}"}
+
+    with open(spec_path, encoding="utf-8") as f:
+        spec = json.load(f)
+
+    if not dashboard_name:
+        dashboard_name = spec.get("name", "Dashboard")
+
+    existing = dashboard_store.load_dashboard_by_name(PROJECTS_DIR, project.id, dashboard_name)
+    if existing:
+        dashboard_store.delete_dashboard(PROJECTS_DIR, project.id, existing["id"])
+
+    categories = {c["id"]: c for c in spec.get("categories", [])}
+    charts_spec = spec.get("charts", [])
+
+    created_charts = []
+    errors = []
+
+    for chart_spec in charts_spec:
+        chart_id = chart_spec.get("chart_id", "")
+        chart_name = chart_spec.get("name", "")
+        chart_type = chart_spec.get("chart_type", "")
+        category_id = chart_spec.get("category", "")
+        category_label = categories.get(category_id, {}).get("label", category_id)
+        metric_ref = chart_spec.get("metric_ref", "")
+        custom_sql = chart_spec.get("custom_sql", "")
+        analysis_type = chart_spec.get("analysis_type", "")
+        description = chart_spec.get("description", "")
+
+        try:
+            sql = ""
+            y_axis = chart_spec.get("y_axis", [])
+            x_axis = chart_spec.get("x_axis", {})
+
+            if custom_sql:
+                sql = custom_sql
+            elif analysis_type:
+                params = chart_spec.get("analysis_params", {})
+                built_sql, err = _build_dynamic_l2_query(semantic, analysis_type, params)
+                if err:
+                    errors.append({"chart_id": chart_id, "name": chart_name, "error": err})
+                    continue
+                sql = built_sql
+            elif y_axis and isinstance(y_axis, list):
+                y_metric_refs = [ya.get("metric_ref", "") for ya in y_axis if ya.get("metric_ref")]
+                if not y_metric_refs and metric_ref:
+                    y_metric_refs = [metric_ref]
+
+                if y_metric_refs:
+                    metric_sqls = []
+                    metric_types = []
+                    for mr in y_metric_refs:
+                        mdef = metrics.get(mr)
+                        if not mdef:
+                            errors.append({"chart_id": chart_id, "name": chart_name, "error": f"Unknown metric: {mr}"})
+                            break
+                        metric_sqls.append(f"{mdef.get('sql', '')} AS {mr}")
+                        metric_types.append(mdef.get("metric_type", ""))
+                    else:
+                        dimensions = chart_spec.get("dimensions", [])
+                        if dimensions:
+                            dim_clause = ", ".join(dimensions)
+                            select_clause = f"{dim_clause}, " + ", ".join(metric_sqls)
+                            sql = f"SELECT {select_clause} FROM {table_name} GROUP BY {dim_clause} ORDER BY {dim_clause}"
+                        else:
+                            select_clause = ", ".join(metric_sqls)
+                            sql = f"SELECT {select_clause} FROM {table_name}"
+                    if not sql and not y_metric_refs:
+                        errors.append({"chart_id": chart_id, "name": chart_name, "error": "No valid metric_ref in y_axis"})
+                        continue
+                    elif not sql:
+                        continue
+                else:
+                    errors.append({"chart_id": chart_id, "name": chart_name, "error": "No metric_ref in y_axis or chart_spec"})
+                    continue
+            elif metric_ref:
+                dimensions = chart_spec.get("dimensions", [])
+                metric_def = metrics.get(metric_ref)
+                if not metric_def:
+                    errors.append({"chart_id": chart_id, "name": chart_name, "error": f"Unknown metric: {metric_ref}"})
+                    continue
+                metric_sql = metric_def.get("sql", "")
+
+                if not dimensions:
+                    sql = f"SELECT {metric_sql} AS {metric_ref} FROM {table_name}"
+                else:
+                    dim_clause = ", ".join(dimensions)
+                    sql = f"SELECT {dim_clause}, {metric_sql} AS {metric_ref} FROM {table_name} GROUP BY {dim_clause} ORDER BY {dim_clause}"
+            else:
+                errors.append({"chart_id": chart_id, "name": chart_name, "error": "No metric_ref, custom_sql, or analysis_type specified"})
+                continue
+
+            try:
+                sql = validate_raw_sql(sql)
+            except ValueError as sql_err:
+                errors.append({"chart_id": chart_id, "name": chart_name, "error": f"SQL validation error: {sql_err}"})
+                continue
+
+            data = dm.execute(sql)
+            data = _serialize_data(data)
+
+            metric_type = ""
+            business_domain = ""
+            business_domain_label = ""
+            if metric_ref and metric_ref in metrics:
+                metric_type = metrics[metric_ref].get("metric_type", "")
+                business_domain = metrics[metric_ref].get("business_domain", "")
+                business_domain_label = metrics[metric_ref].get("business_domain_label", "")
+
+            if not business_domain and category_id:
+                business_domain = category_id
+                business_domain_label = category_label
+
+            chart_result = render_chart(
+                data=data,
+                chart_type=chart_type,
+                title=chart_name,
+                metric_type=metric_type,
+                chart_hint=chart_type,
+            )
+
+            chart_data = {
+                "title": chart_name,
+                "chart_type": chart_result.get("chart_type", chart_type),
+                "chart_option": chart_result.get("chart_option"),
+                "sql": sql,
+                "data_sample": data[:5],
+                "business_domain": business_domain,
+                "business_domain_label": business_domain_label,
+                "spec_chart_id": chart_id,
+                "spec_category": category_id,
+                "spec_category_label": category_label,
+                "description": description,
+            }
+
+            if chart_type == "kpi_card":
+                kpi_format = chart_spec.get("kpi_format", "")
+                chart_data["kpi_format"] = kpi_format
+                if chart_result.get("chart_option"):
+                    chart_data["chart_option"]["kpi_format"] = kpi_format
+
+            save_result = dashboard_store.save_chart(PROJECTS_DIR, project.id, dashboard_name, chart_data)
+            created_charts.append({
+                "chart_id": chart_id,
+                "name": chart_name,
+                "chart_type": chart_type,
+                "category": category_id,
+                "saved_chart_id": save_result.get("chart_id"),
+                "rows": len(data),
+                "warnings": save_result.get("warnings", []),
+            })
+
+        except Exception as e:
+            errors.append({"chart_id": chart_id, "name": chart_name, "error": str(e)})
+
+    html_path = None
+    try:
+        from mcp_server.dashboard_html import export_dashboard_html
+        html_path = export_dashboard_html(
+            projects_dir=PROJECTS_DIR,
+            project_id=project.id,
+            dashboard_name=dashboard_name,
+            theme=theme,
+        )
+    except Exception as e:
+        errors.append({"chart_id": "_export", "name": "export_html", "error": str(e)})
+
+    return {
+        "status": "generated",
+        "dashboard_name": dashboard_name,
+        "total_specs": len(charts_spec),
+        "charts_created": len(created_charts),
+        "errors_count": len(errors),
+        "charts": created_charts,
+        "errors": errors,
+        "html_path": html_path,
+    }
 
 @mcp.resource("semantic://current")
 def get_current_semantic_layer() -> str:
@@ -1230,11 +1857,262 @@ def get_current_semantic_layer() -> str:
     if not project:
         return "No active project. Use switch_project() or create_project() first."
     import yaml
-    return yaml.dump(project.semantic_layer, allow_unicode=True, default_flow_style=False, sort_keys=False)
+    return yaml.dump(project.get_full_semantic_layer(PROJECTS_DIR), allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+
+@mcp.tool()
+def migrate_project(project_id: str) -> dict:
+    """
+    迁移旧项目格式：将 project.yaml 中的语义层数据导出到 semantic_config.json。
+    迁移后项目功能不变，但语义层配置与元信息分离，支持模块化管理。
+
+    Args:
+        project_id: 要迁移的项目ID
+    """
+    return _session.store.migrate_semantic_layer(project_id)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Prompt: data_analysis
+# Tools: Human-in-the-Loop Alignment (Phase 6)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def review_data_understanding(project_id: Optional[str] = None) -> dict:
+    """
+    生成当前项目的数据理解报告，包含列映射、事件解析和指标定义。
+    用户可基于此报告决定需要修正的内容。
+
+    Args:
+        project_id: 项目ID（默认当前项目）
+    """
+    if project_id:
+        _session.switch_project(project_id)
+    try:
+        project, dm = _require_project()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    full = project.get_full_semantic_layer(PROJECTS_DIR)
+    columns = full.get("columns", {})
+    events = full.get("event_definitions", {})
+    metrics = full.get("metrics", {})
+
+    column_summary = {}
+    for col_name, col_def in columns.items():
+        column_summary[col_name] = {
+            "business_name": col_def.get("business_name", ""),
+            "type": col_def.get("type", ""),
+            "role": col_def.get("role", ""),
+            "description": col_def.get("description", ""),
+        }
+        if col_def.get("derived"):
+            column_summary[col_name]["derived"] = True
+            column_summary[col_name]["derived_from"] = col_def.get("derived_from", "")
+
+    event_summary = {}
+    for evt_name, evt_def in events.items():
+        event_summary[evt_name] = {
+            "business_name": evt_def.get("business_name", evt_name),
+            "sql_pattern": evt_def.get("sql_pattern", f"span_name = '{evt_name}'"),
+        }
+
+    metric_summary = {}
+    for m_name, m_def in metrics.items():
+        metric_summary[m_name] = {
+            "business_name": m_def.get("business_name", ""),
+            "sql": m_def.get("sql", ""),
+            "metric_type": m_def.get("metric_type", ""),
+            "description": m_def.get("description", ""),
+        }
+
+    validation = _session.store.load_validation_report(project.id)
+
+    result = {
+        "project_id": project.id,
+        "columns": column_summary,
+        "events": event_summary,
+        "metrics": metric_summary,
+        "summary": {
+            "columns_count": len(columns),
+            "events_count": len(events),
+            "metrics_count": len(metrics),
+            "semantic_layer_dirty": project.semantic_layer_dirty,
+        },
+    }
+
+    if validation:
+        result["validation_summary"] = validation.get("summary", {})
+
+    return result
+
+
+def _update_semantic_config(project_id: str, section: str, updates: dict, deletes: list = None) -> dict:
+    if project_id:
+        _session.switch_project(project_id)
+    try:
+        project, dm = _require_project()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    config_path = os.path.join(PROJECTS_DIR, project.id, "semantic_config.json")
+    if not os.path.exists(config_path):
+        return {"error": f"semantic_config.json not found for project {project.id}"}
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    if section not in config:
+        config[section] = {}
+
+    updated_keys = []
+    for key, value in updates.items():
+        if key in config[section]:
+            if isinstance(value, dict) and isinstance(config[section][key], dict):
+                config[section][key].update(value)
+            else:
+                config[section][key] = value
+        else:
+            config[section][key] = value
+        updated_keys.append(key)
+
+    deleted_keys = []
+    if deletes:
+        for key in deletes:
+            if key in config[section]:
+                del config[section][key]
+                deleted_keys.append(key)
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+
+    project.semantic_layer_dirty = True
+    _session.store.save_project(project)
+    dm.invalidate_semantic_cache()
+
+    return {
+        "project_id": project.id,
+        "section": section,
+        "updated": updated_keys,
+        "deleted": deleted_keys,
+        "semantic_layer_dirty": True,
+    }
+
+
+@mcp.tool()
+def update_column_mapping(
+    project_id: Optional[str] = None,
+    columns: Optional[dict] = None,
+) -> dict:
+    """
+    批量修正列映射。修正后标记 semantic_layer_dirty=True。
+
+    Args:
+        project_id: 项目ID（默认当前项目）
+        columns: 修正内容，格式 {"col_name": {"business_name": "新名称", "role": "dimension"}}
+                 仅需提供要修改的字段，未提供的字段保持不变
+    """
+    if not columns:
+        return {"error": "columns is required"}
+    return _update_semantic_config(project_id, "columns", columns)
+
+
+@mcp.tool()
+def update_event_mapping(
+    project_id: Optional[str] = None,
+    updates: Optional[dict] = None,
+    delete_events: Optional[list] = None,
+) -> dict:
+    """
+    批量修正事件映射。修正后标记 semantic_layer_dirty=True。
+
+    Args:
+        project_id: 项目ID（默认当前项目）
+        updates: 修正/新增事件，格式 {"event_name": {"business_name": "...", "sql_pattern": "..."}}
+        delete_events: 要删除的事件名称列表
+    """
+    if not updates and not delete_events:
+        return {"error": "At least one of updates or delete_events is required"}
+    return _update_semantic_config(project_id, "events", updates or {}, delete_events)
+
+
+@mcp.tool()
+def update_metric(
+    project_id: Optional[str] = None,
+    updates: Optional[dict] = None,
+    delete_metrics: Optional[list] = None,
+) -> dict:
+    """
+    批量修正指标定义。修正后标记 semantic_layer_dirty=True。
+
+    Args:
+        project_id: 项目ID（默认当前项目）
+        updates: 修正/新增指标，格式 {"metric_name": {"business_name": "...", "sql": "..."}}
+        delete_metrics: 要删除的指标名称列表
+    """
+    if not updates and not delete_metrics:
+        return {"error": "At least one of updates or delete_metrics is required"}
+    return _update_semantic_config(project_id, "metrics", updates or {}, delete_metrics)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Tool: validate_semantic_layer (Phase 7)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def validate_semantic_layer(
+    project_id: Optional[str] = None,
+    checks: Optional[list] = None,
+) -> dict:
+    """
+    验证当前项目的语义层。检查 SQL 可执行性、数据质量和 KPI 覆盖率。
+
+    Args:
+        project_id: 项目ID（默认当前项目）
+        checks: 要执行的检查项，可选 "sql_executability"/"data_quality"/"kpi_coverage"
+                默认全部执行
+    """
+    from mcp_server.semantic_validator import SemanticValidator
+
+    if project_id:
+        _session.switch_project(project_id)
+    try:
+        project, dm = _require_project()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    full = project.get_full_semantic_layer(PROJECTS_DIR)
+    validator = SemanticValidator(dm, full)
+
+    valid_checks = {"sql_executability", "data_quality", "kpi_coverage"}
+    if checks:
+        invalid = set(checks) - valid_checks
+        if invalid:
+            return {"error": f"Invalid checks: {sorted(invalid)}. Valid: {sorted(valid_checks)}"}
+        active_checks = set(checks)
+    else:
+        active_checks = valid_checks
+
+    results = {}
+
+    if "sql_executability" in active_checks:
+        results["sql_executability"] = validator.validate_sql_executability()
+
+    if "data_quality" in active_checks:
+        sql_result = results.get("sql_executability")
+        results["data_quality"] = validator.validate_data_quality(sql_result)
+
+    if "kpi_coverage" in active_checks:
+        results["kpi_coverage"] = validator.validate_kpi_coverage()
+
+    results["summary"] = validator._build_summary(results)
+
+    report_path = os.path.join(PROJECTS_DIR, project.id, "validation_report.json")
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2, default=str)
+
+    return results
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 
 @mcp.prompt()

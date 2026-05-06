@@ -208,6 +208,7 @@ class Project:
     project_type: str = "generic"
     data_source: dict = field(default_factory=dict)
     semantic_layer: dict = field(default_factory=dict)
+    semantic_layer_dirty: bool = False
     created_at: str = ""
     updated_at: str = ""
     meta: dict = field(default_factory=dict)
@@ -223,6 +224,7 @@ class Project:
             "project_type": self.project_type,
             "data_source": self.data_source,
             "semantic_layer": self.semantic_layer,
+            "semantic_layer_dirty": self.semantic_layer_dirty,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "meta": self.meta,
@@ -236,10 +238,94 @@ class Project:
             project_type=d.get("project_type", "generic"),
             data_source=d.get("data_source", {}),
             semantic_layer=d.get("semantic_layer", {}),
+            semantic_layer_dirty=d.get("semantic_layer_dirty", False),
             created_at=d.get("created_at", ""),
             updated_at=d.get("updated_at", ""),
             meta=d.get("meta", {}),
         )
+
+    def get_full_semantic_layer(self, projects_dir: str = None) -> dict:
+        sl = self.semantic_layer.copy()
+        config_file = sl.get("config_file")
+
+        if config_file and projects_dir:
+            config_path = os.path.join(projects_dir, self.id, config_file)
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                for key in ("columns", "metrics", "dimensions",
+                            "examples", "rules", "prompt_template"):
+                    if key in config and key not in sl:
+                        sl[key] = config[key]
+                if "event_definitions" in config and "event_definitions" not in sl:
+                    sl["event_definitions"] = config["event_definitions"]
+                elif "events" in config and "event_definitions" not in sl:
+                    sl["event_definitions"] = config["events"]
+                for key in ("page_map", "element_map", "composite_pages",
+                            "composite_elements", "alias_rules", "category_rules",
+                            "dedup_words", "action_type_map"):
+                    if key in config:
+                        sl.setdefault("semantic_config", {})[key] = config[key]
+
+        return sl
+
+
+class PipelineStep(str, Enum):
+    LOAD_DATA = "load_data"
+    CREATE_DERIVED = "create_derived"
+    GEN_SEMANTIC = "gen_semantic"
+    SAVE_SEMANTIC = "save_semantic"
+
+    @classmethod
+    def all_steps(cls) -> list[str]:
+        return [s.value for s in cls]
+
+
+@dataclass
+class PipelineState:
+    project_id: str = ""
+    current_step: str = ""
+    completed_steps: list = field(default_factory=list)
+    step_results: dict = field(default_factory=dict)
+    created_at: str = ""
+    updated_at: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "project_id": self.project_id,
+            "current_step": self.current_step,
+            "completed_steps": self.completed_steps,
+            "step_results": self.step_results,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PipelineState":
+        return cls(
+            project_id=d.get("project_id", ""),
+            current_step=d.get("current_step", ""),
+            completed_steps=d.get("completed_steps", []),
+            step_results=d.get("step_results", {}),
+            created_at=d.get("created_at", ""),
+            updated_at=d.get("updated_at", ""),
+        )
+
+    def advance(self, step: str, result: dict) -> None:
+        if step not in self.completed_steps:
+            self.completed_steps.append(step)
+        self.current_step = step
+        self.step_results[step] = result
+        self.updated_at = datetime.now().isoformat()
+
+    def next_step(self) -> Optional[str]:
+        for s in PipelineStep.all_steps():
+            if s not in self.completed_steps:
+                return s
+        return None
+
+    def is_step_completed(self, step: str) -> bool:
+        return step in self.completed_steps
 
 
 class ProjectStore:
@@ -414,6 +500,104 @@ class ProjectStore:
             return True
         return False
 
+    def _pipeline_state_path(self, project_id: str) -> str:
+        return os.path.join(self._project_dir(project_id), ".pipeline_state.json")
+
+    def save_pipeline_state(self, project_id: str, state: PipelineState) -> str:
+        path = self._pipeline_state_path(project_id)
+        project_dir = self._project_dir(project_id)
+        os.makedirs(project_dir, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state.to_dict(), f, ensure_ascii=False, indent=2)
+        return path
+
+    def load_pipeline_state(self, project_id: str) -> Optional[PipelineState]:
+        path = self._pipeline_state_path(project_id)
+        if not os.path.exists(path):
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return PipelineState.from_dict(data)
+
+    def delete_pipeline_state(self, project_id: str) -> bool:
+        path = self._pipeline_state_path(project_id)
+        if os.path.exists(path):
+            os.remove(path)
+            return True
+        return False
+
+    def _semantic_config_path(self, project_id: str) -> str:
+        return os.path.join(self._project_dir(project_id), "semantic_config.json")
+
+    def save_semantic_config(self, project_id: str, config: dict) -> str:
+        config_path = self._semantic_config_path(project_id)
+        project_dir = self._project_dir(project_id)
+        os.makedirs(project_dir, exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        return config_path
+
+    def load_semantic_config(self, project_id: str) -> Optional[dict]:
+        config_path = self._semantic_config_path(project_id)
+        if not os.path.exists(config_path):
+            return None
+        with open(config_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def migrate_semantic_layer(self, project_id: str) -> dict:
+        project = self.get_project(project_id)
+        if not project:
+            return {"error": f"Project {project_id} not found"}
+
+        sl = project.semantic_layer
+        if sl.get("config_file"):
+            return {"status": "already_migrated", "project_id": project_id}
+
+        if not sl.get("columns") and not sl.get("metrics"):
+            return {"status": "no_semantic_layer", "project_id": project_id}
+
+        config = {}
+        config_path = self._semantic_config_path(project_id)
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+
+        if sl.get("columns"):
+            config["columns"] = sl["columns"]
+        if sl.get("event_definitions"):
+            config["events"] = sl["event_definitions"]
+        if sl.get("metrics"):
+            config["metrics"] = sl["metrics"]
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
+        project.semantic_layer = {
+            "table_name": sl.get("table_name", "events"),
+            "config_file": "semantic_config.json",
+        }
+        self.save_project(project)
+
+        return {
+            "status": "migrated",
+            "project_id": project_id,
+            "config_file": "semantic_config.json",
+            "columns_count": len(config.get("columns", {})),
+            "metrics_count": len(config.get("metrics", {})),
+        }
+
+    def load_validation_report(self, project_id: str) -> Optional[dict]:
+        report_path = os.path.join(self.projects_dir, project_id, "validation_report.json")
+        if not os.path.exists(report_path):
+            return None
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def save_validation_report(self, project_id: str, report: dict) -> None:
+        report_path = os.path.join(self.projects_dir, project_id, "validation_report.json")
+        with open(report_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2, default=str)
+
 
 class CreateState(str, Enum):
     PRE_ANALYZE = "PRE_ANALYZE"
@@ -473,12 +657,22 @@ class ProjectDataManager:
     def __init__(self, project: Project, projects_dir: str = None):
         self.project = project
         projects_dir = projects_dir or PROJECTS_DIR
+        self.projects_dir = projects_dir
         self.project_dir = os.path.join(projects_dir, project.id)
         self.data_dir = os.path.join(self.project_dir, "data")
         self.duckdb_path = os.path.join(self.project_dir, f"{project.id}.duckdb")
         self.con = None
         self.df = None
         self.meta = {}
+        self._full_semantic_layer = None
+
+    def get_full_semantic_layer(self) -> dict:
+        if self._full_semantic_layer is None:
+            self._full_semantic_layer = self.project.get_full_semantic_layer(self.projects_dir)
+        return self._full_semantic_layer
+
+    def invalidate_semantic_cache(self):
+        self._full_semantic_layer = None
 
     def load(self) -> dict:
         if self.con:
@@ -495,7 +689,7 @@ class ProjectDataManager:
             self.meta = {
                 "total_rows": 0,
                 "total_columns": 0,
-                "table_name": self.project.semantic_layer.get("table_name", "events"),
+                "table_name": self.get_full_semantic_layer().get("table_name", "events"),
                 "source": "no_data",
                 "columns": [],
             }
@@ -512,7 +706,7 @@ class ProjectDataManager:
             return False
 
     def _load_meta_from_duckdb(self):
-        table_name = self.project.semantic_layer.get("table_name", "events")
+        table_name = self.get_full_semantic_layer().get("table_name", "events")
         try:
             count = self.con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
             self.meta = {
@@ -521,16 +715,50 @@ class ProjectDataManager:
                 "source": "duckdb_persistent",
             }
             cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
-            self.meta["columns"] = [c[0] for c in cols]
+            existing_cols = [c[0] for c in cols]
+            self.meta["columns"] = existing_cols
             self.meta["total_columns"] = len(cols)
         except Exception as e:
             self.meta = {"error": str(e)}
+
+    def _ensure_derived_columns_in_duckdb(self, table_name: str, existing_cols: list):
+        derived = self.get_full_semantic_layer().get("columns", {})
+        for col_name, col_info in derived.items():
+            if not col_info.get("derived"):
+                continue
+            if col_name in existing_cols:
+                continue
+
+            derived_from = col_info.get("derived_from", "")
+            logic = col_info.get("derivation_logic", "")
+
+            if derived_from not in existing_cols:
+                continue
+
+            try:
+                if logic == "date" or (not logic and "日期" in (col_info.get("business_name", "") + col_info.get("description", ""))):
+                    self.con.execute(
+                        f"ALTER TABLE {table_name} ADD COLUMN {col_name} DATE"
+                    )
+                    self.con.execute(
+                        f"UPDATE {table_name} SET {col_name} = CAST(TRY_CAST({derived_from} AS TIMESTAMP) AS DATE)"
+                    )
+                elif logic == "hour" or (not logic and "小时" in (col_info.get("business_name", "") + col_info.get("description", ""))):
+                    self.con.execute(
+                        f"ALTER TABLE {table_name} ADD COLUMN {col_name} INTEGER"
+                    )
+                    self.con.execute(
+                        f"UPDATE {table_name} SET {col_name} = HOUR(TRY_CAST({derived_from} AS TIMESTAMP))"
+                    )
+                print(f"[ProjectDM] Added derived column {col_name} to DuckDB")
+            except Exception as e:
+                print(f"[ProjectDM] Failed to add derived column {col_name}: {e}")
 
     def _load_from_source(self):
         ds = self.project.data_source
         fmt = ds.get("format", "xlsx")
         files = ds.get("files", [])
-        table_name = self.project.semantic_layer.get("table_name", "events")
+        table_name = self.get_full_semantic_layer().get("table_name", "events")
 
         if not files:
             raise FileNotFoundError(f"No data files configured for project {self.project.id}")
@@ -562,10 +790,10 @@ class ProjectDataManager:
         combined = pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]
         self.df = combined
 
-        self._apply_derived_columns(combined)
-
         self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
-        self.con.register(table_name, combined)
+        self.con.register("__tmp_load", combined)
+        self.con.execute(f"CREATE TABLE {table_name} AS SELECT * FROM __tmp_load")
+        self.con.unregister("__tmp_load")
 
         self.meta = {
             "file": ", ".join(files),
@@ -584,19 +812,77 @@ class ProjectDataManager:
         return self.meta
 
     def _apply_derived_columns(self, df: pd.DataFrame):
-        derived = self.project.semantic_layer.get("columns", {})
+        derived = self.get_full_semantic_layer().get("columns", {})
         for col_name, col_info in derived.items():
             if not col_info.get("derived"):
                 continue
             derived_from = col_info.get("derived_from", "")
             logic = col_info.get("derivation_logic", "")
 
-            if "start_time" in derived_from and "日期" in (col_info.get("business_name", "") + col_info.get("description", "")):
-                if "start_time" in df.columns:
-                    df["event_date"] = pd.to_datetime(df["start_time"], errors="coerce").dt.date
-            elif "start_time" in derived_from and "小时" in (col_info.get("business_name", "") + col_info.get("description", "")):
-                if "start_time" in df.columns:
-                    df["event_hour"] = pd.to_datetime(df["start_time"], errors="coerce").dt.hour
+            if derived_from not in df.columns:
+                continue
+
+            if logic == "date" or (not logic and "日期" in (col_info.get("business_name", "") + col_info.get("description", ""))):
+                df[col_name] = pd.to_datetime(df[derived_from], errors="coerce").dt.date
+            elif logic == "hour" or (not logic and "小时" in (col_info.get("business_name", "") + col_info.get("description", ""))):
+                df[col_name] = pd.to_datetime(df[derived_from], errors="coerce").dt.hour
+
+    def create_derived_columns(self) -> dict:
+        if not self.con:
+            raise RuntimeError("Project data not loaded. Call load() first.")
+
+        table_name = self.get_full_semantic_layer().get("table_name", "events")
+        created = {}
+
+        try:
+            cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
+        except Exception:
+            return created
+
+        existing = {c[0].lower() for c in cols}
+        time_cols = []
+        for c in cols:
+            col_name = c[0]
+            dtype = c[1].lower()
+            if "time" in dtype or "timestamp" in dtype:
+                time_cols.append(col_name)
+            elif "time" in col_name.lower() or "时间" in col_name:
+                time_cols.append(col_name)
+
+        if not time_cols:
+            return created
+
+        src_col = time_cols[0]
+
+        if "event_date" not in existing:
+            try:
+                self.con.execute(f"ALTER TABLE {table_name} ADD COLUMN event_date DATE")
+                self.con.execute(
+                    f'UPDATE {table_name} SET event_date = CAST(TRY_CAST("{src_col}" AS TIMESTAMP) AS DATE)'
+                )
+                created["event_date"] = {"derived_from": src_col, "logic": "date"}
+                print(f"[ProjectDM] Created derived column event_date from {src_col}")
+            except Exception as e:
+                print(f"[ProjectDM] Failed to create event_date: {e}")
+
+        if "event_hour" not in existing:
+            try:
+                self.con.execute(f"ALTER TABLE {table_name} ADD COLUMN event_hour INTEGER")
+                self.con.execute(
+                    f'UPDATE {table_name} SET event_hour = HOUR(TRY_CAST("{src_col}" AS TIMESTAMP))'
+                )
+                created["event_hour"] = {"derived_from": src_col, "logic": "hour"}
+                print(f"[ProjectDM] Created derived column event_hour from {src_col}")
+            except Exception as e:
+                print(f"[ProjectDM] Failed to create event_hour: {e}")
+
+        if self.df is not None and src_col in self.df.columns:
+            if "event_date" in created and "event_date" not in self.df.columns:
+                self.df["event_date"] = pd.to_datetime(self.df[src_col], errors="coerce").dt.date
+            if "event_hour" in created and "event_hour" not in self.df.columns:
+                self.df["event_hour"] = pd.to_datetime(self.df[src_col], errors="coerce").dt.hour
+
+        return created
 
     def execute(self, sql: str) -> list[dict]:
         if not self.con:
@@ -609,7 +895,7 @@ class ProjectDataManager:
     def get_schema_info(self) -> list[dict]:
         if self.df is None:
             try:
-                table_name = self.project.semantic_layer.get("table_name", "events")
+                table_name = self.get_full_semantic_layer().get("table_name", "events")
                 cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
                 total_rows = self.meta.get("total_rows", 0)
                 result = []

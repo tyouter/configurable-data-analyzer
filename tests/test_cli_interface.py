@@ -206,15 +206,15 @@ try_chart_via_cli(25, "POI详情来源", "pie",
 try_chart_via_cli(26, "AI路书来源", "pie",
     "SELECT CASE WHEN span_name LIKE '%generate%' THEN 'generate' WHEN span_name LIKE '%share%' THEN 'share_code' ELSE 'other' END AS source, COUNT(*) AS event_count FROM events WHERE span_name LIKE '%travel_guide%' GROUP BY source")
 try_chart_via_cli(27, "点击AI路书生成转化率", "table",
-    "SELECT CAST(COUNT(CASE WHEN span_name LIKE '%travel_guide%generate%click%' THEN 1 END) AS DOUBLE) / NULLIF(COUNT(CASE WHEN span_name LIKE '%travel_guide%generate%show%' THEN 1 END), 0) * 100 AS ai_guide_conversion_rate FROM events")
+    "SELECT ROUND(CAST(COUNT(CASE WHEN span_name = 'post_detail_page_ai_travel_guide_button_click' THEN 1 END) AS DOUBLE) / NULLIF(COUNT(CASE WHEN span_name = 'post_detail_page_ai_travel_guide_button_show' THEN 1 END), 0) * 100, 1) AS ai_guide_conversion_rate FROM events")
 try_chart_via_cli(28, "AI路书分享码生成率", "table",
-    "SELECT CAST(COUNT(CASE WHEN span_name LIKE '%share%generate%click%' THEN 1 END) AS DOUBLE) / NULLIF(COUNT(CASE WHEN span_name LIKE '%share%download%click%' THEN 1 END) + COUNT(CASE WHEN span_name LIKE '%travel_guide%generate%click%' THEN 1 END), 0) * 100 AS share_code_generation_rate FROM events")
+    "SELECT ROUND(CAST(COUNT(CASE WHEN span_name = 'profile_page_travel_guide_tab_share_code_trip_add_confirm_button_click' THEN 1 END) AS DOUBLE) / NULLIF(COUNT(CASE WHEN span_name = 'profile_page_travel_guide_tab_share_code_trip_add_click' THEN 1 END) + COUNT(CASE WHEN span_name = 'post_detail_page_generated_travel_guide_button_click' THEN 1 END), 0) * 100, 1) AS share_code_generation_rate FROM events")
 try_chart_via_cli(29, "AI路书生成用户数量", "table",
-    "SELECT COUNT(DISTINCT reduser_id) AS ai_guide_users FROM events WHERE span_name LIKE '%travel_guide%generate%click%'")
+    "SELECT COUNT(DISTINCT reduser_id) AS ai_guide_users FROM events WHERE span_name = 'post_detail_page_ai_travel_guide_button_click'")
 try_chart_via_cli(30, "AI路书分享码生成用户数量", "table",
-    "SELECT COUNT(DISTINCT reduser_id) AS share_code_gen_users FROM events WHERE span_name LIKE '%share%generate%click%'")
+    "SELECT COUNT(DISTINCT reduser_id) AS share_code_gen_users FROM events WHERE span_name = 'profile_page_travel_guide_tab_share_code_trip_add_confirm_button_click'")
 try_chart_via_cli(31, "AI路书分享码下载用户数量", "table",
-    "SELECT COUNT(DISTINCT reduser_id) AS share_code_download_users FROM events WHERE span_name LIKE '%share%download%click%'")
+    "SELECT COUNT(DISTINCT reduser_id) AS share_code_download_users FROM events WHERE span_name = 'profile_page_travel_guide_tab_share_code_trip_add_click'")
 
 # ─── Ranking (32-33) ───
 try_chart_via_cli(32, "热门POI TOP10", "bar",

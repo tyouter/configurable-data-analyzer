@@ -36,19 +36,18 @@ env/
 data/
 config/
 
-# Runtime project data (DuckDB, xlsx, etc.)
-# Keep project config docs, ignore data and databases
-projects/**/data/
-projects/**/*.duckdb
-projects/**/*.xlsx
-projects/**/*.xls
-projects/**/*.csv
-projects/**/*.json.bak
-projects/**/.current_project
+# Runtime project data
+projects/*.duckdb
+projects/*/*.duckdb
 
-# Environment
+# Environment & secrets
 .env
-hermes-config/.env
+.env.*
+!.env.example
+hermes-config/
+.mcp.json
+!.mcp.json.example
+claude_desktop_config.json
 
 # OS
 .DS_Store
@@ -57,8 +56,17 @@ Thumbs.db
 # Claude Code
 .claude/
 /report
-/report/fulldata
-/report
 
-#GSD
+# GSD planning (internal)
 .planning/
+
+# Temp/debug scripts
+tests/diag*.py
+tests/fix_*.py
+tests/debug_*.py
+tests/check_*.py
+tests/batch_*.py
+tests/summarize_*.py
+tests/read_*.py
+tests/verify_*.py
+tests/e2e_*.py
