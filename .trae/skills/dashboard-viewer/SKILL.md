@@ -23,47 +23,38 @@ triggers:
 - 用户想**在浏览器中查看**已创建的 Dashboard
 - 用户想**导出/分享** Dashboard 为独立 HTML 文件
 - 用户想**切换主题**（亮色/暗色）
+- 用户想**从 spec JSON 一键生成**完整 Dashboard
 
 ## 核心工具
 
-### Python 库层面
+### MCP 工具
 
-```python
-from mcp_server.dashboard_html import export_dashboard_html, render_dashboard_html
-
-# 导出为 HTML 文件
-html_path = export_dashboard_html(
-    projects_dir="projects",
-    project_id="<project_id>",
-    dashboard_name="Rednote Dashboard",
-    theme="ggplot2_minimal",  # 或 "ggplot2_dark"
+```
+# 导出 Dashboard 为 HTML
+export_dashboard(
+  dashboard_name="KPI看板",
+  theme="ggplot2_minimal"
 )
 
-# 或直接获取 HTML 字符串
-from mcp_server.dashboard_store import load_dashboard_by_name
-from mcp_server.project_model import ProjectStore
+# 从 spec JSON 一键生成完整 Dashboard
+generate_dashboard_from_spec(
+  spec_path="dashboard_spec.json",
+  dashboard_name="KPI看板",
+  theme="ggplot2_minimal"
+)
 
-dashboard = load_dashboard_by_name("projects", "<project_id>", "Rednote Dashboard")
-html = render_dashboard_html(dashboard, project_name="小红书分析", theme="ggplot2_minimal")
+# 列出已有 Dashboard
+list_dashboards()
 ```
 
-### CLI 层面
+### CLI
 
 ```bash
 # 导出 Dashboard 为 HTML
-python mcp_server/cli.py dashboard-export -d "Rednote Dashboard" --theme ggplot2_minimal
+python mcp_server/cli.py dashboard-export -d "KPI看板" --theme ggplot2_minimal
 
 # 导出后自动打开浏览器
-python mcp_server/cli.py dashboard-export -d "Rednote Dashboard" --open
-```
-
-### MCP 工具层面
-
-```
-调用 export_dashboard 工具：
-  project_id: <project_id>
-  dashboard_name: "Rednote Dashboard"
-  theme: "ggplot2_minimal"
+python mcp_server/cli.py dashboard-export -d "KPI看板" --open
 ```
 
 ## 可用主题
@@ -73,19 +64,33 @@ python mcp_server/cli.py dashboard-export -d "Rednote Dashboard" --open
 | `ggplot2_minimal` | 亮色极简 | ggplot2 theme_minimal 风格，Tableau 经典配色 |
 | `ggplot2_dark` | 暗色极简 | ggplot2 暗色主题，适合大屏展示 |
 
+## 支持的图表类型（8种）
+
+| 类型 | 说明 |
+|------|------|
+| `line` | 折线图 |
+| `bar` | 柱状图 |
+| `pie` | 饼图 |
+| `funnel` | 漏斗图（自动计算转化率） |
+| `scatter` | 散点图 |
+| `bar_line` | 柱线混合图 |
+| `boxplot` | 箱线图 |
+| `ranking_bar` | 排行榜横向柱状图 |
+
 ## 输出格式
 
 生成**单个自包含 HTML 文件**，特性：
 - 内嵌 ECharts CDN（需联网加载）
 - 内嵌主题配置（无需额外文件）
 - 响应式布局（桌面/平板自适应）
-- KPI 卡片 + 图表网格
+- KPI 卡片 + 图表网格 + 业务域分组
 - 图表交互（hover tooltip、缩放、图例筛选）
 - 主题切换下拉框
+- 双击 HTML 文件即可在浏览器中打开
 
 ## 设计原则
 
 1. **ggplot2 审美**：极简网格、学术配色、出版级排版
 2. **数据驱动**：直接消费 dashboard JSON 中的 ECharts option
 3. **零依赖**：双击 HTML 文件即可打开，无需服务器
-4. **Tabler UI 风格**：卡片式布局、圆角、微妙阴影
+4. **Spec 驱动**：通过 `generate_dashboard_from_spec` 从 JSON 规格自动生成
