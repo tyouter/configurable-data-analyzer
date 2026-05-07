@@ -2,7 +2,6 @@
 import os
 import re
 import json
-import pandas as pd
 from typing import Optional
 
 from mcp_server.project_model import FileClassification
@@ -65,36 +64,50 @@ def _detect_encoding(filepath: str) -> str:
 def _read_data_sample(filepath: str, n_rows: int = 5) -> Optional[dict]:
     ext = os.path.splitext(filepath)[1].lower()
     try:
+        import duckdb
+        con = duckdb.connect(":memory:")
+
         if ext in (".xlsx", ".xls"):
-            df = pd.read_excel(filepath, nrows=n_rows)
+            try:
+                con.execute("LOAD excel")
+            except Exception:
+                con.execute("INSTALL excel")
+                con.execute("LOAD excel")
+            con.execute(f"CREATE TABLE _sample AS SELECT * FROM read_xlsx('{filepath}', all_varchar=true) LIMIT {n_rows}")
+            total_con = duckdb.connect(":memory:")
+            try:
+                total_con.execute("LOAD excel")
+            except Exception:
+                total_con.execute("INSTALL excel")
+                total_con.execute("LOAD excel")
+            total_rows = total_con.execute(f"SELECT COUNT(*) FROM read_xlsx('{filepath}', all_varchar=true)").fetchone()[0]
+            total_con.close()
         elif ext == ".parquet":
-            df = pd.read_parquet(filepath)
-            if len(df) > n_rows:
-                df = df.head(n_rows)
+            con.execute(f"CREATE TABLE _sample AS SELECT * FROM read_parquet('{filepath}') LIMIT {n_rows}")
+            total_rows = con.execute(f"SELECT COUNT(*) FROM read_parquet('{filepath}')").fetchone()[0]
         elif ext in (".csv", ".tsv"):
             enc = _detect_encoding(filepath)
-            sep = "\t" if ext == ".tsv" else ","
-            df = pd.read_csv(filepath, encoding=enc, sep=sep, nrows=n_rows)
+            sep = "\\t" if ext == ".tsv" else ","
+            con.execute(f"CREATE TABLE _sample AS SELECT * FROM read_csv('{filepath}', delim='{sep}', encoding='{enc}') LIMIT {n_rows}")
+            total_rows = con.execute(f"SELECT COUNT(*) FROM read_csv('{filepath}', delim='{sep}', encoding='{enc}')").fetchone()[0]
         else:
+            con.close()
             return None
 
-        sample_text = df.head(n_rows).to_string(index=False, max_colwidth=30)
+        cols = con.execute("DESCRIBE _sample").fetchall()
+        col_names = [c[0] for c in cols]
+        rows = con.execute("SELECT * FROM _sample").fetchall()
 
-        total_row_path = filepath
-        try:
-            if ext in (".xlsx", ".xls"):
-                total_df = pd.read_excel(filepath)
-            elif ext == ".parquet":
-                total_df = pd.read_parquet(filepath)
-            else:
-                total_df = pd.read_csv(filepath, encoding=_detect_encoding(filepath), sep=sep if ext == ".tsv" else ",")
-            total_rows = len(total_df)
-            del total_df
-        except Exception:
-            total_rows = len(df)
+        sample_lines = []
+        for row in rows:
+            vals = [str(v)[:30] for v in row]
+            sample_lines.append("  ".join(vals))
+        sample_text = "\n".join(sample_lines)
+
+        con.close()
 
         return {
-            "columns": list(df.columns),
+            "columns": col_names,
             "sample_text": sample_text,
             "row_count": total_rows,
             "format": ext.lstrip("."),
@@ -233,9 +246,15 @@ class FileClassifier:
         if columns and row_count >= 20:
             has_numeric = False
             try:
-                df_sample = pd.read_csv(filepath, nrows=5, encoding=encoding) if ext == ".csv" else None
-                if df_sample is not None:
-                    has_numeric = len(df_sample.select_dtypes(include="number").columns) > 0
+                import duckdb
+                sample_con = duckdb.connect(":memory:")
+                sample_con.execute(f"CREATE TABLE _chk AS SELECT * FROM read_csv('{filepath}', encoding='{encoding}') LIMIT 5")
+                chk_cols = sample_con.execute("DESCRIBE _chk").fetchall()
+                sample_con.close()
+                has_numeric = any(
+                    any(t in c[1].upper() for t in ("INTEGER", "BIGINT", "DOUBLE", "FLOAT", "DECIMAL", "NUMERIC"))
+                    for c in chk_cols
+                )
             except Exception:
                 pass
 

@@ -226,29 +226,54 @@ def _analyze_schema(dm: ProjectDataManager) -> dict:
         line = f"- {col_name} ({col['dtype']}, nulls={col['null_count']}): sample={sample_str}"
         columns_detail.append(line)
 
-        if dm.df is not None and col_name in dm.df.columns:
-            if col['dtype'] == 'object' or col['dtype'] == 'string':
-                unique_vals = dm.df[col_name].dropna().unique()
-                n_unique = len(unique_vals)
-                if 2 <= n_unique <= 200:
-                    sorted_vals = sorted([str(v) for v in unique_vals])
-                    low_card_uniques[col_name] = sorted_vals
+        if dm.con is not None:
+            dtype_upper = col['dtype'].upper()
+            is_varchar = "VARCHAR" in dtype_upper or col['dtype'] == 'object' or col['dtype'] == 'string'
+            if is_varchar:
+                try:
+                    table_name = dm.get_full_semantic_layer().get("table_name", "events")
+                    n_unique = dm.con.execute(
+                        f'SELECT COUNT(DISTINCT "{col_name}") FROM {table_name} WHERE "{col_name}" IS NOT NULL'
+                    ).fetchone()[0]
+                    if 2 <= n_unique <= 200:
+                        rows = dm.con.execute(
+                            f'SELECT DISTINCT "{col_name}" FROM {table_name} WHERE "{col_name}" IS NOT NULL ORDER BY "{col_name}" LIMIT 200'
+                        ).fetchall()
+                        sorted_vals = sorted([str(r[0]) for r in rows])
+                        low_card_uniques[col_name] = sorted_vals
+                except Exception:
+                    pass
 
     sample_data = ""
-    if dm.df is not None:
-        sample_rows = dm.df.head(2).to_dict(orient="records")
-        sample_data = json.dumps(sample_rows, ensure_ascii=False, default=str, indent=2)
-        if len(sample_data) > 3000:
-            sample_data = sample_data[:3000] + "\n... (truncated)"
+    if dm.con is not None:
+        try:
+            table_name = dm.get_full_semantic_layer().get("table_name", "events")
+            sample_rows = dm.con.execute(f"SELECT * FROM {table_name} LIMIT 2").fetchall()
+            col_names = [desc[0] for desc in dm.con.description]
+            records = [dict(zip(col_names, row)) for row in sample_rows]
+            sample_data = json.dumps(records, ensure_ascii=False, default=str, indent=2)
+            if len(sample_data) > 3000:
+                sample_data = sample_data[:3000] + "\n... (truncated)"
+        except Exception:
+            pass
 
     statistics = ""
-    if dm.df is not None:
-        numeric_cols = dm.df.select_dtypes(include=["number"]).columns.tolist()
-        if numeric_cols:
-            stats = dm.df[numeric_cols].describe().to_string()
-            if len(stats) > 2000:
-                stats = stats[:2000] + "\n... (truncated)"
-            statistics = stats
+    if dm.con is not None:
+        try:
+            table_name = dm.get_full_semantic_layer().get("table_name", "events")
+            numeric_cols = dm.meta.get("numeric_columns", [])
+            if numeric_cols:
+                stat_parts = []
+                for nc in numeric_cols:
+                    row = dm.con.execute(
+                        f'SELECT COUNT("{nc}"), AVG(CAST("{nc}" AS DOUBLE)), MIN(CAST("{nc}" AS DOUBLE)), MAX(CAST("{nc}" AS DOUBLE)), STDDEV(CAST("{nc}" AS DOUBLE)) FROM {table_name} WHERE "{nc}" IS NOT NULL'
+                    ).fetchone()
+                    stat_parts.append(f"{nc}: count={row[0]}, mean={row[1]:.4f}, min={row[2]}, max={row[3]}, std={row[4]:.4f}" if row[0] else f"{nc}: no data")
+                statistics = "\n".join(stat_parts)
+                if len(statistics) > 2000:
+                    statistics = statistics[:2000] + "\n... (truncated)"
+        except Exception:
+            pass
 
     low_card_detail = ""
     if low_card_uniques:
@@ -795,9 +820,7 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
 
     if project_type == "behavior_analysis" and event_name_col:
         event_strs = []
-        if dm.df is not None and event_name_col in dm.df.columns:
-            event_strs = [str(e) for e in dm.df[event_name_col].dropna().unique()]
-        elif dm.con is not None:
+        if dm.con is not None:
             try:
                 table_name = dm.get_full_semantic_layer().get("table_name", "events")
                 rows = dm.con.execute(
@@ -953,9 +976,7 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
 
     if event_name_col:
         unique_event_list = []
-        if dm.df is not None and event_name_col in dm.df.columns:
-            unique_event_list = dm.df[event_name_col].dropna().unique()[:50]
-        elif dm.con is not None:
+        if dm.con is not None:
             try:
                 table_name = dm.get_full_semantic_layer().get("table_name", "events")
                 rows = dm.con.execute(
@@ -1155,26 +1176,180 @@ def generate_semantic_layer(
     use_llm: bool = True,
     reference_context: str = "",
 ) -> dict:
-    """
-    Generate semantic layer for a project.
-    Requires LLM (DEEPSEEK_API_KEY). Raises RuntimeError if unavailable.
-    """
-    if not llm_client.is_available():
-        raise RuntimeError(
-            "LLM is not available (API key not set). "
-            "Semantic layer generation requires LLM."
-        )
-    return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
+    if use_llm and llm_client.is_available():
+        try:
+            return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
+        except Exception as e:
+            print(f"[SemanticGen] LLM generation failed: {e}, falling back to rules")
+
+    return _generate_semantic_layer_rules(dm, project_type)
+
+
+def _generate_semantic_layer_rules(dm: ProjectDataManager, project_type: str) -> dict:
+    if dm.con is None:
+        raise RuntimeError("Project data not loaded. Call load() first.")
+
+    table_name = dm.get_full_semantic_layer().get("table_name", "events")
+    cols = dm.con.execute(f"DESCRIBE {table_name}").fetchall()
+    total_rows = dm.con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+
+    columns = {}
+    metrics = {}
+    event_definitions = {}
+    examples = []
+
+    for c in cols:
+        col_name = c[0]
+        dtype = c[1].upper()
+        col_lower = col_name.lower()
+
+        is_numeric = any(t in dtype for t in ("INTEGER", "BIGINT", "DOUBLE", "FLOAT", "DECIMAL", "NUMERIC"))
+        is_date = any(t in dtype for t in ("TIMESTAMP", "DATE", "TIME"))
+        is_id = "id" in col_lower or col_lower.endswith("_id") or col_lower == "id"
+
+        if is_id:
+            semantic_type = "dimension_id"
+            role = "identifier"
+        elif is_date or any(kw in col_lower for kw in ["time", "date", "timestamp"]):
+            semantic_type = "dimension_time"
+            role = "time_dimension"
+        elif any(kw in col_lower for kw in ["event", "span", "action", "name"]):
+            semantic_type = "dimension_event"
+            role = "event_name"
+        elif any(kw in col_lower for kw in ["user", "uid", "account"]):
+            semantic_type = "dimension_user"
+            role = "user_identifier"
+        elif any(kw in col_lower for kw in ["version", "platform", "os", "env", "service", "language", "sdk"]):
+            semantic_type = "dimension_attribute"
+            role = "attribute"
+        elif is_numeric:
+            semantic_type = "measure"
+            role = "measure"
+        else:
+            semantic_type = "dimension"
+            role = "dimension"
+
+        try:
+            null_count = dm.con.execute(f'SELECT COUNT(*) FROM {table_name} WHERE "{col_name}" IS NULL').fetchone()[0]
+            unique_count = dm.con.execute(f'SELECT COUNT(DISTINCT "{col_name}") FROM {table_name}').fetchone()[0]
+        except Exception:
+            null_count = 0
+            unique_count = 0
+
+        try:
+            sample = dm.con.execute(
+                f'SELECT DISTINCT "{col_name}" FROM {table_name} WHERE "{col_name}" IS NOT NULL LIMIT 5'
+            ).fetchall()
+            sample_values = [str(v[0]) for v in sample]
+        except Exception:
+            sample_values = []
+
+        columns[col_name] = {
+            "column_name": col_name,
+            "dtype": dtype,
+            "semantic_type": semantic_type,
+            "role": role,
+            "business_name": col_name,
+            "description": f"Auto-detected {role}",
+            "null_rate": round(null_count / max(total_rows, 1), 4),
+            "unique_count": unique_count,
+            "sample_values": sample_values,
+        }
+
+    time_cols = [cn for cn, ci in columns.items() if ci["semantic_type"] == "dimension_time"]
+    event_cols = [cn for cn, ci in columns.items() if ci["semantic_type"] == "dimension_event"]
+    user_cols = [cn for cn, ci in columns.items() if ci["semantic_type"] == "dimension_user"]
+    numeric_cols = [cn for cn, ci in columns.items() if ci["semantic_type"] == "measure"]
+
+    if event_cols and user_cols and time_cols:
+        event_col = event_cols[0]
+        user_col = user_cols[0]
+        time_col = time_cols[0]
+
+        try:
+            top_events = dm.con.execute(
+                f'SELECT "{event_col}", COUNT(*) as cnt FROM {table_name} GROUP BY "{event_col}" ORDER BY cnt DESC LIMIT 10'
+            ).fetchall()
+        except Exception:
+            top_events = []
+
+        for ev in top_events:
+            ev_name = str(ev[0])
+            ev_count = ev[1]
+            event_definitions[ev_name] = {
+                "event_name": ev_name,
+                "description": f"Event: {ev_name} (count: {ev_count:,})",
+                "sql_pattern": f'SELECT "{user_col}", "{time_col}" FROM {table_name} WHERE "{event_col}" = \'{ev_name}\'',
+            }
+
+        metrics["total_events"] = {
+            "name": "total_events",
+            "description": "Total event count",
+            "sql": "COUNT(*)",
+            "type": "count",
+        }
+
+        if user_cols:
+            metrics["dau"] = {
+                "name": "dau",
+                "description": "Daily Active Users",
+                "sql": f'COUNT(DISTINCT "{user_col}")',
+                "type": "count_distinct",
+            }
+
+        if time_cols and user_cols:
+            metrics["events_per_user"] = {
+                "name": "events_per_user",
+                "description": "Average events per user",
+                "sql": f'CAST(COUNT(*) AS DOUBLE) / COUNT(DISTINCT "{user_col}")',
+                "type": "ratio",
+            }
+
+    for nc in numeric_cols[:5]:
+        col_info = columns[nc]
+        metrics[f"avg_{nc}"] = {
+            "name": f"avg_{nc}",
+            "description": f"Average of {col_info.get('business_name', nc)}",
+            "sql": f'AVG("{nc}")',
+            "type": "average",
+        }
+
+    if time_cols:
+        examples.append({
+            "question": "Show daily event trend",
+            "sql": f'SELECT CAST("{time_cols[0]}" AS DATE) as day, COUNT(*) as cnt FROM {table_name} GROUP BY day ORDER BY day',
+            "visualization_goal": "Show daily event trend over time",
+        })
+    if event_cols and time_cols:
+        examples.append({
+            "question": "Top events by count",
+            "sql": f'SELECT "{event_cols[0]}", COUNT(*) as cnt FROM {table_name} GROUP BY "{event_cols[0]}" ORDER BY cnt DESC LIMIT 10',
+            "visualization_goal": "Compare event frequencies",
+        })
+
+    return {
+        "table_name": table_name,
+        "config_file": "semantic_config.json",
+        "project_type": project_type,
+        "columns": columns,
+        "metrics": metrics,
+        "event_definitions": event_definitions,
+        "examples": examples,
+        "generated_by": "rules_fallback",
+    }
 
 
 def detect_project_type(dm: ProjectDataManager) -> str:
-    """
-    Auto-detect project type based on data schema.
-    """
-    if dm.df is None:
+    if dm.con is None:
         return "generic"
 
-    cols_lower = {c.lower(): c for c in dm.df.columns}
+    try:
+        table_name = dm.get_full_semantic_layer().get("table_name", "events")
+        cols = dm.con.execute(f"DESCRIBE {table_name}").fetchall()
+    except Exception:
+        return "generic"
+
+    cols_lower = {c[0].lower(): c[0] for c in cols}
     col_names = set(cols_lower.keys())
 
     has_event_col = any(kw in " ".join(col_names) for kw in ["event", "span", "action"])
@@ -1184,7 +1359,8 @@ def detect_project_type(dm: ProjectDataManager) -> str:
     if has_event_col and has_user_col and has_time_col:
         return "behavior_analysis"
 
-    numeric_ratio = len(dm.df.select_dtypes(include=["number"]).columns) / max(len(dm.df.columns), 1)
+    numeric_cols = dm.meta.get("numeric_columns", [])
+    numeric_ratio = len(numeric_cols) / max(len(cols), 1)
     if has_time_col and numeric_ratio > 0.5:
         return "time_series"
 

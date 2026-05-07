@@ -1,11 +1,21 @@
 # -*- coding: utf-8 -*-
 import os
-import pandas as pd
-import numpy as np
+import duckdb
 from typing import Optional
 
 from mcp_server.project_model import FileClassification, FileSchemaInfo
 from mcp_server.file_classifier import _detect_encoding
+
+
+_DUCKDB_EXCEL_LOADED = False
+
+
+def _ensure_duckdb_excel(con: duckdb.DuckDBPyConnection):
+    global _DUCKDB_EXCEL_LOADED
+    if not _DUCKDB_EXCEL_LOADED:
+        con.execute("INSTALL excel")
+        con.execute("LOAD excel")
+        _DUCKDB_EXCEL_LOADED = True
 
 
 class DataAuditor:
@@ -64,35 +74,95 @@ class DataAuditor:
 
     def _extract_full_schema(self, filepath: str, fmt: str) -> dict:
         ext = os.path.splitext(filepath)[1].lower()
+        con = duckdb.connect(":memory:")
 
-        if ext in (".xlsx", ".xls"):
-            df = pd.read_excel(filepath)
-        elif ext == ".parquet":
-            df = pd.read_parquet(filepath)
-        elif ext in (".csv", ".tsv"):
-            enc = _detect_encoding(filepath)
-            sep = "\t" if ext == ".tsv" else ","
-            df = pd.read_csv(filepath, encoding=enc, sep=sep)
-        else:
-            enc = _detect_encoding(filepath)
-            df = pd.read_csv(filepath, encoding=enc)
+        try:
+            if ext in (".xlsx", ".xls"):
+                _ensure_duckdb_excel(con)
+                con.execute(
+                    f"CREATE TABLE _audit AS SELECT * FROM read_xlsx('{filepath}', all_varchar=true)"
+                )
+            elif ext == ".parquet":
+                con.execute(
+                    f"CREATE TABLE _audit AS SELECT * FROM read_parquet('{filepath}')"
+                )
+            elif ext in (".csv", ".tsv"):
+                enc = _detect_encoding(filepath)
+                sep = "\\t" if ext == ".tsv" else ","
+                con.execute(
+                    f"CREATE TABLE _audit AS SELECT * FROM read_csv('{filepath}', delim='{sep}', encoding='{enc}')"
+                )
+            else:
+                enc = _detect_encoding(filepath)
+                con.execute(
+                    f"CREATE TABLE _audit AS SELECT * FROM read_csv('{filepath}', encoding='{enc}')"
+                )
+        except Exception:
+            con.close()
+            raise
 
-        total_rows = len(df)
+        total_rows = con.execute("SELECT COUNT(*) FROM _audit").fetchone()[0]
+        describe_rows = con.execute("DESCRIBE _audit").fetchall()
+
         columns = []
+        for desc in describe_rows:
+            col_name = desc[0]
+            duckdb_type = desc[1].upper()
 
-        for col_name in df.columns:
-            series = df[col_name]
-            null_count = int(series.isnull().sum())
+            null_count = con.execute(
+                f'SELECT COUNT(*) FROM _audit WHERE "{col_name}" IS NULL'
+            ).fetchone()[0]
+            unique_count = con.execute(
+                f'SELECT COUNT(DISTINCT "{col_name}") FROM _audit'
+            ).fetchone()[0]
+
             null_rate = null_count / max(total_rows, 1)
-            unique_count = series.nunique()
             unique_rate = unique_count / max(total_rows, 1)
 
-            sample_values = series.dropna().head(5).tolist()
-            sample_str = [str(v) for v in sample_values]
+            sample_rows = con.execute(
+                f'SELECT DISTINCT "{col_name}" FROM _audit WHERE "{col_name}" IS NOT NULL LIMIT 5'
+            ).fetchall()
+            sample_str = [str(v[0]) for v in sample_rows]
 
-            dtype_str = str(series.dtype)
-            is_numeric = pd.api.types.is_numeric_dtype(series)
-            is_date = pd.api.types.is_datetime64_any_dtype(series)
+            is_numeric = any(
+                t in duckdb_type
+                for t in ("INTEGER", "BIGINT", "DOUBLE", "FLOAT", "DECIMAL", "NUMERIC", "SMALLINT", "TINYINT", "HUGEINT")
+            )
+            is_date = any(
+                t in duckdb_type
+                for t in ("TIMESTAMP", "DATE", "TIME", "INTERVAL")
+            )
+
+            if duckdb_type == "VARCHAR" and not is_numeric and not is_date:
+                col_lower = col_name.lower()
+                is_id_col = (
+                    "id" in col_lower
+                    or col_lower.endswith("_id")
+                    or col_lower == "id"
+                    or unique_rate > 0.8
+                )
+
+                if not is_id_col:
+                    try:
+                        numeric_check = con.execute(
+                            f'SELECT COUNT(*) FROM _audit WHERE "{col_name}" IS NOT NULL AND TRY_CAST("{col_name}" AS DOUBLE) IS NOT NULL'
+                        ).fetchone()[0]
+                        non_null = total_rows - null_count
+                        if non_null > 0 and numeric_check / non_null > 0.9:
+                            is_numeric = True
+                    except Exception:
+                        pass
+
+                if not is_numeric and not is_id_col:
+                    try:
+                        date_check = con.execute(
+                            f'SELECT COUNT(*) FROM _audit WHERE "{col_name}" IS NOT NULL AND TRY_CAST("{col_name}" AS TIMESTAMP) IS NOT NULL'
+                        ).fetchone()[0]
+                        non_null = total_rows - null_count
+                        if non_null > 0 and date_check / non_null > 0.9:
+                            is_date = True
+                    except Exception:
+                        pass
 
             is_category = False
             if not is_numeric and not is_date:
@@ -101,7 +171,7 @@ class DataAuditor:
 
             col_info = {
                 "name": col_name,
-                "dtype": dtype_str,
+                "dtype": duckdb_type,
                 "null_count": null_count,
                 "null_rate": round(null_rate, 4),
                 "unique_count": unique_count,
@@ -113,6 +183,7 @@ class DataAuditor:
             }
             columns.append(col_info)
 
+        con.close()
         return {
             "columns": columns,
             "total_rows": total_rows,

@@ -19,8 +19,6 @@ import shutil
 import uuid
 import yaml
 import duckdb
-import pandas as pd
-import numpy as np
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -760,9 +758,53 @@ class ProjectDataManager:
             existing_cols = [c[0] for c in cols]
             self.meta["columns"] = existing_cols
             self.meta["total_columns"] = len(cols)
+
+            numeric_cols, date_cols = self._infer_column_types(table_name, cols, count)
+            self.meta["numeric_columns"] = numeric_cols
+            self.meta["date_columns"] = date_cols
+
             self._ensure_derived_columns_in_duckdb(table_name, existing_cols)
         except Exception as e:
             self.meta = {"error": str(e)}
+
+    def _infer_column_types(self, table_name: str, cols: list, total_rows: int) -> tuple[list[str], list[str]]:
+        numeric_cols = []
+        date_cols = []
+        for c in cols:
+            col_name = c[0]
+            dtype = c[1].upper()
+            if any(t in dtype for t in ("INTEGER", "BIGINT", "DOUBLE", "FLOAT", "DECIMAL", "NUMERIC", "SMALLINT", "TINYINT", "HUGEINT")):
+                numeric_cols.append(col_name)
+            elif any(t in dtype for t in ("TIMESTAMP", "DATE", "TIME")):
+                date_cols.append(col_name)
+            elif dtype == "VARCHAR":
+                col_lower = col_name.lower()
+                is_id_col = ("id" in col_lower or col_lower.endswith("_id") or col_lower == "id")
+                if not is_id_col:
+                    try:
+                        unique_cnt = self.con.execute(
+                            f'SELECT COUNT(DISTINCT "{col_name}") FROM {table_name}'
+                        ).fetchone()[0]
+                        unique_rate = unique_cnt / max(total_rows, 1)
+                        if unique_rate > 0.8:
+                            continue
+                        numeric_check = self.con.execute(
+                            f'SELECT COUNT(*) FROM {table_name} WHERE "{col_name}" IS NOT NULL AND TRY_CAST("{col_name}" AS DOUBLE) IS NOT NULL'
+                        ).fetchone()[0]
+                        non_null = total_rows - self.con.execute(
+                            f'SELECT COUNT(*) FROM {table_name} WHERE "{col_name}" IS NULL'
+                        ).fetchone()[0]
+                        if non_null > 0 and numeric_check / non_null > 0.9:
+                            numeric_cols.append(col_name)
+                            continue
+                        date_check = self.con.execute(
+                            f'SELECT COUNT(*) FROM {table_name} WHERE "{col_name}" IS NOT NULL AND TRY_CAST("{col_name}" AS TIMESTAMP) IS NOT NULL'
+                        ).fetchone()[0]
+                        if non_null > 0 and date_check / non_null > 0.9:
+                            date_cols.append(col_name)
+                    except Exception:
+                        pass
+        return numeric_cols, date_cols
 
     def _ensure_derived_columns_in_duckdb(self, table_name: str, existing_cols: list):
         derived = self.get_full_semantic_layer().get("columns", {})
@@ -797,6 +839,17 @@ class ProjectDataManager:
             except Exception as e:
                 print(f"[ProjectDM] Failed to add derived column {col_name}: {e}")
 
+    def _ensure_duckdb_excel(self):
+        try:
+            self.con.execute("SELECT 1 FROM duckdb_extensions() WHERE extension_name='excel' AND loaded=true").fetchone()
+        except Exception:
+            pass
+        try:
+            self.con.execute("LOAD excel")
+        except Exception:
+            self.con.execute("INSTALL excel")
+            self.con.execute("LOAD excel")
+
     def _load_from_source(self):
         ds = self.project.data_source
         fmt = ds.get("format", "xlsx")
@@ -806,69 +859,67 @@ class ProjectDataManager:
         if not files:
             raise FileNotFoundError(f"No data files configured for project {self.project.id}")
 
-        dfs = []
+        self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
+
+        first_file = True
+        loaded_files = []
         for fname in files:
             fpath = os.path.join(self.data_dir, fname)
             if not os.path.exists(fpath):
                 print(f"[ProjectDM] File not found: {fpath}, skipping")
                 continue
 
-            if fmt == "xlsx":
-                sheet = ds.get("sheet_name")
-                df = pd.read_excel(fpath, sheet_name=sheet) if sheet else pd.read_excel(fpath)
-            elif fmt == "csv":
-                encoding = ds.get("encoding", "utf-8")
-                df = pd.read_csv(fpath, encoding=encoding)
-            elif fmt == "parquet":
-                df = pd.read_parquet(fpath)
+            ext = os.path.splitext(fname)[1].lower()
+            try:
+                if ext in (".xlsx", ".xls"):
+                    self._ensure_duckdb_excel()
+                    read_sql = f"SELECT * FROM read_xlsx('{fpath}', all_varchar=true)"
+                elif ext == ".parquet":
+                    read_sql = f"SELECT * FROM read_parquet('{fpath}')"
+                elif ext in (".csv", ".tsv"):
+                    enc = ds.get("encoding", "utf-8")
+                    sep = "\\t" if ext == ".tsv" else ","
+                    read_sql = f"SELECT * FROM read_csv('{fpath}', delim='{sep}', encoding='{enc}')"
+                else:
+                    enc = ds.get("encoding", "utf-8")
+                    read_sql = f"SELECT * FROM read_csv('{fpath}', encoding='{enc}')"
+            except Exception as e:
+                print(f"[ProjectDM] Failed to prepare read for {fpath}: {e}")
+                continue
+
+            if first_file:
+                self.con.execute(f"CREATE TABLE {table_name} AS {read_sql}")
+                first_file = False
             else:
-                raise ValueError(f"Unsupported format: {fmt}")
+                self.con.execute(f"INSERT INTO {table_name} {read_sql}")
 
-            dfs.append(df)
-            print(f"[ProjectDM] Loaded {fpath}: {df.shape[0]:,} rows x {df.shape[1]} cols")
+            row_count = self.con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+            loaded_files.append(fname)
+            print(f"[ProjectDM] Loaded {fpath} (total rows now: {row_count:,})")
 
-        if not dfs:
+        if not loaded_files:
             raise FileNotFoundError(f"No loadable data files found for project {self.project.id}")
 
-        combined = pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]
-        self.df = combined
+        cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
+        col_names = [c[0] for c in cols]
+        total_rows = self.con.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
 
-        self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
-        self.con.register("__tmp_load", combined)
-        self.con.execute(f"CREATE TABLE {table_name} AS SELECT * FROM __tmp_load")
-        self.con.unregister("__tmp_load")
+        numeric_cols, date_cols = self._infer_column_types(table_name, cols, total_rows)
+
+        self.df = None
 
         self.meta = {
-            "file": ", ".join(files),
-            "total_rows": len(combined),
-            "total_columns": len(combined.columns),
+            "file": ", ".join(loaded_files),
+            "total_rows": total_rows,
+            "total_columns": len(col_names),
             "table_name": table_name,
             "source": "data_files",
-            "columns": list(combined.columns),
+            "columns": col_names,
+            "numeric_columns": numeric_cols,
+            "date_columns": date_cols,
         }
 
-        numeric_cols = combined.select_dtypes(include=[np.number]).columns.tolist()
-        date_cols = combined.select_dtypes(include=["datetime64"]).columns.tolist()
-        self.meta["numeric_columns"] = numeric_cols
-        self.meta["date_columns"] = date_cols
-
         return self.meta
-
-    def _apply_derived_columns(self, df: pd.DataFrame):
-        derived = self.get_full_semantic_layer().get("columns", {})
-        for col_name, col_info in derived.items():
-            if not col_info.get("derived"):
-                continue
-            derived_from = col_info.get("derived_from", "")
-            logic = col_info.get("derivation_logic", "")
-
-            if derived_from not in df.columns:
-                continue
-
-            if logic == "date" or (not logic and "日期" in (col_info.get("business_name", "") + col_info.get("description", ""))):
-                df[col_name] = pd.to_datetime(df[derived_from], errors="coerce").dt.date
-            elif logic == "hour" or (not logic and "小时" in (col_info.get("business_name", "") + col_info.get("description", ""))):
-                df[col_name] = pd.to_datetime(df[derived_from], errors="coerce").dt.hour
 
     def create_derived_columns(self) -> dict:
         if not self.con:
@@ -919,12 +970,6 @@ class ProjectDataManager:
             except Exception as e:
                 print(f"[ProjectDM] Failed to create event_hour: {e}")
 
-        if self.df is not None and src_col in self.df.columns:
-            if "event_date" in created and "event_date" not in self.df.columns:
-                self.df["event_date"] = pd.to_datetime(self.df[src_col], errors="coerce").dt.date
-            if "event_hour" in created and "event_hour" not in self.df.columns:
-                self.df["event_hour"] = pd.to_datetime(self.df[src_col], errors="coerce").dt.hour
-
         return created
 
     def _ensure_clean_views(self):
@@ -970,50 +1015,36 @@ class ProjectDataManager:
         return [dict(zip(columns, row)) for row in rows]
 
     def get_schema_info(self) -> list[dict]:
-        if self.df is None:
-            try:
-                table_name = self.get_full_semantic_layer().get("table_name", "events")
-                cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
-                total_rows = self.meta.get("total_rows", 0)
-                result = []
-                for c in cols:
-                    col_name, dtype = c[0], c[1]
-                    null_count = 0
-                    sample = []
-                    try:
-                        null_count = self.con.execute(
-                            f"SELECT COUNT(*) FROM {table_name} WHERE \"{col_name}\" IS NULL"
-                        ).fetchone()[0]
-                    except Exception:
-                        pass
-                    try:
-                        sample_rows = self.con.execute(
-                            f'SELECT DISTINCT "{col_name}" FROM {table_name} WHERE "{col_name}" IS NOT NULL LIMIT 3'
-                        ).fetchall()
-                        sample = [str(r[0]) for r in sample_rows]
-                    except Exception:
-                        pass
-                    result.append({
-                        "column": col_name,
-                        "dtype": dtype,
-                        "null_count": null_count,
-                        "sample": sample,
-                    })
-                return result
-            except Exception:
-                return []
-        info = []
-        for col in self.df.columns:
-            dtype = str(self.df[col].dtype)
-            nulls = int(self.df[col].isnull().sum())
-            sample = self.df[col].dropna().head(3).tolist()
-            info.append({
-                "column": col,
-                "dtype": dtype,
-                "null_count": nulls,
-                "sample": [str(v) for v in sample[:3]],
-            })
-        return info
+        try:
+            table_name = self.get_full_semantic_layer().get("table_name", "events")
+            cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
+            result = []
+            for c in cols:
+                col_name, dtype = c[0], c[1]
+                null_count = 0
+                sample = []
+                try:
+                    null_count = self.con.execute(
+                        f"SELECT COUNT(*) FROM {table_name} WHERE \"{col_name}\" IS NULL"
+                    ).fetchone()[0]
+                except Exception:
+                    pass
+                try:
+                    sample_rows = self.con.execute(
+                        f'SELECT DISTINCT "{col_name}" FROM {table_name} WHERE "{col_name}" IS NOT NULL LIMIT 3'
+                    ).fetchall()
+                    sample = [str(r[0]) for r in sample_rows]
+                except Exception:
+                    pass
+                result.append({
+                    "column": col_name,
+                    "dtype": dtype,
+                    "null_count": null_count,
+                    "sample": sample,
+                })
+            return result
+        except Exception:
+            return []
 
     def close(self):
         if self.con:

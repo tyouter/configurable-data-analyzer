@@ -433,6 +433,9 @@ def pipeline_gen_semantic(session: ProjectSession, project_id: str, use_llm: boo
     }
     session.store.save_project(project)
 
+    config_to_save = {k: v for k, v in semantic.items() if k not in ("table_name", "config_file")}
+    session.store.save_semantic_config(project_id, config_to_save)
+
     dm.invalidate_semantic_cache()
 
     pipeline_state.advance("gen_semantic", {
@@ -493,7 +496,7 @@ def pipeline_save_semantic(session: ProjectSession, project_id: str) -> dict:
         "data_files": project.data_source.get("files", []),
         "metrics_count": len(full_sl.get("metrics", {})),
         "events_count": len(full_sl.get("event_definitions", {})),
-        "semantic_source": "llm",
+        "semantic_source": full_sl.get("generated_by", "llm"),
         "state": "COMPLETED",
     }
 
