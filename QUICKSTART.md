@@ -82,7 +82,19 @@ python mcp_server/server.py --transport sse --port 8000
 python mcp_server/server.py --transport streamable-http --port 8000
 ```
 
-## Step 4: Create Your First Project
+## Step 4: Install Agent Skills (Optional)
+
+Pre-built skill files help AI agents use ChatBI tools correctly.
+
+**Claude Desktop / Trae** — Skills are bundled in `.claude/skills/` and `.trae/skills/`. No action needed.
+
+**Hermes** — Install from GitHub:
+
+```
+/install-skill https://github.com/tyouter/configurable-data-analyzer/tree/master/skills/chatbi
+```
+
+## Step 5: Create Your First Project
 
 In your MCP client:
 
@@ -103,7 +115,7 @@ After build, the AI will run `review_data_issues` to check data quality
 (duplicates, anomalies, test accounts) and discuss findings with you
 before proceeding to analysis.
 
-## Step 5: Query and Visualize
+## Step 6: Query and Visualize
 
 ```
 What's the monthly revenue trend?

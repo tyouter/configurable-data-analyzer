@@ -163,6 +163,24 @@ python mcp_server/server.py --transport sse --port 8000
 python mcp_server/server.py --transport streamable-http --port 8000
 ```
 
+## Agent Skills
+
+Pre-built skill files guide AI agents to use ChatBI tools correctly.
+
+### Claude Desktop / Trae
+
+The skill is bundled in `.claude/skills/data-analysis/SKILL.md` and `.trae/skills/data-analysis/SKILL.md`. No extra installation needed — it activates automatically when you discuss data analysis.
+
+### Hermes
+
+Install the skill from GitHub:
+
+```
+/install-skill https://github.com/tyouter/configurable-data-analyzer/tree/master/skills/chatbi
+```
+
+Or manually copy `skills/chatbi/` to your Hermes skills directory. The skill teaches Hermes to use ChatBI MCP tools instead of writing ad-hoc Python scripts for data tasks.
+
 ## Requirements
 
 - Python 3.10+
