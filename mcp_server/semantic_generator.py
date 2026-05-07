@@ -13,6 +13,7 @@ import os
 import sys
 import json
 import re
+import uuid
 from typing import Optional
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -1176,11 +1177,26 @@ def generate_semantic_layer(
     use_llm: bool = True,
     reference_context: str = "",
 ) -> dict:
-    if use_llm and llm_client.is_available():
-        try:
-            return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
-        except Exception as e:
-            print(f"[SemanticGen] LLM generation failed: {e}, falling back to rules")
+    if use_llm:
+        if llm_client.is_available():
+            try:
+                return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
+            except Exception as e:
+                print(f"[SemanticGen] LLM generation failed: {e}, falling back to rules")
+        else:
+            schema = _analyze_schema(dm)
+            table_name = dm.get_full_semantic_layer().get("table_name", "events")
+            low_card = schema.get("low_cardinality_values", "")
+            if reference_context:
+                prompt = SCHEMA_ANALYSIS_PROMPT_WITH_REFS.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card).replace("{reference_context}", reference_context)
+            else:
+                prompt = SCHEMA_ANALYSIS_PROMPT.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card)
+            raise llm_client.LlmDelegationNeeded(
+                task_id=uuid.uuid4().hex[:12],
+                prompt=prompt,
+                system_msg="You are a data analyst expert. Respond with valid JSON only, no markdown fences.",
+                max_tokens=32768,
+            )
 
     return _generate_semantic_layer_rules(dm, project_type)
 

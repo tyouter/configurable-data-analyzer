@@ -260,20 +260,44 @@ class DataAuditor:
                                 issues.append(self._format_issue(check, col["name"]))
                     continue
 
-                sql = self._render_sql(sql_template, table_name, col_names, date_cols, numeric_cols)
-                if not sql:
-                    continue
-
-                try:
-                    result = execute_fn(sql)
-                    if result and len(result) > 0:
-                        issues.append(self._format_issue(
-                            check,
-                            extra_data=result[:5],
-                            affected_count=len(result),
-                        ))
-                except Exception:
-                    pass
+                if "{col}" in sql_template:
+                    target_cols = numeric_cols if check.get("id") in ("negative_values",) else col_names
+                    for col in target_cols:
+                        sql = sql_template.replace("{table}", table_name)
+                        all_cols_str = ', '.join(f'"{c}"' for c in col_names)
+                        sql = sql.replace("{all_cols}", all_cols_str)
+                        sql = sql.replace("{col}", col)
+                        if "{date_col}" in sql:
+                            sql = sql.replace("{date_col}", date_cols[0] if date_cols else "1")
+                        if "{ts_col}" in sql:
+                            sql = sql.replace("{ts_col}", date_cols[0] if date_cols else "1")
+                        if "{val_col}" in sql:
+                            sql = sql.replace("{val_col}", numeric_cols[0] if numeric_cols else "1")
+                        try:
+                            result = execute_fn(sql)
+                            if result and len(result) > 0:
+                                issues.append(self._format_issue(
+                                    check,
+                                    col_name=col,
+                                    extra_data=result[:5],
+                                    affected_count=len(result),
+                                ))
+                        except Exception:
+                            pass
+                else:
+                    sql = self._render_sql(sql_template, table_name, col_names, date_cols, numeric_cols)
+                    if not sql:
+                        continue
+                    try:
+                        result = execute_fn(sql)
+                        if result and len(result) > 0:
+                            issues.append(self._format_issue(
+                                check,
+                                extra_data=result[:5],
+                                affected_count=len(result),
+                            ))
+                    except Exception:
+                        pass
 
             for rule in skill.get("business_rules", []):
                 issues.append({

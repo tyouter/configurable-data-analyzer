@@ -1,16 +1,76 @@
 import os
 import re
 import json
+import uuid
 import requests
-
 
 LLM_API_KEY = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("LLM_API_KEY", "")
 LLM_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 LLM_MODEL = os.environ.get("BI_MODEL", "deepseek-chat")
 
+_pending_tasks: dict[str, dict] = {}
+
+
+class LlmDelegationNeeded(Exception):
+    def __init__(self, task_id: str, prompt: str, system_msg: str, max_tokens: int = 4096):
+        self.task_id = task_id
+        self.prompt = prompt
+        self.system_msg = system_msg
+        self.max_tokens = max_tokens
+        super().__init__(f"LLM delegation needed: task_id={task_id}")
+
 
 def is_available() -> bool:
     return bool(LLM_API_KEY)
+
+
+def has_api_key() -> bool:
+    return bool(LLM_API_KEY)
+
+
+def mode() -> str:
+    if LLM_API_KEY:
+        return "direct"
+    return "agent"
+
+
+def delegate_llm(
+    prompt: str,
+    system_msg: str = "You are a data analyst expert. Respond with valid JSON only.",
+    max_tokens: int = 4096,
+    temperature: float = 0.3,
+    timeout: int = 60,
+    strip_markdown: bool = True,
+) -> str:
+    if LLM_API_KEY:
+        return _call_direct(prompt, system_msg, max_tokens, temperature, timeout, strip_markdown)
+
+    task_id = uuid.uuid4().hex[:12]
+    _pending_tasks[task_id] = {
+        "prompt": prompt,
+        "system_msg": system_msg,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "strip_markdown": strip_markdown,
+    }
+    raise LlmDelegationNeeded(task_id, prompt, system_msg, max_tokens)
+
+
+def submit_result(task_id: str, result: str) -> bool:
+    task = _pending_tasks.pop(task_id, None)
+    if not task:
+        return False
+    task["result"] = result
+    task["completed"] = True
+    return True
+
+
+def get_pending_tasks() -> list[dict]:
+    return [
+        {"task_id": tid, "prompt_preview": t["prompt"][:200], "system_msg": t["system_msg"][:100]}
+        for tid, t in _pending_tasks.items()
+        if "result" not in t
+    ]
 
 
 def call_llm(
@@ -21,12 +81,25 @@ def call_llm(
     timeout: int = 60,
     strip_markdown: bool = True,
 ) -> str:
-    if not LLM_API_KEY:
-        raise ValueError(
-            "LLM API key not configured. "
-            "Set DEEPSEEK_API_KEY or LLM_API_KEY environment variable."
-        )
+    if LLM_API_KEY:
+        return _call_direct(prompt, system_msg, max_tokens, temperature, timeout, strip_markdown)
 
+    raise LlmDelegationNeeded(
+        task_id=uuid.uuid4().hex[:12],
+        prompt=prompt,
+        system_msg=system_msg,
+        max_tokens=max_tokens,
+    )
+
+
+def _call_direct(
+    prompt: str,
+    system_msg: str,
+    max_tokens: int,
+    temperature: float,
+    timeout: int,
+    strip_markdown: bool,
+) -> str:
     url = f"{LLM_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {LLM_API_KEY}",
@@ -75,6 +148,10 @@ def call_llm_json(
         timeout=timeout,
         strip_markdown=True,
     )
+    return _parse_json(raw)
+
+
+def _parse_json(raw: str) -> dict | list | None:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:

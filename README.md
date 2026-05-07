@@ -130,7 +130,7 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | Yes | — | LLM API Key |
+| `DEEPSEEK_API_KEY` | No | — | LLM API Key（未配置时 Agent 委托模式） |
 | `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` | LLM API Base URL |
 | `BI_MODEL` | No | `deepseek-chat` | LLM model name |
 | `CHATBI_PROJECTS_DIR` | No | `./projects` | Project data directory |

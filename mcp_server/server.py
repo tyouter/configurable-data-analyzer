@@ -44,6 +44,8 @@ except ImportError:
 from mcp.server.fastmcp import FastMCP
 
 from mcp_server import __version__
+from mcp_server import llm_client
+from mcp_server.llm_client import LlmDelegationNeeded
 from mcp_server.project_model import (
     ProjectSession,
     PROJECTS_DIR,
@@ -161,20 +163,34 @@ def create_project(
         analysis_goals: 确认的分析目标列表（action=confirm）
         use_llm: 是否使用LLM辅助生成语义层（默认True）
     """
-    return svc_create_project(
-        session=_session,
-        name=name,
-        data_files=data_files,
-        action=action,
-        project_id=project_id,
-        project_type=project_type,
-        corrections=corrections,
-        questions=questions,
-        confirmed_raw_files=confirmed_raw_files,
-        confirmed_ref_files=confirmed_ref_files,
-        analysis_goals=analysis_goals,
-        use_llm=use_llm,
-    )
+    try:
+        result = svc_create_project(
+            session=_session,
+            name=name,
+            data_files=data_files,
+            action=action,
+            project_id=project_id,
+            project_type=project_type,
+            corrections=corrections,
+            questions=questions,
+            confirmed_raw_files=confirmed_raw_files,
+            confirmed_ref_files=confirmed_ref_files,
+            analysis_goals=analysis_goals,
+            use_llm=use_llm,
+        )
+        return result
+    except LlmDelegationNeeded as e:
+        return {
+            "needs_llm_delegation": True,
+            "task_id": e.task_id,
+            "prompt": e.prompt,
+            "system_msg": e.system_msg,
+            "instruction": (
+                "请根据以上 prompt 完成 LLM 推理，返回纯 JSON 结果（不要 markdown 代码块）。"
+                "然后调用 submit_llm_result(task_id, result) 提交结果，"
+                "再重新调用 create_project(action='build', project_id=..., use_llm=False)。"
+            ),
+        }
 
 
 @mcp.tool()
@@ -195,13 +211,26 @@ def execute_pipeline_step(
         use_llm: 是否使用LLM（gen_semantic步骤有效）
         project_type: 项目类型（load_data步骤有效）
     """
-    return svc_execute_pipeline_step(
-        session=_session,
-        project_id=project_id,
-        step=step,
-        use_llm=use_llm,
-        project_type=project_type,
-    )
+    try:
+        return svc_execute_pipeline_step(
+            session=_session,
+            project_id=project_id,
+            step=step,
+            use_llm=use_llm,
+            project_type=project_type,
+        )
+    except LlmDelegationNeeded as e:
+        return {
+            "needs_llm_delegation": True,
+            "task_id": e.task_id,
+            "prompt": e.prompt,
+            "system_msg": e.system_msg,
+            "instruction": (
+                "请根据以上 prompt 完成 LLM 推理，返回纯 JSON 结果（不要 markdown 代码块）。"
+                "然后调用 submit_llm_result(task_id, result) 提交结果，"
+                "再重新调用 execute_pipeline_step(project_id, step='gen_semantic', use_llm=False)。"
+            ),
+        }
 
 
 @mcp.tool()
@@ -274,12 +303,49 @@ def delete_project(project_id: str) -> dict:
 
 
 @mcp.tool()
+def llm_status() -> dict:
+    """
+    查询当前 LLM 配置状态。返回模式（direct/agent）和 API Key 是否已配置。
+    """
+    return {
+        "mode": llm_client.mode(),
+        "api_key_configured": llm_client.has_api_key(),
+        "model": llm_client.LLM_MODEL if llm_client.has_api_key() else "agent",
+        "base_url": llm_client.LLM_BASE_URL if llm_client.has_api_key() else "n/a",
+    }
+
+
+@mcp.tool()
+def submit_llm_result(task_id: str, result: str) -> dict:
+    """
+    当工具返回 needs_llm_delegation=true 时，Agent 需要自行完成 LLM 推理，
+    然后通过此工具提交结果以继续原流程。
+
+    流程：
+    1. 调用 create_project / regenerate_semantic_layer 等工具
+    2. 返回值中 needs_llm_delegation=true 时，根据 prompt 执行推理
+    3. 调用 submit_llm_result(task_id, 推理结果) 提交
+    4. 返回值中 next_action 提示下一步操作
+
+    Args:
+        task_id: 委托任务ID（从工具返回值中获取）
+        result: Agent 完成的 LLM 推理结果（纯文本或JSON字符串）
+    """
+    ok = llm_client.submit_result(task_id, result)
+    if not ok:
+        return {"error": f"Task {task_id} not found or already submitted."}
+    return {"status": "ok", "task_id": task_id, "next_action": "retry_original_tool_call"}
+
+
+@mcp.tool()
 def regenerate_semantic_layer(use_llm: bool = True) -> dict:
     """
     重新生成当前项目的语义层。当数据结构变化或语义层不准确时使用。
 
+    无 API Key 时会返回 LLM 委托任务，Agent 需要完成推理后调用 submit_llm_result。
+
     Args:
-        use_llm: 是否使用LLM辅助（需要DEEPSEEK_API_KEY，默认True）
+        use_llm: 是否使用LLM辅助（默认True，无API Key时自动委托给Agent）
     """
     try:
         from mcp_server.service.query import require_project
@@ -308,6 +374,18 @@ def regenerate_semantic_layer(use_llm: bool = True) -> dict:
             "events_count": len(semantic.get("event_definitions", {})),
             "columns_count": len(semantic.get("columns", {})),
             "semantic_source": "llm",
+        }
+    except LlmDelegationNeeded as e:
+        return {
+            "needs_llm_delegation": True,
+            "task_id": e.task_id,
+            "prompt": e.prompt,
+            "system_msg": e.system_msg,
+            "instruction": (
+                "请根据以上 prompt 完成 LLM 推理，返回纯 JSON 结果（不要 markdown 代码块）。"
+                "然后调用 submit_llm_result(task_id, result) 提交结果，"
+                "再重新调用 regenerate_semantic_layer(use_llm=False) 使用规则引擎生成。"
+            ),
         }
     except Exception as e:
         return {"error": f"Failed to regenerate semantic layer: {str(e)}"}

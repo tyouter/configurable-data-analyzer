@@ -261,7 +261,7 @@ class Project:
                     config = json.load(f)
                 for key in ("columns", "metrics", "dimensions",
                             "examples", "rules", "prompt_template",
-                            "data_cleaning"):
+                            "data_cleaning", "generated_by", "project_type"):
                     if key in config and key not in sl:
                         sl[key] = config[key]
                 if "event_definitions" in config and "event_definitions" not in sl:

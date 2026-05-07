@@ -10,7 +10,7 @@ Project-agnostic conversational data analysis platform via MCP protocol.
 └────────────────────┬────────────────────────────┘
                      │ MCP Protocol
 ┌────────────────────▼────────────────────────────┐
-│  server.py — Thin MCP Wrapper (26 tools)        │
+│  server.py — Thin MCP Wrapper (28 tools)        │
 └────────────────────┬────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────┐
@@ -31,7 +31,7 @@ Project-agnostic conversational data analysis platform via MCP protocol.
 
 ```
 mcp_server/
-├── server.py               # MCP entry (26 tools, thin wrapper)
+├── server.py               # MCP entry (28 tools, thin wrapper)
 ├── cli.py                  # CLI interface (chatbi command)
 ├── service/                # Service layer
 │   ├── project.py          # Project CRUD + pipeline
@@ -108,7 +108,7 @@ User decisions are saved as `data_cleaning` rules in semantic config, applied as
 - All ECharts chart types supported (line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
 - Funnel chart with automatic conversion rates
 
-## MCP Tools (26)
+## MCP Tools (28)
 
 ### Project Management (5)
 
@@ -127,6 +127,13 @@ User decisions are saved as `data_cleaning` rules in semantic config, applied as
 | `execute_pipeline_step` | Execute single pipeline step |
 | `regenerate_semantic_layer` | Regenerate semantic layer |
 | `migrate_project` | Migrate old project format |
+
+### LLM Mode (2)
+
+| Tool | Function |
+|------|----------|
+| `llm_status` | Query LLM mode (direct/agent) and API key status |
+| `submit_llm_result` | Submit Agent LLM result for delegation flow |
 
 ### Data Understanding & Quality (5)
 
@@ -170,14 +177,23 @@ User decisions are saved as `data_cleaning` rules in semantic config, applied as
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | Yes | — | LLM API Key |
+| `DEEPSEEK_API_KEY` | No | — | LLM API Key（未配置时 Agent 委托模式） |
 | `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` | LLM API Base URL |
 | `BI_MODEL` | No | `deepseek-chat` | LLM model name |
 | `CHATBI_PROJECTS_DIR` | No | `./projects` | Project data directory |
 
+### LLM Modes
+
+| Mode | Condition | Behavior |
+|------|-----------|----------|
+| **Agent Delegation** | API Key 未配置（默认） | 工具返回 `needs_llm_delegation=true` + prompt，Agent 自行推理后通过 `submit_llm_result` 提交 |
+| **Direct API** | API Key 已配置 | Server 直接调用 LLM API，跳过 Agent 往返，速度更快 |
+
+调用 `llm_status()` 可查看当前模式。
+
 ## MCP Client Configuration
 
-### Claude Desktop
+### Claude Desktop / Trae
 
 ```json
 {
@@ -186,12 +202,14 @@ User decisions are saved as `data_cleaning` rules in semantic config, applied as
       "command": "python",
       "args": ["<path>/mcp_server/server.py"],
       "env": {
-        "DEEPSEEK_API_KEY": "<your-api-key>"
+        "DEEPSEEK_API_KEY": ""
       }
     }
   }
 }
 ```
+
+> `DEEPSEEK_API_KEY` 留空 = Agent 委托模式（默认，无需额外 API Key）
 
 ### SSE / HTTP Transport
 

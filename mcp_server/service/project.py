@@ -18,6 +18,7 @@ from mcp_server.file_classifier import FileClassifier
 from mcp_server.data_auditor import DataAuditor
 from mcp_server.reference_parser import ReferenceParser
 from mcp_server.semantic_generator import generate_semantic_layer, detect_project_type
+from mcp_server.llm_client import LlmDelegationNeeded
 
 
 def create_project(
@@ -56,6 +57,8 @@ def create_project(
             return get_create_status(session)
         else:
             return {"error": f"Unknown action: {effective_action}. Use start/classify/confirm/build/status"}
+    except LlmDelegationNeeded:
+        raise
     except Exception as e:
         return {"error": f"create_project({action}) failed: {str(e)}"}
 
@@ -359,6 +362,7 @@ def pipeline_load_data(session: ProjectSession, project_id: str, project_type: O
     if not project_type:
         detected = detect_project_type(dm)
         project.project_type = detected
+        session.store.save_project(project)
 
     pipeline_state = PipelineState(
         project_id=project_id,
@@ -424,6 +428,8 @@ def pipeline_gen_semantic(session: ProjectSession, project_id: str, use_llm: boo
             use_llm=use_llm,
             reference_context=reference_context,
         )
+    except LlmDelegationNeeded:
+        raise
     except RuntimeError as e:
         return {"step": "gen_semantic", "status": "failed", "error": str(e)}
 

@@ -467,15 +467,17 @@ def review_data_issues(
             samples = dm.execute(type_sql)
             sample_vals = [str(r.get(col_name, "")) for r in samples]
 
-            is_numeric = False
-            is_date = False
-            for v in sample_vals:
-                try:
-                    float(v)
-                    is_numeric = True
-                    break
-                except (ValueError, TypeError):
-                    pass
+            is_numeric = col_name in dm.meta.get("numeric_columns", [])
+            is_date = col_name in dm.meta.get("date_columns", [])
+
+            if not is_numeric and not is_date:
+                for v in sample_vals:
+                    try:
+                        float(v)
+                        is_numeric = True
+                        break
+                    except (ValueError, TypeError):
+                        pass
 
             columns.append({
                 "name": col_name,

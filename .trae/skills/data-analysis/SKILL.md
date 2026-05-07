@@ -97,9 +97,35 @@ export_dashboard(dashboard_name="KPI看板", theme="ggplot2_minimal")
 2. 向用户展示分类结果，询问是否修正
 3. create_project(action="confirm", confirmed_raw_files=[...])
 4. create_project(action="build") → 导入数据 + 语义层生成
+   - 如果返回 `needs_llm_delegation=true`，按「LLM 委托流程」处理
 5. review_data_issues(project_type="behavior_analysis") → 数据质量检查
    向用户展示发现的问题（错误/警告/建议），逐个确认处理方式
 6. get_semantic_context() → 展示给用户检查
+```
+
+### LLM 委托流程
+
+当 `DEEPSEEK_API_KEY` 未配置时（默认），工具会返回 `needs_llm_delegation=true`：
+
+```
+1. 调用 create_project(action="build") 或 regenerate_semantic_layer()
+2. 返回值包含：
+   - needs_llm_delegation: true
+   - task_id: "abc123"
+   - prompt: "..."（LLM 推理所需的完整 prompt）
+   - system_msg: "..."
+   - instruction: "..."
+3. Agent 自行完成 LLM 推理（根据 prompt 生成语义层 JSON）
+4. 调用 submit_llm_result(task_id="abc123", result="生成的JSON")
+5. 重新调用原工具，设 use_llm=False 使用规则引擎生成
+
+注意：即使 Agent 完成了推理，也建议用 use_llm=False 重新调用，
+因为规则引擎会基于 Agent 结果做额外处理（派生列、验证等）。
+```
+
+调用 `llm_status()` 可查看当前模式：
+- `mode: "agent"` = 委托模式（无 API Key）
+- `mode: "direct"` = 直连模式（有 API Key）
 ```
 
 ### 数据质量检查详情
