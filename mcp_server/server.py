@@ -43,6 +43,7 @@ except ImportError:
 
 from mcp.server.fastmcp import FastMCP
 
+from mcp_server import __version__
 from mcp_server.project_model import (
     ProjectSession,
     PROJECTS_DIR,
@@ -71,7 +72,7 @@ from mcp_server.service import (
 
 mcp = FastMCP(
     "ChatBI",
-    instructions="""ChatBI MCP Server — 项目无关的数据分析平台。
+    instructions=f"""ChatBI MCP Server v{__version__} — 项目无关的数据分析平台。
 
 支持多项目管理，每个项目拥有独立的数据文件、语义层和DuckDB实例。
 
@@ -111,6 +112,8 @@ mcp = FastMCP(
 - L3 原始SQL：只读SQL查询兜底
 """,
 )
+
+mcp._mcp_server.version = __version__
 
 _session = ProjectSession()
 
