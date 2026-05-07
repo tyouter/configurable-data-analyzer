@@ -317,16 +317,20 @@ def _extract_text(filepath: str) -> str:
 
     if ext in (".xlsx", ".xls"):
         try:
-            xls = pd.ExcelFile(filepath)
-            all_text = []
-            for sheet in xls.sheet_names:
-                df = pd.read_excel(filepath, sheet_name=sheet)
-                text = df.to_string(index=False, max_colwidth=80)
-                if text.strip():
-                    all_text.append(f"=== Sheet: {sheet} ===\n{text}")
-            return "\n\n".join(all_text)
+            from mcp_server.excel_utils import read_excel_filled
+            return read_excel_filled(filepath, max_colwidth=80)
         except Exception:
-            return ""
+            try:
+                xls = pd.ExcelFile(filepath)
+                all_text = []
+                for sheet in xls.sheet_names:
+                    df = pd.read_excel(filepath, sheet_name=sheet)
+                    text = df.to_string(index=False, max_colwidth=80)
+                    if text.strip():
+                        all_text.append(f"=== Sheet: {sheet} ===\n{text}")
+                return "\n\n".join(all_text)
+            except Exception:
+                return ""
 
     if ext in (".txt", ".md"):
         enc = _detect_encoding(filepath)

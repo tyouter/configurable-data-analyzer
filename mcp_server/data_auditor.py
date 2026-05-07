@@ -79,9 +79,16 @@ class DataAuditor:
         try:
             if ext in (".xlsx", ".xls"):
                 _ensure_duckdb_excel(con)
+                from mcp_server.excel_utils import prepare_xlsx
+                effective_path, was_filled = prepare_xlsx(filepath)
                 con.execute(
-                    f"CREATE TABLE _audit AS SELECT * FROM read_xlsx('{filepath}', all_varchar=true)"
+                    f"CREATE TABLE _audit AS SELECT * FROM read_xlsx('{effective_path}', all_varchar=true)"
                 )
+                if was_filled:
+                    try:
+                        os.unlink(effective_path)
+                    except OSError:
+                        pass
             elif ext == ".parquet":
                 con.execute(
                     f"CREATE TABLE _audit AS SELECT * FROM read_parquet('{filepath}')"

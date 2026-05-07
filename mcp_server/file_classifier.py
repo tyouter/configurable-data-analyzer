@@ -73,15 +73,22 @@ def _read_data_sample(filepath: str, n_rows: int = 5) -> Optional[dict]:
             except Exception:
                 con.execute("INSTALL excel")
                 con.execute("LOAD excel")
-            con.execute(f"CREATE TABLE _sample AS SELECT * FROM read_xlsx('{filepath}', all_varchar=true) LIMIT {n_rows}")
+            from mcp_server.excel_utils import prepare_xlsx
+            effective_path, was_filled = prepare_xlsx(filepath)
+            con.execute(f"CREATE TABLE _sample AS SELECT * FROM read_xlsx('{effective_path}', all_varchar=true) LIMIT {n_rows}")
             total_con = duckdb.connect(":memory:")
             try:
                 total_con.execute("LOAD excel")
             except Exception:
                 total_con.execute("INSTALL excel")
                 total_con.execute("LOAD excel")
-            total_rows = total_con.execute(f"SELECT COUNT(*) FROM read_xlsx('{filepath}', all_varchar=true)").fetchone()[0]
+            total_rows = total_con.execute(f"SELECT COUNT(*) FROM read_xlsx('{effective_path}', all_varchar=true)").fetchone()[0]
             total_con.close()
+            if was_filled:
+                try:
+                    os.unlink(effective_path)
+                except OSError:
+                    pass
         elif ext == ".parquet":
             con.execute(f"CREATE TABLE _sample AS SELECT * FROM read_parquet('{filepath}') LIMIT {n_rows}")
             total_rows = con.execute(f"SELECT COUNT(*) FROM read_parquet('{filepath}')").fetchone()[0]

@@ -862,6 +862,7 @@ class ProjectDataManager:
         self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
 
         first_file = True
+        _cleanup = []
         loaded_files = []
         for fname in files:
             fpath = os.path.join(self.data_dir, fname)
@@ -873,7 +874,11 @@ class ProjectDataManager:
             try:
                 if ext in (".xlsx", ".xls"):
                     self._ensure_duckdb_excel()
-                    read_sql = f"SELECT * FROM read_xlsx('{fpath}', all_varchar=true)"
+                    from mcp_server.excel_utils import prepare_xlsx
+                    effective_path, was_filled = prepare_xlsx(fpath)
+                    if was_filled:
+                        _cleanup.append(effective_path)
+                    read_sql = f"SELECT * FROM read_xlsx('{effective_path}', all_varchar=true)"
                 elif ext == ".parquet":
                     read_sql = f"SELECT * FROM read_parquet('{fpath}')"
                 elif ext in (".csv", ".tsv"):
@@ -899,6 +904,12 @@ class ProjectDataManager:
 
         if not loaded_files:
             raise FileNotFoundError(f"No loadable data files found for project {self.project.id}")
+
+        for p in _cleanup:
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
 
         cols = self.con.execute(f"DESCRIBE {table_name}").fetchall()
         col_names = [c[0] for c in cols]
