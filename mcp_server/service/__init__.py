@@ -27,6 +27,8 @@ from mcp_server.service.dashboard import (
     export_dashboard,
     render_chart,
     generate_dashboard_from_spec,
+    save_dashboard_as_spec,
+    validate_dashboard_spec,
 )
 from mcp_server.service.context import (
     get_semantic_context,

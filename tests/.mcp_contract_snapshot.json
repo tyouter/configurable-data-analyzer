@@ -1,5 +1,5 @@
 {
-  "tool_count": 32,
+  "tool_count": 34,
   "tool_names": [
     "create_dashboard",
     "create_project",
@@ -25,12 +25,14 @@
     "review_data_issues",
     "review_data_understanding",
     "save_chart_to_dashboard",
+    "save_dashboard_as_spec",
     "semantic_query",
     "submit_llm_result",
     "switch_project",
     "update_column_mapping",
     "update_event_mapping",
     "update_metric",
+    "validate_dashboard_spec",
     "validate_metric",
     "validate_semantic_layer"
   ],

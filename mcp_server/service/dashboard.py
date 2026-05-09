@@ -411,3 +411,120 @@ def generate_dashboard_from_spec(
         "errors": errors,
         "html_path": html_path,
     }
+
+
+DASHBOARD_SPEC_SCHEMA_VERSION = "0.1.0"
+
+
+def save_dashboard_as_spec(
+    session: ProjectSession,
+    dashboard_name: str,
+    output_path: str = "",
+) -> dict:
+    """Export the current dashboard as a dashboard_spec.json file."""
+    project, _ = require_project(session)
+
+    dashboard = dashboard_store.load_dashboard_by_name(PROJECTS_DIR, project.id, dashboard_name)
+    if not dashboard:
+        return {"error": f"Dashboard '{dashboard_name}' not found"}
+
+    charts = dashboard.get("charts", [])
+    domains = {}
+    chart_specs = []
+
+    for c in charts:
+        domain = c.get("business_domain", "other") or "other"
+        domain_label = c.get("business_domain_label", domain) or domain
+        if domain not in domains:
+            domains[domain] = {"id": domain, "label": domain_label}
+
+        chart_specs.append({
+            "chart_id": c.get("spec_chart_id", c.get("id", "")),
+            "name": c.get("title", ""),
+            "description": c.get("description", ""),
+            "chart_type": c.get("chart_type", ""),
+            "category": domain,
+            "custom_sql": c.get("sql", ""),
+        })
+
+    from datetime import datetime
+    spec = {
+        "version": DASHBOARD_SPEC_SCHEMA_VERSION,
+        "name": dashboard_name,
+        "description": f"Dashboard spec exported from {project.name}",
+        "meta": {
+            "created_at": dashboard.get("created_at", ""),
+            "updated_at": datetime.now().isoformat(),
+            "tags": [],
+            "parameters": {},
+        },
+        "categories": list(domains.values()),
+        "charts": chart_specs,
+    }
+
+    if not output_path:
+        output_path = os.path.join(PROJECTS_DIR, project.id, "dashboard_spec.json")
+    elif not os.path.isabs(output_path):
+        output_path = os.path.join(PROJECTS_DIR, project.id, output_path)
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(spec, f, ensure_ascii=False, indent=2)
+
+    return {
+        "status": "saved",
+        "spec_path": output_path,
+        "version": DASHBOARD_SPEC_SCHEMA_VERSION,
+        "charts_count": len(chart_specs),
+        "categories_count": len(domains),
+    }
+
+
+def validate_dashboard_spec(
+    session: ProjectSession,
+    spec_path: str = "",
+) -> dict:
+    """Validate a dashboard_spec.json for structure and metric references."""
+    project, dm = require_project(session)
+    semantic = project.get_full_semantic_layer(PROJECTS_DIR)
+    metrics = semantic.get("metrics", {})
+
+    if not spec_path:
+        spec_path = os.path.join(PROJECTS_DIR, project.id, "dashboard_spec.json")
+    if not os.path.exists(spec_path):
+        return {"status": "fail", "reason": f"Spec file not found: {spec_path}"}
+
+    with open(spec_path, encoding="utf-8") as f:
+        spec = json.load(f)
+
+    issues = []
+    warnings = []
+
+    if not spec.get("name"):
+        issues.append("Missing required field: name")
+    if not spec.get("charts"):
+        issues.append("Missing required field: charts")
+    if not isinstance(spec.get("charts"), list):
+        issues.append("charts must be a list")
+
+    for cs in spec.get("charts", []):
+        chart_id = cs.get("chart_id", "?")
+        mr = cs.get("metric_ref", "")
+        if mr and mr not in metrics:
+            issues.append(f"Chart '{chart_id}': metric_ref '{mr}' not in semantic layer")
+        at = cs.get("analysis_type", "")
+        if at and at not in ("retention", "funnel", "period_over_period"):
+            issues.append(f"Chart '{chart_id}': unknown analysis_type '{at}'")
+
+    sv = spec.get("version", "0.0.0")
+    if sv != DASHBOARD_SPEC_SCHEMA_VERSION:
+        warnings.append(f"Spec version {sv} != current {DASHBOARD_SPEC_SCHEMA_VERSION}")
+
+    return {
+        "status": "pass" if not issues else "fail",
+        "issues": issues,
+        "warnings": warnings,
+        "charts_count": len(spec.get("charts", [])),
+        "spec_version": sv,
+        "current_version": DASHBOARD_SPEC_SCHEMA_VERSION,
+    }

@@ -63,6 +63,8 @@ from mcp_server.service import (
     export_dashboard as svc_export_dashboard,
     render_chart as svc_render_chart,
     generate_dashboard_from_spec as svc_generate_dashboard_from_spec,
+    save_dashboard_as_spec as svc_save_dashboard_as_spec,
+    validate_dashboard_spec as svc_validate_dashboard_spec,
     execute_semantic_query as svc_execute_semantic_query,
     execute_raw_sql as svc_execute_raw_sql,
     explore_column_values as svc_explore_column_values,
@@ -669,6 +671,18 @@ def generate_dashboard_from_spec(
         dashboard_name=dashboard_name,
         theme=theme,
     )
+
+
+@mcp.tool()
+def save_dashboard_as_spec(dashboard_name: str, output_path: str = "") -> dict:
+    """Export the current dashboard as a versioned dashboard_spec.json file."""
+    return svc_save_dashboard_as_spec(session=_session, dashboard_name=dashboard_name, output_path=output_path)
+
+
+@mcp.tool()
+def validate_dashboard_spec(spec_path: str = "") -> dict:
+    """Validate a dashboard_spec.json for structure and metric references."""
+    return svc_validate_dashboard_spec(session=_session, spec_path=spec_path)
 
 
 @mcp.resource("semantic://current")
