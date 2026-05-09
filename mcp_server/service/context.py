@@ -293,3 +293,128 @@ def validate_semantic_layer(
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
 
     return results
+
+
+def register_events(
+    session: ProjectSession,
+    events: dict,
+    project_id: Optional[str] = None,
+) -> dict:
+    """
+    Batch register or update events in the semantic layer.
+    Each key is the event name; value is a dict with: business_name, sql_pattern, description, category, aliases.
+    """
+    return update_semantic_config(
+        session=session,
+        project_id=project_id or "",
+        section="events",
+        updates=events,
+    )
+
+
+def define_metric(
+    session: ProjectSession,
+    name: str,
+    sql: str,
+    business_name: str = "",
+    metric_type: str = "count",
+    business_domain: str = "",
+    visualization_goal: str = "",
+    keywords: list = None,
+    description: str = "",
+    project_id: Optional[str] = None,
+) -> dict:
+    """
+    Define or update a single metric in the semantic layer.
+
+    Args:
+        name: Metric identifier (e.g., "dau", "porsche_active_rate")
+        sql: DuckDB SQL aggregate expression
+        business_name: Chinese display name
+        metric_type: count / rate / duration / distribution / ranking
+        business_domain: Business domain grouping
+        visualization_goal: Natural language visualization intent
+        keywords: Search keywords
+        description: How this metric is calculated
+        project_id: Target project (default: current)
+    """
+    metric_def = {"sql": sql}
+    if business_name:
+        metric_def["business_name"] = business_name
+    if metric_type:
+        metric_def["metric_type"] = metric_type
+    if business_domain:
+        metric_def["business_domain"] = business_domain
+    if visualization_goal:
+        metric_def["visualization_goal"] = visualization_goal
+    if keywords:
+        metric_def["keywords"] = keywords
+    if description:
+        metric_def["description"] = description
+
+    return update_semantic_config(
+        session=session,
+        project_id=project_id or "",
+        section="metrics",
+        updates={name: metric_def},
+    )
+
+
+def validate_metric(
+    session: ProjectSession,
+    metric_name: str,
+    project_id: Optional[str] = None,
+) -> dict:
+    """
+    Validate a single metric's SQL executability against the current project's DuckDB.
+    """
+    from mcp_server.semantic_validator import SemanticValidator
+    from mcp_server.service.query import require_project
+
+    if project_id:
+        session.switch_project(project_id)
+    try:
+        project, dm = require_project(session)
+    except ValueError as e:
+        return {"error": str(e)}
+
+    full = project.get_full_semantic_layer(PROJECTS_DIR)
+    metrics = full.get("metrics", {})
+
+    if metric_name not in metrics:
+        available = sorted(metrics.keys())
+        return {
+            "metric_name": metric_name,
+            "status": "not_found",
+            "available_metrics": available[:20],
+        }
+
+    metric_def = metrics[metric_name]
+    sql = metric_def.get("sql", "")
+
+    result = {
+        "metric_name": metric_name,
+        "business_name": metric_def.get("business_name", metric_name),
+        "sql": sql,
+    }
+
+    if not sql:
+        result["status"] = "fail"
+        result["error"] = "No SQL defined"
+        return result
+
+    try:
+        test_sql = f"SELECT {sql} AS val FROM events LIMIT 1"
+        rows = dm.execute(test_sql)
+        if not rows:
+            result["status"] = "warning"
+            result["warning"] = "Query executed but returned no rows"
+        else:
+            val = rows[0].get("val")
+            result["status"] = "pass"
+            result["sample_value"] = val
+    except Exception as e:
+        result["status"] = "fail"
+        result["error"] = str(e)[:300]
+
+    return result

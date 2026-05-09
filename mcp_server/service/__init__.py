@@ -33,4 +33,7 @@ from mcp_server.service.context import (
     review_data_understanding,
     update_semantic_config,
     validate_semantic_layer,
+    register_events,
+    define_metric,
+    validate_metric,
 )

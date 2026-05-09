@@ -4,7 +4,27 @@ import duckdb
 from typing import Optional
 
 from mcp_server.project_model import FileClassification, FileSchemaInfo
-from mcp_server.file_classifier import _detect_encoding
+
+
+def _detect_encoding(filepath: str) -> str:
+    """Detect file encoding. Moved from file_classifier.py (deleted in Phase 1)."""
+    try:
+        import chardet
+        with open(filepath, "rb") as f:
+            raw = f.read(8192)
+        result = chardet.detect(raw)
+        return result.get("encoding", "utf-8") or "utf-8"
+    except ImportError:
+        pass
+
+    for enc in ["utf-8", "utf-8-sig", "gbk", "gb2312", "latin-1"]:
+        try:
+            with open(filepath, "r", encoding=enc) as f:
+                f.read(1024)
+            return enc
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+    return "utf-8"
 
 
 _DUCKDB_EXCEL_LOADED = False

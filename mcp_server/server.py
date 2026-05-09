@@ -71,6 +71,9 @@ from mcp_server.service import (
     review_data_understanding as svc_review_data_understanding,
     update_semantic_config as svc_update_semantic_config,
     validate_semantic_layer as svc_validate_semantic_layer,
+    register_events as svc_register_events,
+    define_metric as svc_define_metric,
+    validate_metric as svc_validate_metric,
 )
 
 mcp = FastMCP(
@@ -780,6 +783,36 @@ def validate_semantic_layer(
                 默认全部执行
     """
     return svc_validate_semantic_layer(session=_session, project_id=project_id, checks=checks)
+
+
+# Phase 1 — Fine-grained semantic tools
+
+@mcp.tool()
+def register_events(events: dict, project_id: Optional[str] = None) -> dict:
+    """Batch register or update events in the semantic layer."""
+    return svc_register_events(session=_session, events=events, project_id=project_id)
+
+
+@mcp.tool()
+def define_metric(
+    name: str, sql: str, business_name: str = "", metric_type: str = "count",
+    business_domain: str = "", visualization_goal: str = "",
+    keywords: Optional[list] = None, description: str = "",
+    project_id: Optional[str] = None,
+) -> dict:
+    """Define or update a single metric. Primary way Agent injects metrics into MCP."""
+    return svc_define_metric(
+        session=_session, name=name, sql=sql, business_name=business_name,
+        metric_type=metric_type, business_domain=business_domain,
+        visualization_goal=visualization_goal, keywords=keywords,
+        description=description, project_id=project_id,
+    )
+
+
+@mcp.tool()
+def validate_metric(metric_name: str, project_id: Optional[str] = None) -> dict:
+    """Validate a single metric's SQL against the current project's DuckDB."""
+    return svc_validate_metric(session=_session, metric_name=metric_name, project_id=project_id)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

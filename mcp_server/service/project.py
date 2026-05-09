@@ -14,12 +14,9 @@ from mcp_server.project_model import (
     PipelineState,
     PROJECTS_DIR,
 )
-from mcp_server.file_classifier import FileClassifier
 from mcp_server.data_auditor import DataAuditor
-from mcp_server.reference_parser import ReferenceParser
 from mcp_server.semantic_generator import generate_semantic_layer, detect_project_type
 from mcp_server.llm_client import LlmDelegationNeeded
-
 
 def create_project(
     session: ProjectSession,
@@ -77,21 +74,17 @@ def _phase_start(session: ProjectSession, name: str, data_files: list[str], proj
     project_id = session.store._ensure_unique_id(project_id)
     now = datetime.now().isoformat()
 
-    classifier = FileClassifier()
-    classifications = classifier.classify_all(existing_files)
-
-    raw_classifications = [c for c in classifications if c.is_raw_data()]
-    raw_columns = []
-    if raw_classifications:
-        auditor = DataAuditor()
-        schemas = auditor.audit_all(classifications)
-        for s in schemas:
-            raw_columns.extend([col["name"] for col in s.columns])
-    else:
-        schemas = []
-
-    parser = ReferenceParser(raw_schema_columns=raw_columns)
-    ref_contents = parser.parse_all(classifications)
+    # Phase 1: Simplified ALIGN — treat all files as raw data
+    # Agent handles document understanding; MCP only provides schema analysis
+    from mcp_server.project_model import FileClassification as _FC
+    classifications = [
+        _FC(filename=os.path.basename(f), filepath=f,
+            category="raw_data", confidence=1.0, reason="Data file (Phase 1: Agent-driven)")
+        for f in existing_files
+    ]
+    auditor = DataAuditor()
+    schemas = auditor.audit_all(classifications)
+    ref_contents = []
 
     raw_count = sum(1 for c in classifications if c.is_raw_data())
     ref_count = sum(1 for c in classifications if c.is_reference())
@@ -123,22 +116,14 @@ def _phase_start(session: ProjectSession, name: str, data_files: list[str], proj
             }
             for s in schemas
         ],
-        reference_contents=[
-            {
-                "filename": r.filename,
-                "category": r.category,
-                "kpi_definitions": r.kpi_definitions,
-                "field_definitions": r.field_definitions,
-                "analysis_goals": r.analysis_goals,
-            }
-            for r in ref_contents
-        ],
+        reference_contents=[],
         summary={
             "raw_files": raw_count,
-            "ref_files": ref_count,
+            "ref_files": 0,
             "total_rows": total_rows,
-            "kpi_count": sum(len(r.kpi_definitions) for r in ref_contents),
-            "field_definitions_count": sum(len(r.field_definitions) for r in ref_contents),
+            "kpi_count": 0,
+            "field_definitions_count": 0,
+            "note": "Reference docs handled by Agent. MCP only provides schema analysis.",
         },
     )
 
@@ -161,8 +146,8 @@ def _phase_start(session: ProjectSession, name: str, data_files: list[str], proj
         "state": "ALIGN",
         "project_id": project_id,
         "audit_report": audit_report.to_dict(),
-        "message": "数据预分析完成。请审查文件分类和KPI定义，确认或修正后继续。",
-        "next_actions": ["classify", "confirm"],
+        "message": "Schema analysis complete. Agent should now read reference docs and inject metrics/events via define_metric/register_events.",
+        "next_actions": ["confirm", "build"],
     }
 
 
@@ -508,59 +493,9 @@ def pipeline_save_semantic(session: ProjectSession, project_id: str) -> dict:
 
 
 def _build_reference_context(create_state: CreateProjectState) -> str:
-    audit_report = create_state.audit_report
-    ref_contents = audit_report.get("reference_contents", [])
-    confirmed_ref = set(create_state.confirmed_ref_files)
-
-    if create_state.state in ("CONFIRM", "BUILD", "COMPLETED") and not confirmed_ref:
-        return ""
-
-    parts = []
-    for rc in ref_contents:
-        if confirmed_ref and rc.get("filename") not in confirmed_ref:
-            continue
-
-        sections = []
-        cat = rc.get("category", "")
-        if cat == "reference_kpi":
-            kpis = rc.get("kpi_definitions", [])
-            if kpis:
-                sections.append("### KPI 指标定义")
-                for kpi in kpis:
-                    name = kpi.get("name", "?")
-                    desc = kpi.get("description", "")
-                    formula = kpi.get("formula", "")
-                    params = kpi.get("params", [])
-                    line = f"- **{name}**: {desc}"
-                    if formula:
-                        line += f" (公式: {formula})"
-                    if params:
-                        line += f" [参数: {', '.join(params)}]"
-                    sections.append(line)
-        elif cat == "reference_dict":
-            fields = rc.get("field_definitions", [])
-            if fields:
-                sections.append("### 数据字典")
-                for fd in fields:
-                    field = fd.get("field", "?")
-                    meaning = fd.get("meaning", "")
-                    enums = fd.get("enum_values", [])
-                    line = f"- **{field}**: {meaning}"
-                    if enums:
-                        line += f" (枚举: {', '.join(str(e) for e in enums[:10])})"
-                    sections.append(line)
-        else:
-            raw = rc.get("raw_text", "")
-            if raw:
-                sections.append(f"### 参考文档内容\n{raw[:1000]}")
-
-        if sections:
-            parts.append(f"## 文件: {rc['filename']} (类型: {cat})\n" + "\n".join(sections))
-
-    if not parts:
-        return ""
-
-    return "\n\n".join(parts)
+    # Phase 1: Reference documents are now handled by Agent directly.
+    # MCP no longer parses or interprets reference docs.
+    return ""
 
 
 def _answer_alignment_question(question: str, audit_report: dict) -> str:

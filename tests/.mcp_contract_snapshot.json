@@ -1,8 +1,9 @@
 {
-  "tool_count": 29,
+  "tool_count": 32,
   "tool_names": [
     "create_dashboard",
     "create_project",
+    "define_metric",
     "delete_chart",
     "delete_dashboard",
     "delete_project",
@@ -19,6 +20,7 @@
     "migrate_project",
     "raw_sql",
     "regenerate_semantic_layer",
+    "register_events",
     "render_chart",
     "review_data_issues",
     "review_data_understanding",
@@ -29,6 +31,7 @@
     "update_column_mapping",
     "update_event_mapping",
     "update_metric",
+    "validate_metric",
     "validate_semantic_layer"
   ],
   "required_tools": [
