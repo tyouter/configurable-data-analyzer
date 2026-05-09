@@ -45,30 +45,60 @@ mcp_chatbi_create_project(name="Sales Analysis", data_files=["/path/to/data.xlsx
 MCP imports data, runs schema analysis (DataAuditor), returns column/types/quality info.
 **Reference documents (KPI definitions, data dictionaries) are read by Agent directly — NOT by MCP.**
 
-### 2. Agent Reads Reference Docs & Injects Semantics
+### 2. Agent Reads Reference Docs, Clarifies, then Injects Semantics
 
-Agent reads KPI docs (openpyxl) → derives metrics:
+**IMPORTANT: Never inject metrics or events without user confirmation.** You are working with unfamiliar data — event names, column meanings, and business logic may differ from your assumptions.
+
+**Step 2a — Explore the schema and show the user what you found:**
+
+After creating the project, always explore schema first:
+```
+mcp_chatbi_get_semantic_context(section="all")
+mcp_chatbi_explore_column_values(column="span_name", pattern="%porsche%")
+```
+
+Show the user: column types, top event names (span_name), date range, user counts, and any quality issues. Ask them to clarify: which events are important? What does each span_name mean?
+
+**Step 2b — Propose metrics and wait for confirmation:**
+
+For each metric you derive, present it to the user in a clear table before calling `define_metric`:
+
+```
+| 指标名 | SQL 公式 | 验证值 |
+|--------|---------|--------|
+| dau | COUNT(DISTINCT reduser_id) | 297 |
+| porsche_active_rate | 分子 / 分母 * 100 | 3.2% |
+```
+
+Ask the user to confirm each formula — especially rates where the numerator/denominator pairing is critical. Only after confirmation, inject:
 
 ```
 mcp_chatbi_define_metric(name="dau", sql="COUNT(DISTINCT reduser_id)", business_name="日活用户", ...)
-mcp_chatbi_define_metric(name="porsche_active_rate", sql="...", business_name="Porsche+活跃率(%)", metric_type="rate")
 ```
 
-Agent reads event data → registers events:
+**Step 2c — Propose events and wait for confirmation:**
+
+List the events you plan to register, showing each span_name and its count:
 
 ```
-mcp_chatbi_register_events(events={
-  "discovery_page_pageshow": {"business_name": "发现页曝光", "sql_pattern": "span_name = 'discovery_page_pageshow'"},
-  "porsche_page_pageshow": {"business_name": "Porsche+页曝光", "sql_pattern": "span_name = 'porsche_page_pageshow'"},
-  ...
-})
+| span_name | 事件数 | 用户数 | 提议的业务名 |
+|-----------|--------|--------|------------|
+| porsche_page_pageshow | 3518 | 297 | Porsche+页曝光 |
 ```
 
-Agent validates metrics:
+Wait for the user to confirm or correct event names and filters. Then register:
+
+```
+mcp_chatbi_register_events(events={...})
+```
+
+**Step 2d — Validate and show results:**
 
 ```
 mcp_chatbi_validate_metric(metric_name="dau")
 ```
+
+Show the validation result (pass/fail, sample value) to the user.
 
 ### 3. Explore the Data
 
