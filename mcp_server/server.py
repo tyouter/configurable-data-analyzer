@@ -324,8 +324,8 @@ def llm_status() -> dict:
 @mcp.tool()
 def submit_llm_result(task_id: str, result: str) -> dict:
     """
-    当工具返回 needs_llm_delegation=true 时，Agent 需要自行完成 LLM 推理，
-    然后通过此工具提交结果以继续原流程。
+    [DEPRECATED Phase 6] Agent 委托模式已废弃。指标/事件应通过 define_metric / register_events 注入。
+    此工具保留仅为向后兼容，新代码不应使用。
 
     流程：
     1. 调用 create_project / regenerate_semantic_layer 等工具
@@ -344,20 +344,31 @@ def submit_llm_result(task_id: str, result: str) -> dict:
 
 
 @mcp.tool()
-def regenerate_semantic_layer(use_llm: bool = True) -> dict:
+def regenerate_semantic_layer(use_llm: bool = True, force: bool = False) -> dict:
     """
-    重新生成当前项目的语义层。当数据结构变化或语义层不准确时使用。
+    重新生成当前项目的语义层（全量覆盖）。
 
-    无 API Key 时会返回 LLM 委托任务，Agent 需要完成推理后调用 submit_llm_result。
+    WARNING: 此操作会覆盖所有手动定义的指标和事件。优先使用 define_metric / register_events 做增量更新。
 
     Args:
-        use_llm: 是否使用LLM辅助（默认True，无API Key时自动委托给Agent）
+        use_llm: Phase 6 已废弃此参数，始终使用规则引擎
+        force: 必须设为 True 才会执行（防止误触覆盖手动指标）
     """
     try:
         from mcp_server.service.query import require_project
         project, dm = require_project(_session)
     except ValueError as e:
         return {"error": str(e)}
+
+    if not force:
+        full = project.get_full_semantic_layer(PROJECTS_DIR)
+        existing_metrics = len(full.get("metrics", {}))
+        if existing_metrics > 0:
+            return {
+                "error": f"Project has {existing_metrics} manually defined metrics. "
+                         "Use force=True to overwrite, or use define_metric/register_events for incremental updates.",
+                "metrics_count": existing_metrics,
+            }
 
     try:
         semantic = generate_semantic_layer(

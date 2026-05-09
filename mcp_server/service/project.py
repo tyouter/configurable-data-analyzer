@@ -276,6 +276,9 @@ def _phase_build(
     use_llm: bool,
     project_type: Optional[str],
 ) -> dict:
+    # Phase 6: Semantic generation is now Agent-driven.
+    # _phase_build only imports data and creates derived columns.
+    # Metrics and events are injected by Agent via define_metric / register_events.
     r1 = pipeline_load_data(session, project_id, project_type)
     if "error" in r1:
         return r1
@@ -284,12 +287,7 @@ def _phase_build(
     if "error" in r2:
         return r2
 
-    r3 = pipeline_gen_semantic(session, project_id, use_llm)
-    if "error" in r3:
-        return r3
-
-    r4 = pipeline_save_semantic(session, project_id)
-    return r4
+    return pipeline_save_semantic(session, project_id)
 
 
 def execute_pipeline_step(
@@ -458,8 +456,8 @@ def pipeline_gen_semantic(session: ProjectSession, project_id: str, use_llm: boo
 
 def pipeline_save_semantic(session: ProjectSession, project_id: str) -> dict:
     pipeline_state = session.store.load_pipeline_state(project_id)
-    if not pipeline_state or not pipeline_state.is_step_completed("gen_semantic"):
-        return {"error": "gen_semantic step must complete first"}
+    if not pipeline_state or not pipeline_state.is_step_completed("create_derived"):
+        return {"error": "create_derived step must complete first"}
 
     project = session.store.get_project(project_id)
     create_state = session.store.load_create_state(project_id)

@@ -23,7 +23,9 @@ if _PROJECT_ROOT not in sys.path:
 from mcp_server.project_model import Project, ProjectStore, ProjectDataManager
 from mcp_server import llm_client
 
-SCHEMA_ANALYSIS_PROMPT = """You are a senior data analyst. Analyze the following dataset schema and generate a comprehensive semantic layer definition.
+# Phase 6: LLM prompts removed. Schema generation is now Agent-driven via define_metric / register_events.
+# _generate_semantic_layer_rules() provides initial column analysis only.
+_SCHEMA_ANALYSIS_PROMPT = """You are a senior data analyst. Analyze the following dataset schema and generate a comprehensive semantic layer definition.
 
 ## Dataset Schema
 Table name: {table_name}
@@ -1042,133 +1044,8 @@ def generate_basic_semantic_layer(dm: ProjectDataManager, project_type: str = "g
     return semantic
 
 
-def generate_semantic_layer_with_llm(dm: ProjectDataManager, project_type: str = "generic", reference_context: str = "") -> dict:
-    """
-    Generate a comprehensive semantic layer using LLM analysis.
-    Falls back to rule-based generation if LLM is unavailable.
-    """
-    schema = _analyze_schema(dm)
-    table_name = dm.get_full_semantic_layer().get("table_name", "events")
-
-    low_card = schema.get("low_cardinality_values", "")
-
-    if reference_context:
-        prompt = SCHEMA_ANALYSIS_PROMPT_WITH_REFS.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card).replace("{reference_context}", reference_context)
-    else:
-        prompt = SCHEMA_ANALYSIS_PROMPT.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card)
-
-    try:
-        yaml_content = _call_llm(prompt)
-        print(f"[SemanticGen] LLM returned {len(yaml_content)} chars")
-        print(f"[SemanticGen] First 500 chars: {yaml_content[:500]}")
-
-        content = yaml_content.strip()
-        if content.startswith("```"):
-            content = re.sub(r"^```(?:json)?\s*\n?", "", content)
-            content = re.sub(r"\n?```\s*$", "", content)
-            content = content.strip()
-
-        content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', ' ', content)
-
-        try:
-            semantic = json.loads(content)
-        except json.JSONDecodeError as je:
-            print(f"[SemanticGen] JSON parse failed: {je}")
-            repaired = _repair_truncated_json(content)
-            if repaired is not None:
-                semantic = repaired
-                print("[SemanticGen] JSON repaired from truncated output")
-            else:
-                for _ in range(3):
-                    content += "}"
-                    try:
-                        semantic = json.loads(content)
-                        print("[SemanticGen] JSON repaired by closing braces")
-                        break
-                    except json.JSONDecodeError:
-                        continue
-                else:
-                    raise RuntimeError(f"[SemanticGen] JSON repair failed: {je}")
-
-        if not isinstance(semantic, dict):
-            print(f"[SemanticGen] Parsed type: {type(semantic)}, value: {str(semantic)[:200]}")
-            raise ValueError("LLM did not return a valid JSON dict")
-
-        required_keys = ["table_name", "columns", "metrics"]
-        for key in required_keys:
-            if key not in semantic:
-                raise ValueError(f"LLM output missing required key: {key}")
-
-        semantic["table_name"] = "events"
-
-        if isinstance(semantic.get("columns"), list):
-            cols_dict = {}
-            for col in semantic["columns"]:
-                col_name = col.pop("column_name", None) or col.pop("name", None) or col.get("business_name", "")
-                if col_name:
-                    cols_dict[col_name] = col
-            semantic["columns"] = cols_dict
-
-        if isinstance(semantic.get("metrics"), list):
-            metrics_dict = {}
-            for i, m in enumerate(semantic["metrics"]):
-                metric_name = m.pop("name", None) or m.pop("metric_name", None) or m.get("business_name", "")
-                safe_name = re.sub(r'[^a-zA-Z0-9\u4e00-\u9fff_]', '_', metric_name) if metric_name else f"metric_{i}"
-                if safe_name in metrics_dict:
-                    safe_name = f"{safe_name}_{i}"
-                if safe_name:
-                    metrics_dict[safe_name] = m
-            semantic["metrics"] = metrics_dict
-
-        if isinstance(semantic.get("event_definitions"), list):
-            events_dict = {}
-            for e in semantic["event_definitions"]:
-                evt_name = e.pop("event_name", None) or e.pop("name", None) or e.get("business_name", "")
-                if evt_name:
-                    events_dict[evt_name] = e
-            semantic["event_definitions"] = events_dict
-
-        columns = semantic.get("columns", {})
-        has_event_date = any("event_date" in str(k) or "日期" in str(v.get("business_name", "")) for k, v in (columns.items() if isinstance(columns, dict) else []))
-        has_event_hour = any("event_hour" in str(k) or "小时" in str(v.get("business_name", "")) for k, v in (columns.items() if isinstance(columns, dict) else []))
-
-        time_cols = [k for k, v in (columns.items() if isinstance(columns, dict) else []) if "time" in k.lower() or "时间" in str(v.get("business_name", ""))]
-        if time_cols and not has_event_date:
-            src_col = time_cols[0]
-            columns["event_date"] = {
-                "business_name": "事件日期",
-                "type": "date",
-                "role": "dimension",
-                "description": f"从{src_col}提取的日期",
-                "derived": True,
-                "derived_from": src_col,
-                "derivation_logic": "date",
-            }
-        if time_cols and not has_event_hour:
-            src_col = time_cols[0]
-            columns["event_hour"] = {
-                "business_name": "事件小时",
-                "type": "integer",
-                "role": "dimension",
-                "description": f"从{src_col}提取的小时",
-                "derived": True,
-                "derived_from": src_col,
-                "derivation_logic": "hour",
-            }
-        semantic["columns"] = columns
-
-        if "semantic_config" in semantic and project_type == "behavior_analysis":
-            llm_config = semantic.pop("semantic_config")
-            _save_semantic_config(dm.project_dir, llm_config)
-
-        _save_full_semantic_config(dm.project_dir, semantic)
-
-        semantic["config_file"] = "semantic_config.json"
-
-        return semantic
-
-    except Exception as e:
-        raise RuntimeError(f"[SemanticGen] LLM generation failed: {e}") from e
+# Phase 6: generate_semantic_layer_with_llm removed. LLM path deprecated.
+# Metrics and events are now Agent-driven via define_metric / register_events.
 
 
 def generate_semantic_layer(
@@ -1177,27 +1054,11 @@ def generate_semantic_layer(
     use_llm: bool = True,
     reference_context: str = "",
 ) -> dict:
-    if use_llm:
-        if llm_client.is_available():
-            try:
-                return generate_semantic_layer_with_llm(dm, project_type, reference_context=reference_context)
-            except Exception as e:
-                print(f"[SemanticGen] LLM generation failed: {e}, falling back to rules")
-        else:
-            schema = _analyze_schema(dm)
-            table_name = dm.get_full_semantic_layer().get("table_name", "events")
-            low_card = schema.get("low_cardinality_values", "")
-            if reference_context:
-                prompt = SCHEMA_ANALYSIS_PROMPT_WITH_REFS.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card).replace("{reference_context}", reference_context)
-            else:
-                prompt = SCHEMA_ANALYSIS_PROMPT.replace("{table_name}", table_name).replace("{project_type}", project_type).replace("{total_rows}", str(schema["total_rows"])).replace("{total_columns}", str(schema["total_columns"])).replace("{columns_detail}", schema["columns_detail"]).replace("{sample_data}", schema["sample_data"]).replace("{statistics}", schema["statistics"]).replace("{low_card_values}", low_card)
-            raise llm_client.LlmDelegationNeeded(
-                task_id=uuid.uuid4().hex[:12],
-                prompt=prompt,
-                system_msg="You are a data analyst expert. Respond with valid JSON only, no markdown fences.",
-                max_tokens=32768,
-            )
-
+    """
+    Phase 6: Always uses rule-based schema analysis only.
+    LLM path removed. Metrics and events are now Agent-driven (define_metric / register_events).
+    use_llm parameter kept for backward compatibility but ignored.
+    """
     return _generate_semantic_layer_rules(dm, project_type)
 
 
