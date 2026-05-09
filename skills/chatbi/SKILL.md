@@ -1,7 +1,7 @@
 ---
 name: chatbi
-description: "Conversational data analysis via ChatBI MCP: import data, check quality, query with semantics, visualize with intent-driven charts, build dashboards."
-version: 0.2.0
+description: "Conversational data analysis via ChatBI MCP: import data, inject metrics/events, query with semantics, visualize with intent-driven charts, build dashboards."
+version: 0.3.0
 metadata:
   hermes:
     tags: [data-analysis, mcp, charts, dashboard, duckdb, sql, visualization]
@@ -12,204 +12,162 @@ metadata:
 
 # ChatBI — Conversational Data Analysis
 
-Analyze data through the ChatBI MCP server. Supports multi-project management, 3-level query protocol (L1/L2/L3), intent-driven visualization, and spec-driven dashboards.
+Analyze data through the ChatBI MCP server. Supports multi-project configuration injection, 3-level query protocol (L1/L2/L3), intent-driven visualization, and spec-driven dashboards.
 
-## Prerequisites
+## Architecture: Split-Workflow
 
-- ChatBI MCP server must be configured in `config.yaml` under `mcp_servers.chatbi`
-- Tools are prefixed `mcp_chatbi_*` (e.g. `mcp_chatbi_create_project`)
-- DEEPSEEK_API_KEY must be set in the server env config
+```
+Agent reads reference docs (openpyxl) → Derives KPI formulas & event mappings
+  → Injects via define_metric / register_events → MCP validates SQL
+  → Agent queries → MCP renders charts → dashboard_spec.json exported
+```
+
+**MCP (this server)**: data storage, query execution, SQL validation, chart rendering, dashboard persistence.
+**Agent (Hermes/Claude/Trae)**: reads reference documents, derives KPI definitions, injects metrics/events into MCP.
 
 ## When to Use This Skill
 
-Use ChatBI tools when the user wants to:
-
-- **Analyze data files** (CSV, Excel, JSON) — create a project, let ChatBI handle ingestion
-- **Query data** with natural language — use semantic_query (L1/L2) or raw_sql (L3)
+- **Analyze data files** (CSV, Excel) — create a project, let MCP handle ingestion + schema audit
+- **Configure semantics** — inject metrics via `define_metric`, events via `register_events`
+- **Query data** — use `semantic_query` (L1/L2) or `raw_sql` (L3)
 - **Visualize data** — render charts with intent-driven selection
-- **Build dashboards** — generate complete dashboards from specs
+- **Build dashboards** — generate from specs, export as self-contained HTML
 - **Check data quality** — deep audit with industry-specific rules
-- **Explore a dataset** — understand columns, metrics, events before querying
-
-Do NOT write custom Python scripts to read Excel/CSV files when ChatBI can handle them natively. Use `mcp_chatbi_create_project` instead.
 
 ## Workflow
 
-### 1. Create Project (Interactive Pipeline)
+### 1. Create Project (Schema Analysis Only)
 
 ```
-mcp_chatbi_create_project(name="Sales Analysis", data_files=["/path/to/sales.xlsx"])
+mcp_chatbi_create_project(name="Sales Analysis", data_files=["/path/to/data.xlsx"])
 ```
 
-This starts the 6-stage pipeline:
-1. **INGEST** — file classification + data audit
-2. **ALIGN** — review AI's data understanding
-3. **MAP** — generate semantic layer (metrics, dimensions, events)
-4. **VERIFY** — SQL validation + quality checks
-5. **BUILD** — build with business domain tags
-6. **SERVE** — dashboard ready
+MCP imports data, runs schema analysis (DataAuditor), returns column/types/quality info.
+**Reference documents (KPI definitions, data dictionaries) are read by Agent directly — NOT by MCP.**
 
-After build, **always run data quality check**:
+### 2. Agent Reads Reference Docs & Injects Semantics
+
+Agent reads KPI docs (openpyxl) → derives metrics:
 
 ```
-mcp_chatbi_review_data_issues(project_type="behavior_analysis")
+mcp_chatbi_define_metric(name="dau", sql="COUNT(DISTINCT reduser_id)", business_name="日活用户", ...)
+mcp_chatbi_define_metric(name="porsche_active_rate", sql="...", business_name="Porsche+活跃率(%)", metric_type="rate")
 ```
 
-Show all issues (errors/warnings/suggestions) to the user. Discuss each one. Do NOT auto-fix.
+Agent reads event data → registers events:
 
-### 2. Explore the Data
+```
+mcp_chatbi_register_events(events={
+  "discovery_page_pageshow": {"business_name": "发现页曝光", "sql_pattern": "span_name = 'discovery_page_pageshow'"},
+  "porsche_page_pageshow": {"business_name": "Porsche+页曝光", "sql_pattern": "span_name = 'porsche_page_pageshow'"},
+  ...
+})
+```
+
+Agent validates metrics:
+
+```
+mcp_chatbi_validate_metric(metric_name="dau")
+```
+
+### 3. Explore the Data
 
 ```
 mcp_chatbi_get_semantic_context(section="all")
+mcp_chatbi_explore_column_values(column="span_name", pattern="%porsche%")
 ```
 
-Show the user available metrics, dimensions, and events.
-
-```
-mcp_chatbi_explore_column_values(column="event_type", pattern="%click%")
-```
-
-Always explore column values before writing SQL filters.
-
-### 3. Query (Returns Data Only, No Charts)
+### 4. Query (Returns Data Only)
 
 **L1 — Structured Query:**
 ```
-mcp_chatbi_semantic_query(
-  level="L1",
-  metric="dau",
-  dimensions=["event_date"],
-  filters=[{"field": "event_date", "op": "gte", "value": "2024-01-01"}]
-)
+mcp_chatbi_semantic_query(level="L1", metric="dau", dimensions=["event_date"],
+  filters=[{"field": "event_date", "op": "gte", "value": "2024-01-01"}])
 ```
 
-**L2 — Analysis Templates:**
-```
-# Retention
-mcp_chatbi_semantic_query(level="L2", analysis_type="retention",
-  analysis_params={"anchor_event": "signup", "return_event": "login", "day_offsets": [1,3,7]})
+**L2 — Analysis Templates:** retention, funnel, period_over_period
+**L3 — Raw SQL:** `mcp_chatbi_raw_sql(sql="...")`
 
-# Funnel
-mcp_chatbi_semantic_query(level="L2", analysis_type="funnel",
-  analysis_params={"steps": ["view_page", "add_cart", "purchase"], "within_days": 7})
+### 5. Visualize
 
-# Period over Period
-mcp_chatbi_semantic_query(level="L2", analysis_type="period_over_period",
-  analysis_params={"metric": "revenue", "dimension": "date", "period_type": "day"})
-```
+Preview: `mcp_chatbi_render_chart(confirm=True)` → Render: `mcp_chatbi_render_chart(chart_type="line")`
 
-**L3 — Raw SQL:**
-```
-mcp_chatbi_raw_sql(sql="SELECT event_date, COUNT(*) FROM events GROUP BY event_date LIMIT 100")
-```
-
-**Important:** Show query results to the user (SQL, row count, columns, preview data) before rendering charts.
-
-### 4. Visualize (Interactive Confirmation)
-
-**Preview first:**
-```
-mcp_chatbi_render_chart(
-  data=<query_result>,
-  intent="Show daily active users trend over time",
-  confirm=True
-)
-```
-
-Show the render spec to the user (chart type, reasoning, alternatives). Let them confirm or adjust.
-
-**Then render:**
-```
-mcp_chatbi_render_chart(
-  data=<query_result>,
-  intent="Show daily active users trend over time",
-  chart_type="line"
-)
-```
-
-### 5. Save and Export
+### 6. Save & Export
 
 ```
 mcp_chatbi_save_chart_to_dashboard(dashboard_name="KPI Dashboard", chart={...})
-mcp_chatbi_export_dashboard(dashboard_name="KPI Dashboard", theme="ggplot2_minimal")
+mcp_chatbi_save_dashboard_as_spec(dashboard_name="KPI Dashboard")
+mcp_chatbi_validate_dashboard_spec()
+mcp_chatbi_export_dashboard(dashboard_name="KPI Dashboard")
 ```
 
-## Tool Reference (26 tools)
+## Tool Reference (33 tools)
 
-### Project Management
+### Project Management (6)
 | Tool | Purpose |
 |------|---------|
-| `mcp_chatbi_create_project` | Create project (6-stage interactive) |
-| `mcp_chatbi_list_projects` | List all projects |
-| `mcp_chatbi_switch_project` | Switch active project |
-| `mcp_chatbi_get_current_project` | Get current project info |
-| `mcp_chatbi_delete_project` | Delete a project |
-| `mcp_chatbi_migrate_project` | Migrate old project format |
+| `create_project` | Create project (schema analysis only) |
+| `list_projects` | List all projects |
+| `switch_project` | Switch active project |
+| `get_current_project` | Get current project info |
+| `delete_project` | Delete a project |
+| `migrate_project` | Migrate old project format |
 
-### Pipeline
+### Semantic Injection — Agent-Driven (3)
 | Tool | Purpose |
 |------|---------|
-| `mcp_chatbi_execute_pipeline_step` | Execute single pipeline step (resumable) |
-| `mcp_chatbi_regenerate_semantic_layer` | Regenerate semantic layer |
+| `define_metric` | Define/update a single metric (Agent's primary injection channel) |
+| `register_events` | Batch register/update events |
+| `validate_metric` | Validate a single metric's SQL |
 
-### Data Understanding & Quality
+### Data Understanding & Quality (5)
 | Tool | Purpose |
 |------|---------|
-| `mcp_chatbi_review_data_understanding` | Review AI's data understanding report |
-| `mcp_chatbi_review_data_issues` | Deep data quality check with industry rules |
-| `mcp_chatbi_update_column_mapping` | Modify column business name, type, derived logic |
-| `mcp_chatbi_update_event_mapping` | Modify event name and SQL pattern |
-| `mcp_chatbi_update_metric` | Add/remove/adjust metric definitions |
+| `review_data_understanding` | Review semantic layer report |
+| `review_data_issues` | Deep data quality check |
+| `update_column_mapping` | Modify column metadata |
+| `update_event_mapping` | Modify event definitions |
+| `update_metric` | Bulk metric CRUD |
 
-### Semantic Layer
+### Semantic Layer (3)
 | Tool | Purpose |
 |------|---------|
-| `mcp_chatbi_get_semantic_context` | Get semantic layer metadata |
-| `mcp_chatbi_validate_semantic_layer` | Validate SQL + data quality + coverage |
-| `mcp_chatbi_explore_column_values` | Explore distinct values in a column |
+| `get_semantic_context` | Get semantic layer metadata |
+| `validate_semantic_layer` | Full-layer SQL validation |
+| `explore_column_values` | Explore distinct values |
 
-### Query & Analysis
+### Query & Analysis (2)
 | Tool | Purpose |
 |------|---------|
-| `mcp_chatbi_semantic_query` | L1 structured / L2 analysis templates |
-| `mcp_chatbi_raw_sql` | L3 raw SQL (read-only, max 2000 rows) |
+| `semantic_query` | L1/L2 queries |
+| `raw_sql` | L3 raw SQL (read-only) |
 
-### Visualization & Dashboard
+### Visualization & Dashboard (10)
 | Tool | Purpose |
 |------|---------|
-| `mcp_chatbi_render_chart` | Intent-driven chart (confirm/use_llm params) |
-| `mcp_chatbi_generate_dashboard_from_spec` | Generate full dashboard from spec JSON |
-| `mcp_chatbi_list_dashboards` | List dashboards |
-| `mcp_chatbi_create_dashboard` | Create empty dashboard |
-| `mcp_chatbi_save_chart_to_dashboard` | Save chart to dashboard |
-| `mcp_chatbi_delete_chart` | Delete a chart |
-| `mcp_chatbi_delete_dashboard` | Delete a dashboard |
-| `mcp_chatbi_export_dashboard` | Export dashboard as self-contained HTML |
+| `render_chart` | Intent-driven chart |
+| `generate_dashboard_from_spec` | Generate dashboard from spec |
+| `save_dashboard_as_spec` | Export dashboard as versioned spec JSON |
+| `validate_dashboard_spec` | Validate spec structure + metric refs |
+| `list_dashboards` | List dashboards |
+| `create_dashboard` | Create empty dashboard |
+| `save_chart_to_dashboard` | Save chart to dashboard |
+| `delete_chart` | Delete a chart |
+| `delete_dashboard` | Delete a dashboard |
+| `export_dashboard` | Export as self-contained HTML |
+
+### Pipeline & LLM (4)
+| Tool | Purpose |
+|------|---------|
+| `execute_pipeline_step` | Execute single pipeline step |
+| `regenerate_semantic_layer` | Regenerate (full fallback, use with caution) |
+| `llm_status` | Check LLM mode |
+| `submit_llm_result` | Submit Agent LLM result |
 
 ## Key Principles
 
-- **Query and render are separate** — `semantic_query` returns data only, `render_chart` handles visualization
-- **Show results at each step** — query results → render spec → final chart
+- **Agent reads reference docs, MCP does not** — Agent uses openpyxl to read KPI/dictionary files
+- **Query and render are separate** — `semantic_query` returns data only
+- **Show results at each step** — schema → metric injection → query → chart spec → final chart
 - **Intent-driven** — describe visualization goals, not chart types
-- **All ECharts types supported** — line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.
-- **LLM-assisted chart selection** — auto-downgrades to rules when no API key
-
-## Data Quality Rules
-
-`review_data_issues` applies industry-specific checks:
-
-- **Generic** (all projects): null rate, duplicates, future dates, negatives, single-value cols
-- **Behavior analysis**: event format, low-freq events, session anomalies, date gaps
-- **Time series**: interval consistency, value spikes, stale data
-
-Always present findings to the user and collect decisions. Do NOT auto-process.
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Tools not showing | Restart `hermes chat` to reconnect MCP server |
-| `DEEPSEEK_API_KEY not set` | Add to `config.yaml` → `mcp_servers.chatbi.env` |
-| `numpy` compatibility error | Install `numpy<2.0.0` in server's Python env |
-| DuckDB file locked | Close other connections to the project |
-| Chart type mismatch | Use `confirm=True` to preview before rendering |
+- **Spec-driven dashboards** — `dashboard_spec.json` as the portable intermediate artifact

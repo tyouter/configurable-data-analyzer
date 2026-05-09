@@ -16,7 +16,32 @@ trigger:
 
 通过 ChatBI MCP Server 对项目数据进行分析。MCP Server 已在 `.mcp.json` 中配置，所有工具自动可用。
 
+## 架构：Split-Workflow
+
+Agent（理解层）从参考文档推导KPI → 注入MCP语义层 → MCP查询+渲染+导出。
+MCP 不读取或解释参考文档。Agent 使用 define_metric / register_events 注入语义。
+
 ## 交互式工作流程
+
+### 0. 创建项目 + 注入语义（配置注入模式）
+
+```
+# 1. MCP 创建项目（仅 schema 分析，不做文档理解）
+create_project(name="分析项目", data_files=["/path/to/data.xlsx"])
+  → 返回列名/类型/质量信息
+
+# 2. Agent 读取参考文档 (openpyxl) → 推导KPI → 注入MCP
+define_metric(name="dau", sql="COUNT(DISTINCT reduser_id)", business_name="日活用户")
+register_events(events={"discovery_page_pageshow": {"business_name": "发现页曝光", ...}, ...})
+
+# 3. 验证单指标
+validate_metric(metric_name="dau")
+
+# 4. 查询 + 渲染 + 导出
+semantic_query(level="L1", metric="dau", dimensions=["event_date"])
+render_chart(...)
+save_dashboard_as_spec(dashboard_name="KPI看板")
+```
 
 ### 1. 确认当前项目
 
@@ -90,17 +115,15 @@ save_chart_to_dashboard(dashboard_name="KPI看板", chart={...})
 export_dashboard(dashboard_name="KPI看板", theme="ggplot2_minimal")
 ```
 
-## 项目创建（多阶段交互）
+## 项目创建（仅 schema 分析）
 
 ```
-1. create_project(name, data_files) → 审计报告
-2. 向用户展示分类结果，询问是否修正
-3. create_project(action="confirm", confirmed_raw_files=[...])
-4. create_project(action="build") → 导入数据 + 语义层生成
-   - 如果返回 `needs_llm_delegation=true`，按「LLM 委托流程」处理
-5. review_data_issues(project_type="behavior_analysis") → 数据质量检查
-   向用户展示发现的问题（错误/警告/建议），逐个确认处理方式
-6. get_semantic_context() → 展示给用户检查
+1. create_project(name, data_files) → schema 审计报告（列名/类型/质量）
+2. 参考文档由 Agent 直接读取 (openpyxl)，不走 MCP
+3. Agent 用 define_metric / register_events 注入语义层
+4. review_data_issues(project_type="behavior_analysis") → 数据质量检查
+   向用户展示发现的问题，逐个确认处理方式
+5. get_semantic_context() → 展示给用户检查
 ```
 
 ### LLM 委托流程

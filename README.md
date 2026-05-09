@@ -4,8 +4,9 @@ Project-agnostic conversational data analysis platform, exposing data analysis c
 
 ## Highlights
 
+- **Agent-Driven Semantic Injection** — Agent reads reference docs, injects metrics/events via `define_metric`/`register_events` into MCP semantic layer
+- **Split-Workflow** — Agent handles understanding, MCP handles data & rendering; clean boundary
 - **Spec-Driven Dashboard** — Define chart specs in JSON, auto-generate complete dashboard with one tool call
-- **6-Stage Pipeline** — INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE, with human-in-the-loop checkpoints
 - **3-Level Query** — L1 structured query / L2 analysis templates (retention, funnel, PoP) / L3 raw SQL
 - **8+ Chart Types** — line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, plus any ECharts type (area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
 - **Intent-Driven Rendering** — Semantic layer describes visualization goals, rendering layer dynamically selects chart type via LLM + rules
@@ -40,7 +41,7 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup with different MCP clients
 └────────────────────┬────────────────────────────┘
                      │ MCP Protocol
 ┌────────────────────▼────────────────────────────┐
-│  server.py — Thin MCP Wrapper (26 tools)        │
+│  server.py — Thin MCP Wrapper (33 tools)        │
 └────────────────────┬────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────┐
@@ -53,20 +54,20 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup with different MCP clients
 └─────────────────────────────────────────────────┘
 ```
 
-## 6-Stage Pipeline
+## Split-Workflow
 
 ```
-INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ SERVE
-  │          │        │       │          │         │
-  │          │        │       │          │         └─ Dashboard display
-  │          │        │       │          └─ Domain-grouped generation
-  │          │        │       └─ SQL validation + data quality
-  │          │        └─ Semantic layer generation
-  │          └─ User confirms data understanding
-  └─ File import + classification + audit
+Agent（理解层）                         MCP（数据层）
+  ├─ 读取参考文档 (openpyxl)              ├─ DuckDB 存储/查询
+  ├─ 推导 KPI 口径                        ├─ 语义层管理（指标注册/SQL验证）
+  ├─ 发现业务事件                         ├─ 数据质量审计
+  ├─ 注入指标/事件到 MCP                  ├─ 图表渲染（ECharts inline）
+  └─ 编排查询→渲染→Dashboard             └─ Dashboard 持久化/导出
 ```
 
-## MCP Tools (26)
+Agent 负责理解、MCP 负责执行。参考文档永远由 Agent 读取，不走 MCP。
+
+## MCP Tools (33)
 
 ### Project Management
 
@@ -77,6 +78,14 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
 | `switch_project` | Switch current project |
 | `get_current_project` | Get current project info |
 | `delete_project` | Delete a project |
+
+### Semantic Injection (Agent-Driven)
+
+| Tool | Description |
+|------|-------------|
+| `define_metric` | Define or update a single metric |
+| `register_events` | Batch register or update events |
+| `validate_metric` | Validate a single metric's SQL |
 
 ### Pipeline & Migration
 
@@ -123,6 +132,8 @@ INGEST ──▶ ALIGN ──▶ MAP ──▶ VERIFY ──▶ BUILD ──▶ 
 | `delete_chart` | Delete a chart |
 | `delete_dashboard` | Delete a dashboard |
 | `export_dashboard` | Export as self-contained HTML |
+| `save_dashboard_as_spec` | Export dashboard as versioned spec JSON |
+| `validate_dashboard_spec` | Validate spec structure + metric refs |
 
 ## Configuration
 
