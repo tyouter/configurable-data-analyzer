@@ -277,7 +277,7 @@ def _phase_build(
     project_type: Optional[str],
 ) -> dict:
     # Phase 6: Semantic generation is now Agent-driven.
-    # _phase_build only imports data and creates derived columns.
+    # _phase_build imports data, creates derived columns, initializes config skeleton.
     # Metrics and events are injected by Agent via define_metric / register_events.
     r1 = pipeline_load_data(session, project_id, project_type)
     if "error" in r1:
@@ -287,7 +287,45 @@ def _phase_build(
     if "error" in r2:
         return r2
 
+    # Initialize semantic_config.json skeleton (columns only, no metrics/events)
+    r_schema = _init_semantic_config(session, project_id)
+    if "error" in r_schema:
+        return r_schema
+
     return pipeline_save_semantic(session, project_id)
+
+
+def _init_semantic_config(session: ProjectSession, project_id: str) -> dict:
+    """Create initial semantic_config.json with column definitions only."""
+    import json as _json
+    dm = session.get_dm(project_id)
+    project = session.store.get_project(project_id)
+    cols = dm.get_schema_info()
+    columns = {}
+    for c in cols:
+        columns[c["column"]] = {
+            "business_name": c["column"],
+            "type": "string",
+            "role": "dimension",
+            "description": f"Column: {c['column']}",
+        }
+    config = {
+        "columns": columns,
+        "metrics": {},
+        "events": {},
+        "project_type": dm.project.project_type,
+    }
+    config_path = os.path.join(PROJECTS_DIR, project_id, "semantic_config.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        _json.dump(config, f, ensure_ascii=False, indent=2)
+    # Update project to point to the config file
+    project.semantic_layer = {
+        "table_name": "events",
+        "config_file": "semantic_config.json",
+    }
+    session.store.save_project(project)
+    dm.invalidate_semantic_cache()
+    return {"step": "init_semantic_config", "status": "completed", "columns": len(columns)}
 
 
 def execute_pipeline_step(
