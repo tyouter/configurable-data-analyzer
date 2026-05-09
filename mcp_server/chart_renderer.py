@@ -9,6 +9,7 @@ import json
 from typing import Optional
 
 from mcp_server.themes import load_theme, deep_merge, list_themes
+from mcp_server.echarts_inline import get_echarts_js as _get_inline_echarts
 
 DEFAULT_THEME = "ggplot2_minimal"
 
@@ -460,7 +461,7 @@ async def render_chart_to_image(option: dict, width: int = 800, height: int = 50
     <html>
     <head>
         <meta charset="utf-8">
-        <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+        <script>""" + _get_inline_echarts() + """</script>
     </head>
     <body style="margin:0;background:#fff;">
         <div id="chart" style="width:{width}px;height:{height}px;"></div>

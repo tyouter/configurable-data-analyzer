@@ -90,3 +90,6 @@ mcp_server/test_project_system.py
 
 # Parsed external content (auto-generated)
 parsed_results/
+
+# ECharts runtime cache
+mcp_server/.echarts_cache.js

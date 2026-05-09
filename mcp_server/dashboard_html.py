@@ -11,6 +11,7 @@ import os
 from typing import Optional
 
 from mcp_server.themes import load_theme, list_themes
+from mcp_server.echarts_inline import get_echarts_js as _get_inline_echarts
 
 _STYLE_KEYS = frozenset({
     "color", "backgroundColor", "textStyle",
@@ -255,7 +256,7 @@ def render_dashboard_html(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_esc(dashboard_title)} - {_esc(project_name)}</title>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>""" + _get_inline_echarts() + """</script>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{
