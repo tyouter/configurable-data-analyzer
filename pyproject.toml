@@ -58,6 +58,16 @@ mcp_server = ["py.typed", "themes/*.json"]
 target-version = "py310"
 line-length = 120
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "characterization: golden master characterization tests",
+]
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501"]
