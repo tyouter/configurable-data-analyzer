@@ -1,0 +1,7 @@
+# DeepSeek TUI — ChatBI 项目级配置
+# 覆盖全局 ~/.deepseek/config.toml
+
+reasoning_effort = "max"
+
+[projects.'\\?\D:\Hermes\projects\chatbi']
+trust_level = "trusted"

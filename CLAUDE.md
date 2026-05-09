@@ -1,239 +1,70 @@
-# ChatBI MCP Server
+# ChatBI MCP Server — Architecture Decisions & Engineering Conventions
 
-Project-agnostic conversational data analysis platform via MCP protocol.
+> **What this file is**: Architectural constraints and engineering rules that are NOT discoverable from source code.
+> **What this file is NOT**: API docs, tool lists, or configuration guides (those live in README.md and source).
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│  Client Layer (Claude Desktop / Trae / Cursor)  │
-└────────────────────┬────────────────────────────┘
-                     │ MCP Protocol
-┌────────────────────▼────────────────────────────┐
-│  server.py — Thin MCP Wrapper (28 tools)        │
-└────────────────────┬────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────┐
-│  Service Layer (single source of truth)          │
-├─────────────┬──────────────┬─────────────────────┤
-│ project.py  │ query.py     │ dashboard.py        │
-│ context.py  │              │                     │
-├─────────────┴──────────────┴─────────────────────┤
-│  Core Modules                                    │
-├─────────────┬──────────────┬─────────────────────┤
-│ Model+DuckDB│ SemanticGen  │ ChartRenderer       │
-│ Validator   │ Templates    │ DashboardHtml       │
-│ Themes      │ LLM Client   │ Store               │
-└─────────────┴──────────────┴─────────────────────┘
-```
-
-## Project Structure
+## Architecture: Agent ↔ MCP Boundary
 
 ```
-mcp_server/
-├── server.py               # MCP entry (28 tools, thin wrapper)
-├── cli.py                  # CLI interface (chatbi command)
-├── service/                # Service layer
-│   ├── project.py          # Project CRUD + pipeline
-│   ├── query.py            # L1/L2/L3 query engine + data quality review
-│   ├── dashboard.py        # Dashboard + chart + spec generation
-│   └── context.py          # Semantic context + validation
-├── project_model.py        # Project model + DuckDB manager
-├── semantic_generator.py   # LLM semantic layer generation
-├── semantic_validator.py   # SQL + data quality validation
-├── semantic_query.py       # SQL builder + validation utils
-├── analysis_templates.py   # L2 templates (retention/funnel/period)
-├── chart_selector.py       # Intent-driven chart type resolution (LLM + rules)
-├── chart_renderer.py       # ECharts chart generation (all types)
-├── dashboard_html.py       # Dashboard HTML renderer (domain grouping + dark mode)
-├── dashboard_store.py      # Dashboard persistence + quality check
-├── llm_client.py           # Multi-provider LLM client
-├── file_classifier.py      # File type classification
-├── data_auditor.py         # Data quality auditing + industry-driven deep audit
-├── data_skills/            # Industry data quality rules
-│   ├── generic.py          #   Null rate, duplicates, future dates, negatives
-│   ├── behavior_analysis.py#   Event format, session anomalies, date gaps
-│   └── time_series.py      #   Interval consistency, spikes, stale data
-├── reference_parser.py     # Reference document parsing
-└── themes/                 # ECharts themes (ggplot2_minimal / ggplot2_dark)
+Agent (Hermes / Claude / Trae)  →  Understanding Layer
+  ├─ Read reference docs (openpyxl, standard I/O)
+  ├─ Derive KPI definitions & event mappings
+  ├─ Inject metrics/events into MCP via tools
+  └─ Orchestrate query → render → dashboard flow
+
+MCP Server (this repo)           →  Data Layer
+  ├─ DuckDB storage & query (L1/L2/L3)
+  ├─ Semantic layer management (metric registration, SQL validation)
+  ├─ Data quality auditing (industry rules)
+  ├─ Chart rendering (ECharts, inline preferred)
+  └─ Dashboard persistence & export (JSON + self-contained HTML)
 ```
 
-## Core Capabilities
+**Hard rule**: MCP never reads or interprets reference documents. Agent handles all understanding.
 
-### 6-Stage Interactive Pipeline
-
-```
-INGEST → ALIGN → MAP → VERIFY → BUILD → SERVE
-```
-
-Each stage has checkpoint persistence, supporting resume from any point.
-
-### 3-Level Query Protocol
-
-| Level | Method | Description |
-|-------|--------|-------------|
-| L1 | `semantic_query(level="L1")` | Metric + dimensions + filters → auto SQL |
-| L2 | `semantic_query(level="L2")` | Retention/funnel/period-over-period templates |
-| L3 | `raw_sql()` | Raw SQL fallback with safety limits |
-
-Query and rendering are separated: `semantic_query` returns data + metadata only. Agent shows results to user, then calls `render_chart` separately.
-
-### Intent-Driven Chart Selection
+## Split-Workflow (Validated Pattern)
 
 ```
-visualization_goal (semantic layer) → chart_selector.resolve_chart_type() → chart_renderer
+Agent reads reference docs → Derives KPI formulas → Injects via define_metric/register_events
+→ MCP validates SQL → Agent queries → MCP renders charts → dashboard_spec.json exported
 ```
 
-- **Priority**: user explicit type > LLM inference from intent > rule-based fallback
-- **confirm mode**: `render_chart(intent, confirm=True)` returns spec for user review
-- **LLM optional**: works without API key (rule-based fallback)
-- Supports all ECharts chart types via generic option builder
+## Config Injection Architecture
 
-### Data Quality Layer
+Each project has independent:
+- DuckDB file (`{project_id}.duckdb`)
+- Semantic config (`semantic_config.json`)
+- Dashboard spec (`dashboard_spec.json`)
 
-After data import, `review_data_issues` runs industry-driven quality checks:
-- **Generic**: null rate, duplicates, future dates, negative values, single-value cols
-- **Behavior analysis**: event name format, low-freq events, session anomalies, date gaps
-- **Time series**: interval consistency, value spikes, stale data
+Metrics and events are injected by Agent, not auto-generated by MCP.
 
-Returns errors/warnings/suggestions for Agent to discuss with user.
-User decisions are saved as `data_cleaning` rules in semantic config, applied as DuckDB views.
+## Downstream Sync Checklist
 
-### Dashboard Features
+When MCP tools change (add/rename/delete/modify signature), must sync:
 
-- Spec-driven dashboard generation (`generate_dashboard_from_spec`)
-- Business domain grouping with KPI cards and charts
-- Global time filter (JavaScript front-end filtering)
-- Dark mode toggle (ggplot2_minimal / ggplot2_dark themes)
-- All ECharts chart types supported (line, bar, pie, funnel, scatter, bar_line, boxplot, ranking_bar, area, radar, gauge, ring, stackedBar, candlestick, heatmap, treemap, sankey, etc.)
-- Funnel chart with automatic conversion rates
+| Source Change | Files to Sync |
+|--------------|---------------|
+| MCP tool added/removed/renamed | `skills/chatbi/SKILL.md`, `README.md` tool table, `.trae/skills/data-analysis/SKILL.md` |
+| Tool parameter signature changed | Same as above |
+| Project model changed | This file (architecture section) |
+| Dependency changed | `pyproject.toml`, `requirements.txt` |
+| Version bumped | `pyproject.toml`, `mcp_server/__init__.py` |
 
-## MCP Tools (28)
+## Test Discipline (TDD)
 
-### Project Management (5)
+- Red-green-refactor micro-cycle within each Phase
+- Characterization tests lock existing behavior before refactoring
+- Golden reference: `hermes-planning/data/rednote-bi-semantic-reference.json` (34 metrics, 14 events)
+- Target: ≥80% coverage at Phase 5
 
-| Tool | Function |
-|------|----------|
-| `create_project` | Create project (6-stage interactive pipeline) |
-| `list_projects` | List all projects |
-| `switch_project` | Switch current project |
-| `get_current_project` | Get current project info |
-| `delete_project` | Delete a project |
+## Git Strategy
 
-### Pipeline & Migration (3)
+- Branch: `refactor/phase-N` per Phase, merge to `master` on completion
+- Commit granularity: one logical change per commit
+- Commit format: `[Phase N] brief description`
+- Rollback: `git revert`, never force-push to master
 
-| Tool | Function |
-|------|----------|
-| `execute_pipeline_step` | Execute single pipeline step |
-| `regenerate_semantic_layer` | Regenerate semantic layer |
-| `migrate_project` | Migrate old project format |
+## Current State
 
-### LLM Mode (2)
-
-| Tool | Function |
-|------|----------|
-| `llm_status` | Query LLM mode (direct/agent) and API key status |
-| `submit_llm_result` | Submit Agent LLM result for delegation flow |
-
-### Data Understanding & Quality (5)
-
-| Tool | Function |
-|------|----------|
-| `review_data_understanding` | Review AI's data understanding report |
-| `review_data_issues` | Deep data quality check with industry rules |
-| `update_column_mapping` | Modify column business name, type, derived logic |
-| `update_event_mapping` | Modify event name and SQL pattern |
-| `update_metric` | Add/remove/adjust metric definitions |
-
-### Semantic Layer (3)
-
-| Tool | Function |
-|------|----------|
-| `get_semantic_context` | Get semantic layer metadata |
-| `validate_semantic_layer` | Validate SQL + data quality + coverage |
-| `explore_column_values` | Explore distinct values in a column |
-
-### Query & Analysis (2)
-
-| Tool | Function |
-|------|----------|
-| `semantic_query` | Structured query (L1) or analysis template (L2) |
-| `raw_sql` | Raw SQL query (L3 fallback) |
-
-### Visualization & Dashboard (8)
-
-| Tool | Function |
-|------|----------|
-| `render_chart` | Intent-driven chart generation (intent/confirm/use_llm) |
-| `generate_dashboard_from_spec` | Generate full dashboard from spec JSON |
-| `list_dashboards` | List dashboards |
-| `create_dashboard` | Create a new dashboard |
-| `save_chart_to_dashboard` | Save chart to dashboard |
-| `delete_chart` | Delete a chart |
-| `delete_dashboard` | Delete a dashboard |
-| `export_dashboard` | Export dashboard as self-contained HTML |
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | No | — | LLM API Key（未配置时 Agent 委托模式） |
-| `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` | LLM API Base URL |
-| `BI_MODEL` | No | `deepseek-chat` | LLM model name |
-| `CHATBI_PROJECTS_DIR` | No | `./projects` | Project data directory |
-
-### LLM Modes
-
-| Mode | Condition | Behavior |
-|------|-----------|----------|
-| **Agent Delegation** | API Key 未配置（默认） | 工具返回 `needs_llm_delegation=true` + prompt，Agent 自行推理后通过 `submit_llm_result` 提交 |
-| **Direct API** | API Key 已配置 | Server 直接调用 LLM API，跳过 Agent 往返，速度更快 |
-
-调用 `llm_status()` 可查看当前模式。
-
-## MCP Client Configuration
-
-### Claude Desktop / Trae
-
-```json
-{
-  "mcpServers": {
-    "chatbi": {
-      "command": "python",
-      "args": ["<path>/mcp_server/server.py"],
-      "env": {
-        "DEEPSEEK_API_KEY": ""
-      }
-    }
-  }
-}
-```
-
-> `DEEPSEEK_API_KEY` 留空 = Agent 委托模式（默认，无需额外 API Key）
-
-### SSE / HTTP Transport
-
-```bash
-python mcp_server/server.py --transport sse --port 8000
-```
-
-### Streamable HTTP Transport
-
-```bash
-python mcp_server/server.py --transport streamable-http --port 8000
-```
-
-## Dependencies
-
-```
-numpy>=1.24.0,<2.0.0
-pandas>=2.0.0
-openpyxl>=3.1.0
-pyyaml>=6.0
-duckdb>=0.9.0
-mcp[cli]>=1.0.0
-fastapi>=0.100.0
-uvicorn>=0.24.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-```
+- **Phase 0** (in progress): Safety net — test framework, characterization tests, engineering infrastructure
+- **Status**: All architectural decisions aligned, implementation pending

@@ -75,7 +75,6 @@ tests/e2e_*.py
 tests/compare_*.py
 tests/dump_*.py
 tests/extract_*.py
-tests/test_mcp_*.py
 tests/test_duckdb_*.py
 tests/test_full_pipeline.py
 tests/test_real_data.py
@@ -88,3 +87,6 @@ tests/dashboard_validator.py
 # Legacy/examples
 examples/
 mcp_server/test_project_system.py
+
+# Parsed external content (auto-generated)
+parsed_results/
