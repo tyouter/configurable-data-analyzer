@@ -250,13 +250,14 @@ def render_dashboard_html(
             <select id="theme-select">{''.join(options)}</select>
         </div>"""
 
+    echarts_js = _get_inline_echarts()
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_esc(dashboard_title)} - {_esc(project_name)}</title>
-<script>""" + _get_inline_echarts() + """</script>
+<script>{echarts_js}</script>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{

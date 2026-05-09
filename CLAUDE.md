@@ -64,7 +64,20 @@ When MCP tools change (add/rename/delete/modify signature), must sync:
 - Commit format: `[Phase N] brief description`
 - Rollback: `git revert`, never force-push to master
 
+## Tool Injection Interface (Phase 1+)
+
+Agent injects semantics via fine-grained tools instead of the old 6-stage pipeline:
+
+| Tool | Purpose | Agent Role |
+|------|---------|-----------|
+| `define_metric` | Register/update a single metric with SQL | Derive KPI formula → inject |
+| `register_events` | Batch register event definitions | Discover events → inject |
+| `validate_metric` | Test-execute a single metric's SQL | Verify before querying |
+| `create_project(action="build")` | Import data + create derived columns ONLY | MCP data layer |
+
 ## Current State
 
-- **Phase 0** (in progress): Safety net — test framework, characterization tests, engineering infrastructure
-- **Status**: All architectural decisions aligned, implementation pending
+- **Phase 1** (complete): Boundary cleanup — deleted file_classifier.py, reference_parser.py; added define_metric, register_events, validate_metric
+- **Phase 2** (pending): Dashboard spec persistence
+- **Phase 3** (pending): Split-Workflow standardization
+- **Phase 4** (pending): Inline ECharts (no CDN)

@@ -96,5 +96,17 @@ mcp_server/test_project_system.py
 # Parsed external content (auto-generated)
 parsed_results/
 
-# ECharts runtime cache
+# DeepSeek TUI — session data (checkpoints + prompt cache)
+.deepseek/
+sessions/
+
+# Pytest cache
+.pytest_cache/
+
+# ECharts runtime cache (downloaded at first render)
 mcp_server/.echarts_cache.js
+
+# Legacy tests for deleted modules (6-stage pipeline)
+tests/test_python_interface.py
+tests/test_cli_interface.py
+tests/test_skill_interface.py

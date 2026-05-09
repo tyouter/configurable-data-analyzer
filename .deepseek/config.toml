@@ -1,7 +1,35 @@
-# DeepSeek TUI — ChatBI 项目级配置
-# 覆盖全局 ~/.deepseek/config.toml
+# ChatBI MCP Server — DeepSeek TUI Project Configuration
+# Version: 0.1.0
 
-reasoning_effort = "max"
+[project]
+name = "ChatBI MCP Server"
+language = "python"
+description = "MCP Server for conversational BI: data import, semantic query, chart rendering, dashboard export"
 
-[projects.'\\?\D:\Hermes\projects\chatbi']
-trust_level = "trusted"
+[harness]
+# Tool execution constraints
+allow_shell = true
+allow_file_write = true
+verify_gates = true          # run test/fmt/check after every commit
+auto_commit = false          # require explicit approval for commits
+
+[git]
+autocommit = false
+autopush = false
+branch_prefix = "refactor/"
+commit_style = "conventional"   # [Phase N] description
+
+[testing]
+framework = "pytest"
+coverage_target = 80
+coverage_min_per_file = 70
+markers = ["characterization", "integration", "slow"]
+
+[conventions]
+# See CONVENTIONS.md for full downstream sync checklist
+sync_files = [
+    "skills/chatbi/SKILL.md",
+    "README.md",
+    ".trae/skills/data-analysis/SKILL.md",
+    "CLAUDE.md",
+]

@@ -456,12 +456,13 @@ async def render_chart_to_image(option: dict, width: int = 800, height: int = 50
     theme_json = json.dumps(theme_obj, ensure_ascii=False) if theme_obj else "{}"
     option_json = json.dumps(option, ensure_ascii=False)
 
+    echarts_js = _get_inline_echarts()
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
-        <script>""" + _get_inline_echarts() + """</script>
+        <script>{echarts_js}</script>
     </head>
     <body style="margin:0;background:#fff;">
         <div id="chart" style="width:{width}px;height:{height}px;"></div>
