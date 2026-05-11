@@ -352,7 +352,6 @@ def generate_dashboard_from_spec(
                 chart_type=chart_type,
                 title=chart_name,
                 metric_type=metric_type,
-                chart_hint=chart_type,
             )
 
             chart_data = {

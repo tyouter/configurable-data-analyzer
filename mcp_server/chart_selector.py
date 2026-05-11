@@ -8,6 +8,14 @@ from mcp_server.chart_renderer import suggest_chart_type
 
 logger = logging.getLogger(__name__)
 
+_KNOWN_CHART_TYPES = frozenset({
+    "line", "bar", "pie", "funnel", "scatter", "bar_line",
+    "boxplot", "ranking_bar", "area", "radar", "gauge",
+    "ring", "doughnut", "stackedBar", "stackedLine",
+    "candlestick", "heatmap", "treemap", "sankey",
+    "kpi_card", "table",
+})
+
 _CHART_SELECTION_PROMPT = """You are a data visualization expert. Given the user's intent, data shape, and available chart library capabilities, select the best chart type and provide a render specification.
 
 Available chart types (ECharts):
@@ -99,12 +107,12 @@ def resolve_chart_type(
 
     rule_based = suggest_chart_type(data, f"{title} {intent}")
 
-    if user_chart_type and not intent:
+    if user_chart_type and user_chart_type in _KNOWN_CHART_TYPES:
         return _build_spec(
             chart_type=user_chart_type,
             reasoning=f"User explicitly requested {user_chart_type}",
             alternatives=[rule_based] if rule_based != user_chart_type else [],
-            confidence=0.9,
+            confidence=0.95,
         )
 
     if use_llm and intent and llm_client.is_available():
