@@ -214,11 +214,61 @@ def _build_generic_option(chart_type: str, data: list[dict], title: str) -> dict
     return option
 
 
+def _infer_percent_y_axes(
+    chart_type: str,
+    keys: list[str],
+    data: list[dict],
+    metric_type: str,
+) -> set[int]:
+    """Return set of yAxis indices that should be formatted as percentage."""
+    percent_axes: set[int] = set()
+    y_keys = keys[1:] if len(keys) > 1 else []
+
+    if metric_type == "rate":
+        return set(range(len(y_keys))) if y_keys else {0}
+
+    rate_keywords = ("rate", "pct", "percent", "率", "占比", "比例")
+    for i, yk in enumerate(y_keys):
+        yk_lower = yk.lower()
+        if any(kw in yk_lower for kw in rate_keywords):
+            percent_axes.add(i)
+
+    if not percent_axes and y_keys and data:
+        for i, yk in enumerate(y_keys):
+            values = [row.get(yk) for row in data if row.get(yk) is not None]
+            if values and all(isinstance(v, (int, float)) and 0 < v < 1 for v in values):
+                percent_axes.add(i)
+
+    return percent_axes
+
+
+def _apply_percent_formatter(option: dict, percent_axes: set[int], chart_type: str) -> dict:
+    """Apply {value}% axisLabel formatter to the specified yAxis indices."""
+    if not percent_axes:
+        return option
+
+    if chart_type in ("bar_line",):
+        y_axis = option.get("yAxis")
+        if isinstance(y_axis, list):
+            for idx in percent_axes:
+                if idx < len(y_axis) and isinstance(y_axis[idx], dict):
+                    existing = y_axis[idx].get("axisLabel", {})
+                    y_axis[idx]["axisLabel"] = {**existing, "formatter": "{value}%"}
+    else:
+        y_axis = option.get("yAxis")
+        if isinstance(y_axis, dict):
+            existing = y_axis.get("axisLabel", {})
+            y_axis["axisLabel"] = {**existing, "formatter": "{value}%"}
+
+    return option
+
+
 def build_echarts_option(
     chart_type: str,
     data: list[dict],
     title: str,
     theme: str = DEFAULT_THEME,
+    metric_type: str = "",
 ) -> Optional[dict]:
     """
     Build ECharts option dict from query result data.
@@ -249,6 +299,10 @@ def build_echarts_option(
     if chart_type not in CHART_TEMPLATES:
         option = _build_generic_option(chart_type, data, title)
         option = _apply_theme_to_option(option, theme)
+        if data:
+            keys = list(data[0].keys())
+            percent_axes = _infer_percent_y_axes(chart_type, keys, data, metric_type)
+            option = _apply_percent_formatter(option, percent_axes, chart_type)
         return option
 
     option = copy.deepcopy(CHART_TEMPLATES[chart_type])
@@ -397,6 +451,8 @@ def build_echarts_option(
         option["series"][0]["name"] = title
 
     option = _apply_theme_to_option(option, theme)
+    percent_axes = _infer_percent_y_axes(chart_type, keys, data, metric_type)
+    option = _apply_percent_formatter(option, percent_axes, chart_type)
     return option
 
 

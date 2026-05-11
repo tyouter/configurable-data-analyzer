@@ -207,7 +207,7 @@ def render_chart(
     if effective_type == "table":
         return {"chart_type": "table", "chart_option": None, "data": data, "render_spec": render_spec}
 
-    chart_option = build_echarts_option(effective_type, data, title)
+    chart_option = build_echarts_option(effective_type, data, title, metric_type=metric_type)
     if chart_option is None:
         return {"error": f"Unsupported chart type: {effective_type}"}
 
