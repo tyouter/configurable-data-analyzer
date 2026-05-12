@@ -1,11 +1,29 @@
 ---
 name: chatbi
 description: "Conversational data analysis via ChatBI MCP: import data, inject metrics/events, query with semantics, visualize with intent-driven charts, build dashboards."
-version: 0.3.0
+version: 0.4.0
+triggers:
+  - 分析数据
+  - 数据分析
+  - 统计分析
+  - 用户分析
+  - 查询数据
+  - 分析报告
+  - 创建项目
+  - 语义查询
+  - 可视化
+  - 生成图表
+  - 渲染.*chart
+  - dashboard
+  - 看板
+  - 导出.*dashboard
+  - 展示.*看板
+  - mcp_chatbi
+  - chatbi
 metadata:
   hermes:
     tags: [data-analysis, mcp, charts, dashboard, duckdb, sql, visualization]
-    related_skills: [native-mcp]
+    related_skills: [native-mcp, qa-audit]
     mcp_server: chatbi
     tools_pattern: "mcp_chatbi_*"
 ---
@@ -130,6 +148,34 @@ mcp_chatbi_save_dashboard_as_spec(dashboard_name="KPI Dashboard")
 mcp_chatbi_validate_dashboard_spec()
 mcp_chatbi_export_dashboard(dashboard_name="KPI Dashboard")
 ```
+
+### 7. Quality Gate — Audit & Deliver
+
+After dashboard generation, invoke the `qa-audit` skill to execute the 3-layer quality audit:
+
+```
+$qa-audit
+```
+
+**Execution order aligns with the audit protocol:**
+
+```
+指标注入完成 → Layer 1 审计 (Data Integrity) → 修正
+    ↓
+写 spec → generate_dashboard_from_spec
+    ↓
+Layer 2 + 3 审计 (Computational Rigor + Visual Professionalism)
+    ├── AUTO-FIX 项直接修
+    ├── REPORT 项向用户展示确认
+    └── FLAG 项记入审计报告
+    ↓
+重新生成 → 再审计 → 通过后交付 + 审计报告
+```
+
+The audit uses existing MCP tools:
+- `review_data_issues` / `raw_sql` / `get_semantic_context` → Layer 1
+- SQL inspection via `get_semantic_context` → Layer 2
+- `export_dashboard` → inspect HTML for Layer 3
 
 ## Tool Reference (33 tools)
 
